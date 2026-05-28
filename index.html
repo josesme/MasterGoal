@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MasterGoal - Tablero</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background-color: #2e2e2e;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 0;
+      margin: 0;
+      overflow: hidden;
+    }
+    
+    .game-container {
+      width: 100%;
+      max-width: min(100vw, calc(100vh * 13/19));
+      max-height: 100vh;
+      aspect-ratio: 13/19;
+    }
+    
+    .game-container svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    
+    /* UI Panel */
+    .ui-panel {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 70%, transparent 100%);
+      padding: 15px 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      z-index: 10;
+      pointer-events: none;
+    }
+    
+    .ui-panel > * {
+      pointer-events: auto;
+    }
+    
+    .marcador {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      color: white;
+    }
+    
+    .equipo-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 28px;
+      font-weight: bold;
+    }
+    
+    .ficha-icono {
+      font-size: 24px;
+    }
+    
+    .goles {
+      font-size: 32px;
+      min-width: 30px;
+      text-align: center;
+    }
+    
+    .vs {
+      font-size: 18px;
+      opacity: 0.6;
+      font-weight: bold;
+    }
+    
+    .info-juego {
+      text-align: center;
+      color: white;
+    }
+    
+    #texto-turno {
+      font-size: 16px;
+      margin-bottom: 4px;
+    }
+    
+    #texto-fase {
+      font-size: 13px;
+      opacity: 0.8;
+      font-style: italic;
+    }
+    
+    .btn-pasar {
+      background: #4caf50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .btn-pasar:hover:not(:disabled) {
+      background: #45a049;
+    }
+    
+    .btn-pasar:disabled {
+      background: #555;
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+    
+    /* Menu Inicial */
+    .menu-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(135deg, #1a5c1a 0%, #2e7d32 50%, #1a5c1a 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+    }
+    
+    .menu-content {
+      text-align: center;
+      color: white;
+      padding: 40px;
+    }
+    
+    .menu-content h1 {
+      font-size: 48px;
+      margin-bottom: 10px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+    
+    .menu-subtitle {
+      font-size: 18px;
+      opacity: 0.8;
+      margin-bottom: 40px;
+    }
+    
+    .menu-botones {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      max-width: 300px;
+      margin: 0 auto;
+    }
+    
+    .btn-menu {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding: 20px 30px;
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      color: white;
+      text-align: left;
+    }
+    
+    .btn-menu:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    }
+    
+    .btn-vs-humano {
+      background: linear-gradient(135deg, #2196F3, #1976D2);
+    }
+    
+    .btn-vs-ia {
+      background: linear-gradient(135deg, #FF9800, #F57C00);
+    }
+    
+    .btn-icon {
+      font-size: 28px;
+    }
+    .ficha {
+      cursor: pointer;
+      transition: filter 0.2s;
+    }
+    
+    .ficha:hover {
+      filter: brightness(1.2);
+    }
+    
+    .balon {
+      cursor: pointer;
+      transition: filter 0.2s;
+    }
+    
+    .balon:hover {
+      filter: brightness(1.2);
+    }
+  </style>
+</head>
+<body>
+  <!-- Menu Inicial -->
+  <div id="menu-inicial" class="menu-overlay">
+    <div class="menu-content">
+      <h1>⚽ MasterGoal</h1>
+      <p class="menu-subtitle">El juego de mesa en digital</p>
+      <div class="menu-botones">
+        <button class="btn-menu btn-vs-humano" onclick="iniciarJuego('vsHumano')">
+          <span class="btn-icon">👤👤</span>
+          <span class="btn-text">1 vs 1 (Local)</span>
+        </button>
+        <button class="btn-menu btn-vs-ia" onclick="iniciarJuego('vsIA')">
+          <span class="btn-icon">👤🤖</span>
+          <span class="btn-text">vs Computadora</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- UI Superior -->
+  <div class="ui-panel" id="ui-panel" style="display:none;">
+    <div class="marcador">
+      <div class="equipo-info">
+        <span class="ficha-icono blanco">⚪</span>
+        <span class="goles" id="goles-blanco">0</span>
+      </div>
+      <div class="vs">VS</div>
+      <div class="equipo-info">
+        <span class="goles" id="goles-rojo">0</span>
+        <span class="ficha-icono rojo">🔴</span>
+      </div>
+    </div>
+    <div class="info-juego">
+      <div id="texto-turno">Turno de: <strong>Blanco</strong></div>
+      <div id="texto-fase">Mueve un jugador</div>
+    </div>
+    <button id="btn-pasar" class="btn-pasar" disabled>Pasar turno</button>
+  </div>
+
+  <div class="game-container" id="game-container" style="display:none;">
+    <svg viewBox="-10 -20 130 190" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+      <!-- ====== TABLERO (copia de tablero.svg) ====== -->
+      <defs>
+        <style>
+          .tablero-fondo { fill: #1a8c2f; }
+          .casilla-clara { fill: #4caf50; }
+          .casilla-oscura { fill: #388e3c; }
+          .linea-area { fill: none; stroke: #ffffff; stroke-width: 0.3; }
+          .porteria { fill: #ffffff; opacity: 0.3; }
+          .punto-amarillo { fill: #ffeb3b; opacity: 0.3; }
+          .punto-verde { fill: #90ee90; }
+          .corner { fill: #ffeb3b; opacity: 0.3; }
+        </style>
+      </defs>
+      
+      <!-- FONDO -->
+      <rect x="-10" y="-10" width="130" height="170" class="tablero-fondo"/>
+      
+      <!-- PORTERIA P1 -->
+      <path d="M 30 10 L 30 0 L 80 0 L 80 10" fill="none" stroke="#ffffff" stroke-width="1.2" stroke-linejoin="miter" stroke-miterlimit="4"/>
+      <g stroke="#ffffff" stroke-width="0.2" opacity="0.6">
+        <line x1="32" y1="0" x2="32" y2="10"/> <line x1="34" y1="0" x2="34" y2="10"/> <line x1="36" y1="0" x2="36" y2="10"/> <line x1="38" y1="0" x2="38" y2="10"/>
+        <line x1="40" y1="0" x2="40" y2="10"/> <line x1="42" y1="0" x2="42" y2="10"/> <line x1="44" y1="0" x2="44" y2="10"/> <line x1="46" y1="0" x2="46" y2="10"/>
+        <line x1="48" y1="0" x2="48" y2="10"/> <line x1="50" y1="0" x2="50" y2="10"/> <line x1="52" y1="0" x2="52" y2="10"/> <line x1="54" y1="0" x2="54" y2="10"/>
+        <line x1="56" y1="0" x2="56" y2="10"/> <line x1="58" y1="0" x2="58" y2="10"/> <line x1="60" y1="0" x2="60" y2="10"/> <line x1="62" y1="0" x2="62" y2="10"/>
+        <line x1="64" y1="0" x2="64" y2="10"/> <line x1="66" y1="0" x2="66" y2="10"/> <line x1="68" y1="0" x2="68" y2="10"/> <line x1="70" y1="0" x2="70" y2="10"/>
+        <line x1="72" y1="0" x2="72" y2="10"/> <line x1="74" y1="0" x2="74" y2="10"/> <line x1="76" y1="0" x2="76" y2="10"/> <line x1="78" y1="0" x2="78" y2="10"/>
+        <line x1="30" y1="1.25" x2="80" y2="1.25"/> <line x1="30" y1="2.5" x2="80" y2="2.5"/> <line x1="30" y1="3.75" x2="80" y2="3.75"/> <line x1="30" y1="5" x2="80" y2="5"/>
+        <line x1="30" y1="6.25" x2="80" y2="6.25"/> <line x1="30" y1="7.5" x2="80" y2="7.5"/> <line x1="30" y1="8.75" x2="80" y2="8.75"/>
+      </g>
+      
+      <!-- PORTERIA P2 -->
+      <path d="M 30 140 L 30 150 L 80 150 L 80 140" fill="none" stroke="#ffffff" stroke-width="1.2" stroke-linejoin="miter" stroke-miterlimit="4"/>
+      <g stroke="#ffffff" stroke-width="0.2" opacity="0.6">
+        <line x1="32" y1="150" x2="32" y2="140"/> <line x1="34" y1="150" x2="34" y2="140"/> <line x1="36" y1="150" x2="36" y2="140"/> <line x1="38" y1="150" x2="38" y2="140"/>
+        <line x1="40" y1="150" x2="40" y2="140"/> <line x1="42" y1="150" x2="42" y2="140"/> <line x1="44" y1="150" x2="44" y2="140"/> <line x1="46" y1="150" x2="46" y2="140"/>
+        <line x1="48" y1="150" x2="48" y2="140"/> <line x1="50" y1="150" x2="50" y2="140"/> <line x1="52" y1="150" x2="52" y2="140"/> <line x1="54" y1="150" x2="54" y2="140"/>
+        <line x1="56" y1="150" x2="56" y2="140"/> <line x1="58" y1="150" x2="58" y2="140"/> <line x1="60" y1="150" x2="60" y2="140"/> <line x1="62" y1="150" x2="62" y2="140"/>
+        <line x1="64" y1="150" x2="64" y2="140"/> <line x1="66" y1="150" x2="66" y2="140"/> <line x1="68" y1="150" x2="68" y2="140"/> <line x1="70" y1="150" x2="70" y2="140"/>
+        <line x1="72" y1="150" x2="72" y2="140"/> <line x1="74" y1="150" x2="74" y2="140"/> <line x1="76" y1="150" x2="76" y2="140"/> <line x1="78" y1="150" x2="78" y2="140"/>
+        <line x1="30" y1="148.75" x2="80" y2="148.75"/> <line x1="30" y1="147.5" x2="80" y2="147.5"/> <line x1="30" y1="146.25" x2="80" y2="146.25"/> <line x1="30" y1="145" x2="80" y2="145"/>
+        <line x1="30" y1="143.75" x2="80" y2="143.75"/> <line x1="30" y1="142.5" x2="80" y2="142.5"/> <line x1="30" y1="141.25" x2="80" y2="141.25"/>
+      </g>
+      
+      <!-- TERRENO (13 filas) -->
+      <g id="terreno">
+        <!-- Fila 1 -->
+        <rect x="0"  y="10" width="10" height="10" class="casilla-clara"/> <rect x="10" y="10" width="10" height="10" class="casilla-oscura"/>
+        <rect x="20" y="10" width="10" height="10" class="casilla-clara"/> <rect x="30" y="10" width="10" height="10" class="casilla-oscura"/>
+        <rect x="40" y="10" width="10" height="10" class="casilla-clara"/> <rect x="50" y="10" width="10" height="10" class="casilla-oscura"/>
+        <rect x="60" y="10" width="10" height="10" class="casilla-clara"/> <rect x="70" y="10" width="10" height="10" class="casilla-oscura"/>
+        <rect x="80" y="10" width="10" height="10" class="casilla-clara"/> <rect x="90" y="10" width="10" height="10" class="casilla-oscura"/>
+        <rect x="100" y="10" width="10" height="10" class="casilla-clara"/>
+        <!-- Fila 2 -->
+        <rect x="0"  y="20" width="10" height="10" class="casilla-oscura"/> <rect x="10" y="20" width="10" height="10" class="casilla-clara"/>
+        <rect x="20" y="20" width="10" height="10" class="casilla-oscura"/> <rect x="30" y="20" width="10" height="10" class="casilla-clara"/>
+        <rect x="40" y="20" width="10" height="10" class="casilla-oscura"/> <rect x="50" y="20" width="10" height="10" class="casilla-clara"/>
+        <rect x="60" y="20" width="10" height="10" class="casilla-oscura"/> <rect x="70" y="20" width="10" height="10" class="casilla-clara"/>
+        <rect x="80" y="20" width="10" height="10" class="casilla-oscura"/> <rect x="90" y="20" width="10" height="10" class="casilla-clara"/>
+        <rect x="100" y="20" width="10" height="10" class="casilla-oscura"/>
+        <!-- Fila 3 -->
+        <rect x="0"  y="30" width="10" height="10" class="casilla-clara"/> <rect x="10" y="30" width="10" height="10" class="casilla-oscura"/>
+        <rect x="20" y="30" width="10" height="10" class="casilla-clara"/> <rect x="30" y="30" width="10" height="10" class="casilla-oscura"/>
+        <rect x="40" y="30" width="10" height="10" class="casilla-clara"/> <rect x="50" y="30" width="10" height="10" class="casilla-oscura"/>
+        <rect x="60" y="30" width="10" height="10" class="casilla-clara"/> <rect x="70" y="30" width="10" height="10" class="casilla-oscura"/>
+        <rect x="80" y="30" width="10" height="10" class="casilla-clara"/> <rect x="90" y="30" width="10" height="10" class="casilla-oscura"/>
+        <rect x="100" y="30" width="10" height="10" class="casilla-clara"/>
+        <!-- Fila 4 -->
+        <rect x="0"  y="40" width="10" height="10" class="casilla-oscura"/> <rect x="10" y="40" width="10" height="10" class="casilla-clara"/>
+        <rect x="20" y="40" width="10" height="10" class="casilla-oscura"/> <rect x="30" y="40" width="10" height="10" class="casilla-clara"/>
+        <rect x="40" y="40" width="10" height="10" class="casilla-oscura"/> <rect x="50" y="40" width="10" height="10" class="casilla-clara"/>
+        <rect x="60" y="40" width="10" height="10" class="casilla-oscura"/> <rect x="70" y="40" width="10" height="10" class="casilla-clara"/>
+        <rect x="80" y="40" width="10" height="10" class="casilla-oscura"/> <rect x="90" y="40" width="10" height="10" class="casilla-clara"/>
+        <rect x="100" y="40" width="10" height="10" class="casilla-oscura"/>
+        <!-- Fila 5 -->
+        <rect x="0"  y="50" width="10" height="10" class="casilla-clara"/> <rect x="10" y="50" width="10" height="10" class="casilla-oscura"/>
+        <rect x="20" y="50" width="10" height="10" class="casilla-clara"/> <rect x="30" y="50" width="10" height="10" class="casilla-oscura"/>
+        <rect x="40" y="50" width="10" height="10" class="casilla-clara"/> <rect x="50" y="50" width="10" height="10" class="casilla-oscura"/>
+        <rect x="60" y="50" width="10" height="10" class="casilla-clara"/> <rect x="70" y="50" width="10" height="10" class="casilla-oscura"/>
+        <rect x="80" y="50" width="10" height="10" class="casilla-clara"/> <rect x="90" y="50" width="10" height="10" class="casilla-oscura"/>
+        <rect x="100" y="50" width="10" height="10" class="casilla-clara"/>
+        <!-- Fila 6 -->
+        <rect x="0"  y="60" width="10" height="10" class="casilla-oscura"/> <rect x="10" y="60" width="10" height="10" class="casilla-clara"/>
+        <rect x="20" y="60" width="10" height="10" class="casilla-oscura"/> <rect x="30" y="60" width="10" height="10" class="casilla-clara"/>
+        <rect x="40" y="60" width="10" height="10" class="casilla-oscura"/> <rect x="50" y="60" width="10" height="10" class="casilla-clara"/>
+        <rect x="60" y="60" width="10" height="10" class="casilla-oscura"/> <rect x="70" y="60" width="10" height="10" class="casilla-clara"/>
+        <rect x="80" y="60" width="10" height="10" class="casilla-oscura"/> <rect x="90" y="60" width="10" height="10" class="casilla-clara"/>
+        <rect x="100" y="60" width="10" height="10" class="casilla-oscura"/>
+        <!-- Fila 7 -->
+        <rect x="0"  y="70" width="10" height="10" class="casilla-clara"/> <rect x="10" y="70" width="10" height="10" class="casilla-oscura"/>
+        <rect x="20" y="70" width="10" height="10" class="casilla-clara"/> <rect x="30" y="70" width="10" height="10" class="casilla-oscura"/>
+        <rect x="40" y="70" width="10" height="10" class="casilla-clara"/> <rect x="50" y="70" width="10" height="10" class="casilla-oscura"/>
+        <rect x="60" y="70" width="10" height="10" class="casilla-clara"/> <rect x="70" y="70" width="10" height="10" class="casilla-oscura"/>
+        <rect x="80" y="70" width="10" height="10" class="casilla-clara"/> <rect x="90" y="70" width="10" height="10" class="casilla-oscura"/>
+        <rect x="100" y="70" width="10" height="10" class="casilla-clara"/>
+        <!-- Fila 8 -->
+        <rect x="0"  y="80" width="10" height="10" class="casilla-oscura"/> <rect x="10" y="80" width="10" height="10" class="casilla-clara"/>
+        <rect x="20" y="80" width="10" height="10" class="casilla-oscura"/> <rect x="30" y="80" width="10" height="10" class="casilla-clara"/>
+        <rect x="40" y="80" width="10" height="10" class="casilla-oscura"/> <rect x="50" y="80" width="10" height="10" class="casilla-clara"/>
+        <rect x="60" y="80" width="10" height="10" class="casilla-oscura"/> <rect x="70" y="80" width="10" height="10" class="casilla-clara"/>
+        <rect x="80" y="80" width="10" height="10" class="casilla-oscura"/> <rect x="90" y="80" width="10" height="10" class="casilla-clara"/>
+        <rect x="100" y="80" width="10" height="10" class="casilla-oscura"/>
+        <!-- Fila 9 -->
+        <rect x="0"  y="90" width="10" height="10" class="casilla-clara"/> <rect x="10" y="90" width="10" height="10" class="casilla-oscura"/>
+        <rect x="20" y="90" width="10" height="10" class="casilla-clara"/> <rect x="30" y="90" width="10" height="10" class="casilla-oscura"/>
+        <rect x="40" y="90" width="10" height="10" class="casilla-clara"/> <rect x="50" y="90" width="10" height="10" class="casilla-oscura"/>
+        <rect x="60" y="90" width="10" height="10" class="casilla-clara"/> <rect x="70" y="90" width="10" height="10" class="casilla-oscura"/>
+        <rect x="80" y="90" width="10" height="10" class="casilla-clara"/> <rect x="90" y="90" width="10" height="10" class="casilla-oscura"/>
+        <rect x="100" y="90" width="10" height="10" class="casilla-clara"/>
+        <!-- Fila 10 -->
+        <rect x="0"  y="100" width="10" height="10" class="casilla-oscura"/> <rect x="10" y="100" width="10" height="10" class="casilla-clara"/>
+        <rect x="20" y="100" width="10" height="10" class="casilla-oscura"/> <rect x="30" y="100" width="10" height="10" class="casilla-clara"/>
+        <rect x="40" y="100" width="10" height="10" class="casilla-oscura"/> <rect x="50" y="100" width="10" height="10" class="casilla-clara"/>
+        <rect x="60" y="100" width="10" height="10" class="casilla-oscura"/> <rect x="70" y="100" width="10" height="10" class="casilla-clara"/>
+        <rect x="80" y="100" width="10" height="10" class="casilla-oscura"/> <rect x="90" y="100" width="10" height="10" class="casilla-clara"/>
+        <rect x="100" y="100" width="10" height="10" class="casilla-oscura"/>
+        <!-- Fila 11 -->
+        <rect x="0"  y="110" width="10" height="10" class="casilla-clara"/> <rect x="10" y="110" width="10" height="10" class="casilla-oscura"/>
+        <rect x="20" y="110" width="10" height="10" class="casilla-clara"/> <rect x="30" y="110" width="10" height="10" class="casilla-oscura"/>
+        <rect x="40" y="110" width="10" height="10" class="casilla-clara"/> <rect x="50" y="110" width="10" height="10" class="casilla-oscura"/>
+        <rect x="60" y="110" width="10" height="10" class="casilla-clara"/> <rect x="70" y="110" width="10" height="10" class="casilla-oscura"/>
+        <rect x="80" y="110" width="10" height="10" class="casilla-clara"/> <rect x="90" y="110" width="10" height="10" class="casilla-oscura"/>
+        <rect x="100" y="110" width="10" height="10" class="casilla-clara"/>
+        <!-- Fila 12 -->
+        <rect x="0"  y="120" width="10" height="10" class="casilla-oscura"/> <rect x="10" y="120" width="10" height="10" class="casilla-clara"/>
+        <rect x="20" y="120" width="10" height="10" class="casilla-oscura"/> <rect x="30" y="120" width="10" height="10" class="casilla-clara"/>
+        <rect x="40" y="120" width="10" height="10" class="casilla-oscura"/> <rect x="50" y="120" width="10" height="10" class="casilla-clara"/>
+        <rect x="60" y="120" width="10" height="10" class="casilla-oscura"/> <rect x="70" y="120" width="10" height="10" class="casilla-clara"/>
+        <rect x="80" y="120" width="10" height="10" class="casilla-oscura"/> <rect x="90" y="120" width="10" height="10" class="casilla-clara"/>
+        <rect x="100" y="120" width="10" height="10" class="casilla-oscura"/>
+        <!-- Fila 13 -->
+        <rect x="0"  y="130" width="10" height="10" class="casilla-clara"/> <rect x="10" y="130" width="10" height="10" class="casilla-oscura"/>
+        <rect x="20" y="130" width="10" height="10" class="casilla-clara"/> <rect x="30" y="130" width="10" height="10" class="casilla-oscura"/>
+        <rect x="40" y="130" width="10" height="10" class="casilla-clara"/> <rect x="50" y="130" width="10" height="10" class="casilla-oscura"/>
+        <rect x="60" y="130" width="10" height="10" class="casilla-clara"/> <rect x="70" y="130" width="10" height="10" class="casilla-oscura"/>
+        <rect x="80" y="130" width="10" height="10" class="casilla-clara"/> <rect x="90" y="130" width="10" height="10" class="casilla-oscura"/>
+        <rect x="100" y="130" width="10" height="10" class="casilla-clara"/>
+      </g>
+      
+      <!-- AREAS -->
+      <rect x="10" y="10" width="90" height="40" class="linea-area"/>
+      <rect x="20" y="10" width="70" height="20" class="linea-area"/>
+      <rect x="10" y="100" width="90" height="40" class="linea-area"/>
+      <rect x="20" y="120" width="70" height="20" class="linea-area"/>
+      
+      <!-- LINEAS -->
+      <line x1="0" y1="75" x2="110" y2="75" stroke="#ffffff" stroke-width="0.4"/>
+      <rect x="0" y="10" width="110" height="130" fill="none" stroke="#ffffff" stroke-width="0.4" stroke-linejoin="miter" stroke-miterlimit="4"/>
+      <circle cx="55" cy="75" r="15" fill="none" stroke="#ffffff" stroke-width="0.3"/>
+      
+      <!-- PUNTOS ESPECIALES -->
+      <circle cx="55" cy="25" r="0.75" fill="#ffffff" opacity="0.3"/>
+      <circle cx="35" cy="45" r="0.75" fill="#ffffff" opacity="0.3"/>
+      <circle cx="75" cy="45" r="0.75" fill="#ffffff" opacity="0.3"/>
+      <circle cx="25" cy="65" r="0.75" fill="#ffffff" opacity="0.3"/>
+      <circle cx="85" cy="65" r="0.75" fill="#ffffff" opacity="0.3"/>
+      <circle cx="55" cy="125" r="0.75" fill="#ffffff" opacity="0.3"/>
+      <circle cx="25" cy="85" r="0.75" fill="#ffffff" opacity="0.3"/>
+      <circle cx="85" cy="85" r="0.75" fill="#ffffff" opacity="0.3"/>
+      <circle cx="35" cy="105" r="0.75" fill="#ffffff" opacity="0.3"/>
+      <circle cx="75" cy="105" r="0.75" fill="#ffffff" opacity="0.3"/>
+      <circle cx="55" cy="75" r="0.75" fill="#ffffff"/>
+      <circle cx="5" cy="15" r="0.75" class="punto-amarillo"/> <circle cx="15" cy="15" r="0.75" class="punto-amarillo"/>
+      <circle cx="25" cy="15" r="0.75" class="punto-amarillo"/> <circle cx="35" cy="15" r="0.75" class="punto-amarillo"/>
+      <circle cx="45" cy="15" r="0.75" class="punto-amarillo"/> <circle cx="55" cy="15" r="0.75" class="punto-amarillo"/>
+      <circle cx="65" cy="15" r="0.75" class="punto-amarillo"/> <circle cx="75" cy="15" r="0.75" class="punto-amarillo"/>
+      <circle cx="85" cy="15" r="0.75" class="punto-amarillo"/> <circle cx="95" cy="15" r="0.75" class="punto-amarillo"/>
+      <circle cx="105" cy="15" r="0.75" class="punto-amarillo"/>
+      <circle cx="5" cy="135" r="0.75" class="punto-amarillo"/> <circle cx="15" cy="135" r="0.75" class="punto-amarillo"/>
+      <circle cx="25" cy="135" r="0.75" class="punto-amarillo"/> <circle cx="35" cy="135" r="0.75" class="punto-amarillo"/>
+      <circle cx="45" cy="135" r="0.75" class="punto-amarillo"/> <circle cx="55" cy="135" r="0.75" class="punto-amarillo"/>
+      <circle cx="65" cy="135" r="0.75" class="punto-amarillo"/> <circle cx="75" cy="135" r="0.75" class="punto-amarillo"/>
+      <circle cx="85" cy="135" r="0.75" class="punto-amarillo"/> <circle cx="95" cy="135" r="0.75" class="punto-amarillo"/>
+      <circle cx="105" cy="135" r="0.75" class="punto-amarillo"/>
+      <circle cx="5" cy="15" r="0.75" class="corner"/> <circle cx="105" cy="15" r="0.75" class="corner"/>
+      <circle cx="5" cy="135" r="0.75" class="corner"/> <circle cx="105" cy="135" r="0.75" class="corner"/>
+      
+      <!-- ====== FICHAS ====== -->
+      <!-- Equipo Blanco (defiende P1) -->
+      <g id="equipo-blanco">
+        <!-- Portero 2-6 -->
+        <circle id="b-portero" cx="55" cy="25" r="3.5" fill="#ffffff" stroke="#333" stroke-width="0.3" class="ficha"/>
+        <!-- Jugadores -->
+        <circle id="b-j1" cx="35" cy="45" r="3.5" fill="#ffffff" stroke="#333" stroke-width="0.3" class="ficha"/>
+        <circle id="b-j2" cx="75" cy="45" r="3.5" fill="#ffffff" stroke="#333" stroke-width="0.3" class="ficha"/>
+        <circle id="b-j3" cx="25" cy="65" r="3.5" fill="#ffffff" stroke="#333" stroke-width="0.3" class="ficha"/>
+        <circle id="b-j4" cx="85" cy="65" r="3.5" fill="#ffffff" stroke="#333" stroke-width="0.3" class="ficha"/>
+      </g>
+      
+      <!-- Equipo Rojo (defiende P2) -->
+      <g id="equipo-rojo">
+        <!-- Portero 12-6 -->
+        <circle id="r-portero" cx="55" cy="125" r="3.5" fill="#d32f2f" stroke="#333" stroke-width="0.3" class="ficha"/>
+        <!-- Jugadores -->
+        <circle id="r-j1" cx="25" cy="85" r="3.5" fill="#d32f2f" stroke="#333" stroke-width="0.3" class="ficha"/>
+        <circle id="r-j2" cx="85" cy="85" r="3.5" fill="#d32f2f" stroke="#333" stroke-width="0.3" class="ficha"/>
+        <circle id="r-j3" cx="35" cy="105" r="3.5" fill="#d32f2f" stroke="#333" stroke-width="0.3" class="ficha"/>
+        <circle id="r-j4" cx="75" cy="105" r="3.5" fill="#d32f2f" stroke="#333" stroke-width="0.3" class="ficha"/>
+      </g>
+      
+      <!-- Balon 7-6 -->
+      <circle id="balon" cx="55" cy="75" r="3" fill="#ffc107" stroke="#333" stroke-width="0.3" class="balon"/>
+      
+      <!-- Capa para mostrar destinos posibles (se rellena con JS) -->
+      <g id="destinos"></g>
+    </svg>
+  </div>
+  
+  <script>
+    // ====== ESTADO DEL JUEGO ======
+    const estado = {
+      // Posiciones actuales
+      fichas: {
+        'b-portero': { fila: 2, col: 6, equipo: 'blanco' },
+        'b-j1':      { fila: 4, col: 4, equipo: 'blanco' },
+        'b-j2':      { fila: 4, col: 8, equipo: 'blanco' },
+        'b-j3':      { fila: 6, col: 3, equipo: 'blanco' },
+        'b-j4':      { fila: 6, col: 9, equipo: 'blanco' },
+        'r-portero': { fila: 12, col: 6, equipo: 'rojo' },
+        'r-j1':      { fila: 8, col: 3, equipo: 'rojo' },
+        'r-j2':      { fila: 8, col: 9, equipo: 'rojo' },
+        'r-j3':      { fila: 10, col: 4, equipo: 'rojo' },
+        'r-j4':      { fila: 10, col: 8, equipo: 'rojo' },
+        'balon':     { fila: 7, col: 6 }
+      },
+      seleccionado: null,    // ID de ficha/balon seleccionado
+      turno: 'blanco',       // blanco o rojo
+      fase: 'MOVER_JUGADOR', // MOVER_JUGADOR o MOVER_BALON
+      posesion: false,       // true si el equipo del turno tiene posesion
+      movimientosBalon: 0,   // contador para cadena de pases (max 4)
+      turnoExtra: false      // true si se gano un turno extra por casilla especial
+    };
+    
+    const POSICIONES_INICIALES = JSON.parse(JSON.stringify(estado.fichas));
+    const MARCADOR = { blanco: 0, rojo: 0 };
+    
+    const svg = document.querySelector('svg');
+    const destinosGroup = document.getElementById('destinos');
+    
+    // ====== UTILIDADES ======
+    function casillaToSVG(fila, col) {
+      return { cx: (col - 1) * 10 + 5, cy: fila * 10 + 5 };
+    }
+    
+    function esCasillaValida(f, c) {
+      return f >= 1 && f <= 13 && c >= 1 && c <= 11;
+    }
+    
+    function esPorteria(f, c) {
+      // P1: fila 0, cols 4-8  |  P2: fila 14, cols 4-8
+      return (f === 0 && c >= 4 && c <= 8) || (f === 14 && c >= 4 && c <= 8);
+    }
+    
+    function estaOcupada(f, c, exceptoId) {
+      for (const [id, d] of Object.entries(estado.fichas)) {
+        if (id === exceptoId) continue;
+        if (d.fila === f && d.col === c) return true;
+      }
+      return false;
+    }
+    
+    // Verifica si una casilla es colindante al balon (8 alrededor)
+    function esColindanteAlBalon(f, c) {
+      const b = estado.fichas.balon;
+      return Math.abs(f - b.fila) <= 1 && Math.abs(c - b.col) <= 1 && !(f === b.fila && c === b.col);
+    }
+    
+    // Cuenta jugadores colindantes al balon por equipo
+    function contarColindantes() {
+      let blanco = 0, rojo = 0;
+      for (const [id, d] of Object.entries(estado.fichas)) {
+        if (id === 'balon') continue;
+        if (esColindanteAlBalon(d.fila, d.col)) {
+          if (d.equipo === 'blanco') blanco++;
+          else rojo++;
+        }
+      }
+      return { blanco, rojo };
+    }
+    
+    // Verifica si un equipo tiene MAYORIA en casillas colindantes (posesion)
+    function equipoTienePosesion(equipo) {
+      const c = contarColindantes();
+      if (equipo === 'blanco') return c.blanco > c.rojo;
+      return c.rojo > c.blanco;
+    }
+    
+    // Verifica si la casilla del balon es neutra (igual numero de ambos equipos)
+    function esCasillaNeutra() {
+      const c = contarColindantes();
+      return c.blanco === c.rojo;
+    }
+    
+    // Obtiene los IDs de los jugadores de un equipo colindantes al balon en una posicion dada
+    function obtenerColindantesEquipo(balonF, balonC, equipo) {
+      const colindantes = [];
+      for (const [id, d] of Object.entries(estado.fichas)) {
+        if (id === 'balon') continue;
+        if (d.equipo === equipo && Math.abs(d.fila - balonF) <= 1 && Math.abs(d.col - balonC) <= 1 && !(d.fila === balonF && d.col === balonC)) {
+          colindantes.push(id);
+        }
+      }
+      return colindantes;
+    }
+    
+    // Verifica si un movimiento de balon es autopase
+    // Segun el manual: "El Jugador no puede hacer un autopase, es decir, no puede pasar 
+    // el Balon de una casilla que le pertenece en exclusividad a otra casilla concerniente 
+    // a la suya" (es decir, el mismo jugador sigue siendo el unico colindante)
+    function esAutopase(filaDest, colDest) {
+      const equipo = estado.turno;
+      // Jugadores colindantes en posicion ACTUAL
+      const actuales = obtenerColindantesEquipo(estado.fichas.balon.fila, estado.fichas.balon.col, equipo);
+      
+      // Jugadores colindantes en posicion DESTINO
+      const destino = obtenerColindantesEquipo(filaDest, colDest, equipo);
+      
+      // Autopase: el mismo unico jugador es colindante tanto en origen como en destino
+      if (actuales.length === 1 && destino.length === 1 && actuales[0] === destino[0]) {
+        return true;
+      }
+      return false;
+    }
+    
+    // ====== DESTINOS JUGADOR (1-2 casillas, 8 dirs, NO salta) ======
+    // Regla: Ningun Jugador puede colocarse en las casillas laterales del Portero (brazos)
+    // Pero SI pueden pasar por ellas
+    function obtenerDestinosJugador(f, c) {
+      const dest = [];
+      const dirs = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+      for (const [df, dc] of dirs) {
+        // Distancia 1
+        let f1 = f + df, c1 = c + dc;
+        if (esCasillaValida(f1, c1) && !esBrazoPorteroRival(f1, c1)) {
+          dest.push({fila: f1, col: c1});
+        }
+        
+        // Distancia 2
+        let f2 = f + df*2, c2 = c + dc*2;
+        // La casilla intermedia (f1,c1) puede ser brazo del portero (se puede pasar)
+        // pero la casilla final (f2,c2) NO puede ser brazo del portero (no se puede colocar)
+        if (esCasillaValida(f2, c2) && !estaOcupada(f1, c1, null) && !esBrazoPorteroRival(f2, c2)) {
+          dest.push({fila: f2, col: c2});
+        }
+      }
+      return dest;
+    }
+    
+    // Obtiene las casillas ocupadas por el portero y sus brazos
+    // Segun regla 6: si un brazo esta fuera del area grande, solo el brazo dentro es valido
+    function obtenerCasillasPortero(porteroId) {
+      const portero = estado.fichas[porteroId];
+      const esBlanco = porteroId === 'b-portero';
+      
+      // Casilla del portero siempre
+      const casillas = [{ fila: portero.fila, col: portero.col, tipo: 'portero' }];
+      
+      // Brazos: casillas laterales al portero
+      // Brazo izquierdo
+      const brazoIzq = { fila: portero.fila, col: portero.col - 1, tipo: 'brazo' };
+      // Brazo derecho
+      const brazoDer = { fila: portero.fila, col: portero.col + 1, tipo: 'brazo' };
+      
+      // Verificar si los brazos estan dentro del area grande (regla 6)
+      const enAreaGrande = (f, c) => {
+        if (esBlanco) {
+          return f >= 1 && f <= 4 && c >= 2 && c <= 10;
+        } else {
+          return f >= 10 && f <= 13 && c >= 2 && c <= 10;
+        }
+      };
+      
+      if (enAreaGrande(brazoIzq.fila, brazoIzq.col)) {
+        casillas.push(brazoIzq);
+      }
+      if (enAreaGrande(brazoDer.fila, brazoDer.col)) {
+        casillas.push(brazoDer);
+      }
+      
+      return casillas;
+    }
+    
+    // Verifica si el balon saltaria por encima del portero contrario o sus brazos
+    // Regla: "El Portero y las dos casillas laterales que indican sus brazos nunca pueden ser atravesadas por el Balon"
+    // EXCEPCION: El balon SI puede pasar por los brazos del PROPIO portero (pase interno)
+    function saltaPorteroContrario(fOrigen, cOrigen, fDest, cDest) {
+      const equipo = estado.turno;
+      const rival = equipo === 'blanco' ? 'rojo' : 'blanco';
+      const idPorteroRival = rival === 'blanco' ? 'b-portero' : 'r-portero';
+      
+      // Obtener casillas ocupadas por portero rival y sus brazos validos
+      const casillasPortero = obtenerCasillasPortero(idPorteroRival);
+      
+      // Verificar si alguna casilla del portero rival esta en la linea del movimiento
+      const df = Math.sign(fDest - fOrigen);
+      const dc = Math.sign(cDest - cOrigen);
+      
+      let cf = fOrigen + df;
+      let cc = cOrigen + dc;
+      
+      while (cf !== fDest || cc !== cDest) {
+        for (const casilla of casillasPortero) {
+          if (cf === casilla.fila && cc === casilla.col) {
+            return true; // El balon atravesaria al portero rival o sus brazos
+          }
+        }
+        cf += df;
+        cc += dc;
+      }
+      
+      return false;
+    }
+    
+    // Verifica si una casilla es un brazo del portero rival (para restringir movimiento de jugadores)
+    // Regla: "Ningun Jugador puede colocarse en las casillas laterales del Portero"
+    function esBrazoPorteroRival(f, c) {
+      const equipo = estado.turno;
+      const rival = equipo === 'blanco' ? 'rojo' : 'blanco';
+      const idPorteroRival = rival === 'blanco' ? 'b-portero' : 'r-portero';
+      const portero = estado.fichas[idPorteroRival];
+      
+      // Verificar si es uno de los brazos del portero rival
+      const esBrazoIzq = (f === portero.fila && c === portero.col - 1);
+      const esBrazoDer = (f === portero.fila && c === portero.col + 1);
+      
+      if (!esBrazoIzq && !esBrazoDer) return false;
+      
+      // Verificar que el brazo este dentro del area grande (regla 6)
+      const esBlanco = rival === 'blanco';
+      const enAreaGrande = esBlanco
+        ? (f >= 1 && f <= 4 && c >= 2 && c <= 10)
+        : (f >= 10 && f <= 13 && c >= 2 && c <= 10);
+      
+      return enAreaGrande;
+    }
+    
+    // ====== DESTINOS BALON (1-4 casillas, linea recta, salta jugadores) ======
+    // El balon puede saltar jugadores en el camino pero NO puede terminar en casilla ocupada
+    // En el 4to movimiento: debe quedar fuera de areas propias y en casilla neutra
+    function obtenerDestinosBalon(f, c) {
+      let dest = [];
+      const dirs = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+      for (const [df, dc] of dirs) {
+        for (let dist = 1; dist <= 4; dist++) {
+          let nf = f + df*dist, nc = c + dc*dist;
+          // Solo puede entrar en porteria (fila 0 o 14), no en otras fuera del terreno
+          if (esCasillaValida(nf, nc) || esPorteria(nf, nc)) {
+            // No puede terminar en casilla ocupada por ninguna ficha
+            if (!estaOcupada(nf, nc, 'balon')) {
+              dest.push({fila: nf, col: nc, dist});
+            }
+          } else {
+            break; // fuera de tablero, detener en esta direccion
+          }
+        }
+      }
+      
+      // Filtrar saltos sobre portero contrario en area grande
+      dest = dest.filter(d => !saltaPorteroContrario(f, c, d.fila, d.col));
+      
+      // Filtrar autopase (siempre, no solo en 4to movimiento)
+      const antes = dest.length;
+      dest = dest.filter(d => {
+        const auto = esAutopase(d.fila, d.col);
+        if (auto) console.log('Filtrado autopase:', d.fila, d.col);
+        return !auto;
+      });
+      if (antes !== dest.length) console.log('Autopases filtrados:', antes - dest.length);
+      
+      // Filtrar destinos donde el rival obtenga posesion (no permitido)
+      const balonOriginal2 = { ...estado.fichas.balon };
+      dest = dest.filter(d => {
+        if (esPorteria(d.fila, d.col)) return true;
+        estado.fichas.balon.fila = d.fila;
+        estado.fichas.balon.col = d.col;
+        const siguePosesion = equipoTienePosesion(estado.turno);
+        const neutra = esCasillaNeutra();
+        estado.fichas.balon.fila = balonOriginal2.fila;
+        estado.fichas.balon.col = balonOriginal2.col;
+        return siguePosesion || neutra;
+      });
+
+      // Si es el 4to movimiento, filtrar: fuera de areas propias y neutra
+      if (estado.movimientosBalon === 3) {
+        return dest.filter(d => esDestinoValidoCuartoMovimiento(d.fila, d.col));
+      }
+
+      return dest;
+    }
+    
+    // Valida que el destino del 4to movimiento sea correcto (regla oficial)
+    function esDestinoValidoCuartoMovimiento(f, c) {
+      // 1. No puede ser gol (eso se maneja aparte)
+      if (esPorteria(f, c)) return true; // Gol es siempre válido
+      
+      // 2. Fuera de areas propias
+      if (estado.turno === 'blanco') {
+        if (f <= 4) return false; // Area blanca (filas 1-4)
+      } else {
+        if (f >= 10) return false; // Area roja (filas 10-13)
+      }
+      
+      // 3. Debe quedar en casilla neutra (igual numero de colindantes de ambos equipos)
+      // Para validar esto, simulamos el balon en esa posicion temporalmente
+      const balonOriginal = { ...estado.fichas.balon };
+      estado.fichas.balon.fila = f;
+      estado.fichas.balon.col = c;
+      const neutra = esCasillaNeutra();
+      estado.fichas.balon.fila = balonOriginal.fila;
+      estado.fichas.balon.col = balonOriginal.col;
+      
+      return neutra;
+    }
+    
+    // ====== SELECCION ======
+    function seleccionar(id) {
+      limpiarSeleccion();
+      estado.seleccionado = id;
+      const el = document.getElementById(id);
+      el.setAttribute('stroke', '#ffd700');
+      el.setAttribute('stroke-width', '1');
+      
+      const d = estado.fichas[id];
+      let destinos;
+      
+      if (id === 'balon') {
+        destinos = obtenerDestinosBalon(d.fila, d.col);
+      } else {
+        destinos = obtenerDestinosJugador(d.fila, d.col);
+        destinos = destinos.filter(x => !estaOcupada(x.fila, x.col, id));
+      }
+      
+      renderDestinos(destinos);
+    }
+    
+    function limpiarSeleccion() {
+      estado.seleccionado = null;
+      document.querySelectorAll('.ficha, .balon').forEach(el => {
+        el.setAttribute('stroke', '#333');
+        el.setAttribute('stroke-width', '0.3');
+      });
+      destinosGroup.innerHTML = '';
+    }
+    
+    // ====== RENDER DESTINOS ======
+    function renderDestinos(destinos) {
+      destinosGroup.innerHTML = '';
+      for (const d of destinos) {
+        const coords = casillaToSVG(d.fila, d.col);
+        const circ = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circ.setAttribute('cx', coords.cx);
+        circ.setAttribute('cy', coords.cy);
+        circ.setAttribute('r', '4');
+        circ.setAttribute('fill', estado.seleccionado === 'balon' ? '#ff9800' : '#00bcd4');
+        circ.setAttribute('opacity', '0.5');
+        circ.setAttribute('cursor', 'pointer');
+        circ.addEventListener('click', (e) => {
+          e.stopPropagation();
+          mover(estado.seleccionado, d.fila, d.col);
+        });
+        destinosGroup.appendChild(circ);
+      }
+    }
+    
+    // ====== MOVER ======
+    // Retorna true si el movimiento se ejecuto, false si fue invalido
+    function mover(id, fDest, cDest) {
+      // Validar autopase al mover el balon
+      if (id === 'balon' && esAutopase(fDest, cDest)) {
+        console.log('AUTOPASE INVALIDO: No puedes pasar el balon a una casilla donde el mismo jugador siga siendo el unico colindante.');
+        return false;
+      }
+      
+      const el = document.getElementById(id);
+      const coords = casillaToSVG(fDest, cDest);
+      el.setAttribute('cx', coords.cx);
+      el.setAttribute('cy', coords.cy);
+      
+      estado.fichas[id].fila = fDest;
+      estado.fichas[id].col = cDest;
+      
+      limpiarSeleccion();
+      
+      if (id === 'balon') {
+        estado.movimientosBalon++;
+        verificarGol();
+        
+        // Si es el 4to movimiento y no fue gol, verificar que quedo en posicion valida
+        if (estado.movimientosBalon >= 4) {
+          if (!esDestinoValidoCuartoMovimiento(fDest, cDest)) {
+            console.log('El 4to movimiento debe quedar fuera de tu area y en casilla neutra. Turno perdido.');
+            // Penalizacion: pierde turno (podria ser mas severa segun variantes)
+            pasarTurno();
+            return true;
+          }
+        }
+        
+        // Verificar casilla especial (turno extra)
+        verificarCasillaEspecial();
+        
+        // Verificar si el equipo sigue teniendo posesion tras mover el balon
+        if (!equipoTienePosesion(estado.turno)) {
+          if (esCasillaNeutra()) {
+            console.log('El balon quedo en casilla neutra. Fin del turno.');
+          } else {
+            console.log('El balon quedo en posesion del rival. Turno perdido.');
+          }
+          pasarTurno();
+          return true;
+        }
+        
+        actualizarUI();
+        // Seguir moviendo balon hasta max 4 o que el usuario pase turno
+        if (estado.movimientosBalon >= 4) {
+          pasarTurno();
+        }
+      } else {
+        // Movio jugador - verificar posesion (requiere MAYORIA en casillas colindantes)
+        if (equipoTienePosesion(estado.turno)) {
+          estado.posesion = true;
+          estado.fase = 'MOVER_BALON';
+          actualizarUI();
+          console.log('POSESION! Mayoria conseguida. Debes mover el balon.');
+        } else {
+          console.log('Sin posesion (casilla neutra o minoria). Fin del turno.');
+          pasarTurno();
+        }
+      }
+      return true;
+    }
+    
+    // ====== VERIFICAR GOL ======
+    // Quien marca gol, saca primero en el siguiente turno
+    function verificarGol() {
+      const b = estado.fichas.balon;
+      if (b.fila === 0) {
+        // Gol de rojo (metio en P1)
+        MARCADOR.rojo++;
+        console.log('GOOOOL de ROJO! Marcador:', MARCADOR.blanco, '-', MARCADOR.rojo);
+        recolocar('rojo'); // El que marco gol saca primero
+      } else if (b.fila === 14) {
+        // Gol de blanco (metio en P2)
+        MARCADOR.blanco++;
+        console.log('GOOOOL de BLANCO! Marcador:', MARCADOR.blanco, '-', MARCADOR.rojo);
+        recolocar('blanco'); // El que marco gol saca primero
+      }
+    }
+    
+    // ====== CASILLAS ESPECIALES ======
+    // Casillas amarillas: fila 13 cols 1-11 (para blanco), fila 1 cols 1-11 (para rojo)
+    // Si un equipo coloca el balon en su casilla especial, gana un turno extra
+    // Nota: Si un jugador/portero esta en la casilla, pierde su condicion de especial
+    function esCasillaEspecial(f, c, equipo) {
+      // Verificar si hay algun jugador/portero en esa casilla (pierde condicion)
+      for (const [id, d] of Object.entries(estado.fichas)) {
+        if (id === 'balon') continue;
+        if (d.fila === f && d.col === c) return false; // Ocupada, no es especial
+      }
+
+      if (equipo === 'blanco') {
+        return f === 13 && c >= 1 && c <= 11;
+      } else {
+        return f === 1 && c >= 1 && c <= 11;
+      }
+    }
+    
+    // Verifica si el balon termino en casilla especial y otorga turno extra
+    function verificarCasillaEspecial() {
+      const b = estado.fichas.balon;
+      const equipo = estado.turno;
+      
+      console.log('DEBUG verificarCasillaEspecial:', 'balon en', b.fila, b.col, 'equipo', equipo);
+      console.log('DEBUG esCasillaEspecial:', esCasillaEspecial(b.fila, b.col, equipo));
+      
+      if (esCasillaEspecial(b.fila, b.col, equipo)) {
+        console.log('CASILLA ESPECIAL! Turno extra para', equipo);
+        estado.turnoExtra = true;
+        actualizarUI();
+        return true;
+      }
+      return false;
+    }
+    
+    // ====== SISTEMA DE TURNOS ======
+    // Cuando un equipo mueve jugador:
+    // 1. Si queda colindante al balon -> obtiene posesion, fase = MOVER_BALON
+    // 2. Si no queda colindante -> pierde turno automaticamente
+    // Cuando tiene posesion y mueve balon:
+    // 1. Si tras mover el balon, sigue teniendo un jugador colindante -> puede seguir
+    // 2. Si tras mover el balon, NO tiene jugador colindante -> pierde turno automaticamente
+    // 3. Si agota 4 movimientos -> pierde turno automaticamente
+    // 4. Si hace click en "Pasar turno" -> pierde turno manualmente
+    
+    // ====== ACTUALIZAR UI ======
+    function actualizarUI() {
+      document.getElementById('goles-blanco').textContent = MARCADOR.blanco;
+      document.getElementById('goles-rojo').textContent = MARCADOR.rojo;
+      
+      let turnoTexto = 'Turno de: <strong>' + (estado.turno === 'blanco' ? 'Blanco' : 'Rojo') + '</strong>';
+      if (estado.turnoExtra) {
+        turnoTexto += ' <span style="color: #ffd700;">(TURNO EXTRA!)</span>';
+      }
+      document.getElementById('texto-turno').innerHTML = turnoTexto;
+      
+      let faseTexto = '';
+      if (estado.fase === 'MOVER_JUGADOR') {
+        faseTexto = 'Mueve un jugador';
+      } else if (estado.fase === 'MOVER_BALON') {
+        faseTexto = 'Tienes el balón. Mueve el balón (' + estado.movimientosBalon + '/4)';
+      }
+      document.getElementById('texto-fase').textContent = faseTexto;
+      
+      // Botón pasar turno: solo activo cuando tienes el balón y está en casilla neutra
+      const btn = document.getElementById('btn-pasar');
+      btn.disabled = !(estado.fase === 'MOVER_BALON' && esCasillaNeutra());
+    }
+    
+    // ====== RECOLOCAR ======
+    function recolocar(saca) {
+      estado.fichas = JSON.parse(JSON.stringify(POSICIONES_INICIALES));
+      estado.turno = saca;
+      estado.fase = 'MOVER_JUGADOR';
+      estado.posesion = false;
+      estado.movimientosBalon = 0;
+      estado.turnoExtra = false;
+      
+      // Actualizar visual
+      for (const [id, d] of Object.entries(estado.fichas)) {
+        const el = document.getElementById(id);
+        const coords = casillaToSVG(d.fila, d.col);
+        el.setAttribute('cx', coords.cx);
+        el.setAttribute('cy', coords.cy);
+      }
+      
+      actualizarUI();
+      console.log('Recolocadas fichas. Saca:', saca);
+    }
+    
+    // ====== PASAR TURNO ======
+    function pasarTurno() {
+      console.log('DEBUG pasarTurno: turnoExtra =', estado.turnoExtra, 'turno =', estado.turno);
+
+      // Validacion defensiva: nunca pasar turno si el balon tiene posesion del equipo actual
+      if (estado.fase === 'MOVER_BALON' && equipoTienePosesion(estado.turno)) {
+        console.log('ERROR: No se puede pasar turno con posesion del balon.');
+        return;
+      }
+
+      // Si hay turno extra, el mismo equipo juega de nuevo
+      if (estado.turnoExtra) {
+        console.log('TURNO EXTRA! El mismo equipo juega de nuevo.');
+        estado.turnoExtra = false;
+        estado.fase = 'MOVER_JUGADOR';
+        estado.posesion = false;
+        estado.movimientosBalon = 0;
+        actualizarUI();
+        
+        // Si es turno de la IA, ejecutarla
+        if (estado.turno === 'rojo' && estado.modo === 'vsIA') {
+          ejecutarTurnoIA();
+        }
+        return;
+      }
+      
+      estado.turno = estado.turno === 'blanco' ? 'rojo' : 'blanco';
+      estado.fase = 'MOVER_JUGADOR';
+      estado.posesion = false;
+      estado.movimientosBalon = 0;
+      actualizarUI();
+      console.log('Turno de:', estado.turno);
+      
+      // Si es turno de la IA, ejecutarla
+      if (estado.turno === 'rojo' && estado.modo === 'vsIA') {
+        ejecutarTurnoIA();
+      }
+    }
+    
+    // ====== EVENTOS ======
+    document.querySelectorAll('.ficha').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = e.target.id;
+        const equipo = estado.fichas[id].equipo;
+        
+        // En fase MOVER_JUGADOR solo fichas del equipo del turno
+        if (estado.fase === 'MOVER_JUGADOR') {
+          if (equipo !== estado.turno) { console.log('No es tu turno'); return; }
+          if (estado.seleccionado === id) limpiarSeleccion();
+          else seleccionar(id);
+        }
+      });
+    });
+    
+    document.getElementById('balon').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (estado.fase === 'MOVER_BALON' && estado.posesion) {
+        if (estado.seleccionado === 'balon') limpiarSeleccion();
+        else seleccionar('balon');
+      } else {
+        console.log('No tienes posesion del balon');
+      }
+    });
+    
+    // Botón pasar turno
+    document.getElementById('btn-pasar').addEventListener('click', () => {
+      if (estado.fase === 'MOVER_BALON') {
+        if (!esCasillaNeutra()) {
+          console.log('No puedes pasar turno. El balon debe quedar sin posesion (casilla neutra).');
+          return;
+        }
+        pasarTurno();
+      }
+    });
+    
+    // Doble click en tablero = pasar turno (cuando no hay seleccion)
+    svg.addEventListener('dblclick', () => {
+      if (!estado.seleccionado && estado.fase === 'MOVER_BALON') {
+        if (!esCasillaNeutra()) {
+          console.log('No puedes pasar turno. El balon debe quedar sin posesion (casilla neutra).');
+          return;
+        }
+        pasarTurno();
+      }
+    });
+    
+    svg.addEventListener('click', () => {
+      if (estado.seleccionado) limpiarSeleccion();
+    });
+    
+    // ====== IA (Juega como Rojo) ======
+    function ejecutarTurnoIA() {
+      if (estado.turno !== 'rojo' || estado.modo !== 'vsIA') return;
+      
+      // Pequeña pausa para que el jugador humano vea
+      setTimeout(() => {
+        if (estado.fase === 'MOVER_JUGADOR') {
+          iaMoverJugador();
+        } else if (estado.fase === 'MOVER_BALON') {
+          iaMoverBalon();
+        }
+      }, 600);
+    }
+    
+    function iaMoverJugador() {
+      const piezasIA = Object.entries(estado.fichas)
+        .filter(([id, d]) => d.equipo === 'rojo')
+        .map(([id, d]) => ({ id, ...d }));
+      
+      let mejoresMovimientos = [];
+      
+      for (const pieza of piezasIA) {
+        const destinos = obtenerDestinosJugador(pieza.fila, pieza.col)
+          .filter(d => !estaOcupada(d.fila, d.col, pieza.id));
+        
+        for (const dest of destinos) {
+          let score = 0;
+          
+          // Simular posesion tras este movimiento
+          const oldF = estado.fichas[pieza.id].fila;
+          const oldC = estado.fichas[pieza.id].col;
+          estado.fichas[pieza.id].fila = dest.fila;
+          estado.fichas[pieza.id].col = dest.col;
+          const tendraPosesion = equipoTienePosesion('rojo');
+          estado.fichas[pieza.id].fila = oldF;
+          estado.fichas[pieza.id].col = oldC;
+          
+          if (tendraPosesion) {
+            score += 1000;
+            // Evaluar calidad de la posesion (cerca de la porteria rival P1 = fila 0)
+            score += (14 - dest.fila) * 20; // Mas cerca de P1 = mejor
+          } else {
+            // Acercarse al balon
+            const distActual = Math.abs(pieza.fila - estado.fichas.balon.fila) + Math.abs(pieza.col - estado.fichas.balon.col);
+            const distNueva = Math.abs(dest.fila - estado.fichas.balon.fila) + Math.abs(dest.col - estado.fichas.balon.col);
+            if (distNueva < distActual) score += (distActual - distNueva) * 30;
+          }
+          
+          mejoresMovimientos.push({ piezaId: pieza.id, dest, score });
+        }
+      }
+      
+      mejoresMovimientos.sort((a, b) => b.score - a.score);
+      
+      if (mejoresMovimientos.length > 0) {
+        const mejor = mejoresMovimientos[0];
+        const exito = mover(mejor.piezaId, mejor.dest.fila, mejor.dest.col);
+        
+        if (exito && estado.fase === 'MOVER_BALON' && estado.modo === 'vsIA') {
+          ejecutarTurnoIA();
+        }
+      } else {
+        pasarTurno();
+      }
+    }
+    
+    function iaMoverBalon() {
+      console.log('IA: Moviendo balon. Pos actual:', estado.fichas.balon.fila, estado.fichas.balon.col, 'Movimiento:', estado.movimientosBalon + 1, '/4');
+      let destinos = obtenerDestinosBalon(estado.fichas.balon.fila, estado.fichas.balon.col);
+      console.log('IA: Destinos disponibles:', destinos.length);
+
+      if (destinos.length === 0) {
+        console.log('IA: No hay destinos validos para el balon');
+        pasarTurno();
+        return;
+      }
+
+      let mejores = [];
+
+      for (const dest of destinos) {
+        let score = 0;
+
+        // GOOOOL!
+        if (dest.fila === 0) {
+          score += 100000;
+        }
+
+        // Casilla especial (amarilla) - turno extra
+        if (esCasillaEspecial(dest.fila, dest.col, 'rojo')) {
+          score += 5000;
+        }
+
+        // Distancia a porteria rival (fila 0)
+        score += (14 - dest.fila) * 100;
+
+        // Evaluar estado tras mover
+        const oldBF = estado.fichas.balon.fila;
+        const oldBC = estado.fichas.balon.col;
+        estado.fichas.balon.fila = dest.fila;
+        estado.fichas.balon.col = dest.col;
+        const siguePosesion = equipoTienePosesion('rojo');
+        const neutra = esCasillaNeutra();
+        estado.fichas.balon.fila = oldBF;
+        estado.fichas.balon.col = oldBC;
+
+        if (siguePosesion) {
+          score += 200; // Puede continuar la cadena de pases
+        } else if (neutra) {
+          score += 50; // Terminar jugada validamente
+        }
+
+        mejores.push({ dest, score });
+      }
+
+      mejores.sort((a, b) => b.score - a.score);
+
+      if (mejores.length > 0) {
+        const exito = mover('balon', mejores[0].dest.fila, mejores[0].dest.col);
+
+        if (exito && estado.fase === 'MOVER_BALON' && estado.movimientosBalon < 4 && estado.modo === 'vsIA') {
+          ejecutarTurnoIA();
+        }
+      } else {
+        pasarTurno();
+      }
+    }
+    
+    // ====== MENU INICIAL ======
+    window.iniciarJuego = function(modo) {
+      estado.modo = modo;
+      document.getElementById('menu-inicial').style.display = 'none';
+      document.getElementById('game-container').style.display = 'block';
+      document.getElementById('ui-panel').style.display = 'flex';
+      actualizarUI();
+      
+      if (estado.turno === 'rojo' && estado.modo === 'vsIA') {
+        ejecutarTurnoIA();
+      }
+    };
+    
+    // Inicializar UI (pero oculto hasta que elija modo)
+    actualizarUI();
+  </script>
+</body>
+</html>

@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MasterGoal - Tablero Responsivo</title>
+  <style>
+    /* ======================================== */
+    /* ESTILOS RESPONSIVE PARA MÚLTIPLES RESOLUCIONES */
+    /* ======================================== */
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: #ffffff;
+    }
+    
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+    
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    header h1 {
+      font-size: clamp(1.5rem, 4vw, 2.5rem);
+      margin-bottom: 10px;
+      color: #ffeb3b;
+    }
+    
+    header p {
+      font-size: clamp(0.9rem, 2vw, 1.1rem);
+      opacity: 0.8;
+    }
+    
+    /* ======================================== */
+    /* TABLERO SVG RESPONSIVE */
+    /* ======================================== */
+    
+    .tablero-container {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 40px;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 16px;
+      backdrop-filter: blur(10px);
+    }
+    
+    .tablero-svg {
+      /* Clave para escalado perfecto */
+      width: 100%;
+      max-width: min(90vw, 90vh * 1.36); /* Mantiene aspect ratio 15:11 */
+      height: auto;
+      aspect-ratio: 15/11;
+      
+      /* Sombra para profundidad */
+      filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.5));
+      
+      /* Transición suave al redimensionar */
+      transition: transform 0.3s ease;
+    }
+    
+    .tablero-svg:hover {
+      transform: scale(1.02);
+    }
+    
+    /* ======================================== */
+    /* INFO DE RESOLUCIÓN */
+    /* ======================================== */
+    
+    .resolucion-info {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+    
+    .resolucion-card {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 20px;
+      border-radius: 12px;
+      border-left: 4px solid #4caf50;
+    }
+    
+    .resolucion-card h3 {
+      font-size: 1.1rem;
+      margin-bottom: 10px;
+      color: #ffeb3b;
+    }
+    
+    .resolucion-card p {
+      font-size: 0.9rem;
+      opacity: 0.9;
+      line-height: 1.6;
+    }
+    
+    .resolucion-card code {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+    }
+    
+    /* ======================================== */
+    /* BREAKPOINTS ESPECÍFICOS PARA TESTING */
+    /* ======================================== */
+    
+    /* 2K (2560x1440) */
+    @media (min-width: 2000px) {
+      .tablero-svg {
+        max-width: 1800px;
+      }
+    }
+    
+    /* 1080p (1920x1080) */
+    @media (max-width: 1999px) and (min-width: 1400px) {
+      .tablero-svg {
+        max-width: 1400px;
+      }
+    }
+    
+    /* 1366x768 (portátil común) */
+    @media (max-width: 1399px) and (min-width: 1200px) {
+      .tablero-svg {
+        max-width: 1000px;
+      }
+    }
+    
+    /* Tablets (768x1024) */
+    @media (max-width: 1199px) and (min-width: 768px) {
+      .tablero-svg {
+        max-width: 700px;
+      }
+    }
+    
+    /* Móviles grandes */
+    @media (max-width: 767px) {
+      body {
+        padding: 10px;
+      }
+      
+      .tablero-container {
+        padding: 10px;
+      }
+      
+      .tablero-svg {
+        max-width: 100vw;
+      }
+    }
+    
+    /* Móviles pequeños */
+    @media (max-width: 480px) {
+      .resolucion-info {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    /* ======================================== */
+    /* ANIMACIONES DE FICHAS (DEMO) */
+    /* ======================================== */
+    
+    .ficha-blanca, .ficha-roja, .balon {
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .ficha-blanca:hover, .ficha-roja:hover {
+      filter: brightness(1.2);
+      transform: scale(1.2);
+    }
+    
+    .balon:hover {
+      filter: brightness(1.3);
+      transform: scale(1.3);
+    }
+    
+    /* ======================================== */
+    /* LEYENDA */
+    /* ======================================== */
+    
+    .leyenda {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 20px;
+      border-radius: 12px;
+      margin-top: 30px;
+    }
+    
+    .leyenda h3 {
+      margin-bottom: 15px;
+      color: #ffeb3b;
+    }
+    
+    .leyenda-items {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 10px;
+    }
+    
+    .leyenda-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.9rem;
+    }
+    
+    .leyenda-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    
+    .icon-blanco { background: #ffffff; border: 2px solid #333; }
+    .icon-rojo { background: #d32f2f; border: 2px solid #333; }
+    .icon-balon { background: #ffc107; border: 2px solid #333; }
+    .icon-area { background: transparent; border: 2px solid #ffeb3b; }
+    .icon-corner { background: #ffeb3b; opacity: 0.5; }
+    
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🏆 MasterGoal</h1>
+      <p>Tablero Responsivo - Escalado Perfecto para Múltiples Resoluciones</p>
+    </header>
+    
+    <!-- TABLERO SVG -->
+    <div class="tablero-container">
+      <svg 
+        viewBox="0 0 165 110" 
+        preserveAspectRatio="xMidYMid meet"
+        class="tablero-svg"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <!-- El contenido completo está en /assets/tablero.svg -->
+        <!-- Este es un placeholder - en producción usarías: -->
+        <!-- <use href="/assets/tablero.svg#tablero-completo"></use> -->
+        
+        <!-- Fondo -->
+        <rect width="165" height="110" fill="#1a8c2f"/>
+        
+        <!-- Porterías -->
+        <rect x="66" y="0" width="55" height="10" fill="#ffffff" opacity="0.3"/>
+        <rect x="66" y="100" width="55" height="10" fill="#ffffff" opacity="0.3"/>
+        
+        <!-- Cuadrícula simplificada (demo) -->
+        <g id="demo-grid">
+          <!-- Se cargaría desde tablero.svg -->
+          <text x="82.5" y="60" text-anchor="middle" font-size="5" fill="#ffffff">
+            Tablero SVG Completo
+          </text>
+          <text x="82.5" y="68" text-anchor="middle" font-size="3" fill="#ffffff">
+            Ver /assets/tablero.svg
+          </text>
+        </g>
+      </svg>
+    </div>
+    
+    <!-- INFO DE RESOLUCIONES -->
+    <div class="resolucion-info">
+      <div class="resolucion-card">
+        <h3>📺 2K (2560×1440)</h3>
+        <p>
+          <code>max-width: 1800px</code><br>
+          El tablero escala hasta 1800px manteniendo aspect ratio 15:11. 
+          Perfecto para monitores grandes.
+        </p>
+      </div>
+      
+      <div class="resolucion-card">
+        <h3>💻 1080p (1920×1080)</h3>
+        <p>
+          <code>max-width: 1400px</code><br>
+          Optimizado para Full HD. El tablero ocupa el 73% del ancho con márgenes cómodos.
+        </p>
+      </div>
+      
+      <div class="resolucion-card">
+        <h3>📓 Portátil (1366×768)</h3>
+        <p>
+          <code>max-width: 1000px</code><br>
+          Resolución más común en portátiles. El tablero es legible sin scroll horizontal.
+        </p>
+      </div>
+      
+      <div class="resolucion-card">
+        <h3>📱 Móvil (320-767px)</h3>
+        <p>
+          <code>max-width: 100vw</code><br>
+          Ocupa el 100% del viewport. Padding reducido para maximizar espacio.
+        </p>
+      </div>
+    </div>
+    
+    <!-- LEYENDA -->
+    <div class="leyenda">
+      <h3>🎯 Leyenda del Tablero</h3>
+      <div class="leyenda-items">
+        <div class="leyenda-item">
+          <div class="leyenda-icon icon-blanco"></div>
+          <span>Equipo Superior (defiende P1)</span>
+        </div>
+        <div class="leyenda-item">
+          <div class="leyenda-icon icon-rojo"></div>
+          <span>Equipo Inferior (defiende P2)</span>
+        </div>
+        <div class="leyenda-item">
+          <div class="leyenda-icon icon-balon"></div>
+          <span>Balón (posición inicial: 7-6)</span>
+        </div>
+        <div class="leyenda-item">
+          <div class="leyenda-icon icon-area"></div>
+          <span>Líneas de área (amarillas)</span>
+        </div>
+        <div class="leyenda-item">
+          <div class="leyenda-icon icon-corner"></div>
+          <span>Córners (puntos amarillos)</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- CÓMO USAR -->
+    <div class="resolucion-info" style="margin-top: 40px;">
+      <div class="resolucion-card" style="border-left-color: #2196f3;">
+        <h3>🔧 Cómo Usar en tu Proyecto</h3>
+        <p>
+          <strong>1. Importar SVG:</strong><br>
+          <code>&lt;img src="assets/tablero.svg" class="tablero-svg"&gt;</code>
+        </p>
+        <p style="margin-top: 10px;">
+          <strong>2. O inline para animaciones:</strong><br>
+          <code>&lt;svg viewBox="0 0 165 110" ...&gt;</code>
+        </p>
+        <p style="margin-top: 10px;">
+          <strong>3. CSS clave:</strong><br>
+          <code>width: 100%; max-width: min(90vw, 90vh * 1.36);</code>
+        </p>
+      </div>
+      
+      <div class="resolucion-card" style="border-left-color: #9c27b0;">
+        <h3>✨ Ventajas de este Enfoque</h3>
+        <p>
+          ✅ <strong>SVG vectorial:</strong> Escala infinitamente sin pixelarse<br>
+          ✅ <strong>ViewBox:</strong> Mantiene proporciones automáticamente<br>
+          ✅ <strong>Unidades relativas:</strong> % y viewBox, no píxeles fijos<br>
+          ✅ <strong>CSS clamp():</strong> Tipografía responsive<br>
+          ✅ <strong>Aspect ratio:</strong> 15:11 siempre preservado
+        </p>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // ========================================
+    // DETECTAR RESOLUCIÓN ACTUAL (DEBUG)
+    // ========================================
+    
+    function mostrarResolucion() {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      const dpr = window.devicePixelRatio || 1;
+      
+      console.log(`📐 Resolución: ${width}x${height}`);
+      console.log(`🔍 Device Pixel Ratio: ${dpr}x`);
+      console.log(`📱 Es móvil: ${width <= 767}`);
+      console.log(`📓 Es tablet: ${width > 767 && width <= 1199}`);
+      console.log(`💻 Es desktop: ${width > 1199}`);
+    }
+    
+    // Mostrar al cargar y al redimensionar
+    mostrarResolucion();
+    window.addEventListener('resize', mostrarResolucion);
+    
+    // ========================================
+    // INTERACTIVIDAD BÁSICA (DEMO)
+    // ========================================
+    
+    // En producción, aquí iría la lógica del juego
+    console.log('🎮 MasterGoal - Tablero listo para interactuar');
+    console.log('📁 SVG completo en: /assets/tablero.svg');
+  </script>
+</body>
+</html>
