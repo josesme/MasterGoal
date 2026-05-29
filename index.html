@@ -2088,18 +2088,23 @@
       red.miEquipo = 'blanco';
       red.peer = new Peer(codigoAId(codigo), PEER_CONFIG);
 
-      red.peer.on('open', () => {
-        // Esperando conexión entrante
+      red.peer.on('open', (id) => {
+        console.log('[Online] Creador registrado con id:', id);
         red.peer.on('connection', conn => {
+          console.log('[Online] Rival conectado:', conn.peer);
           red.conn = conn;
           configurarConexion();
           document.getElementById('sala-espera').textContent = '✓ Rival conectado. Iniciando...';
-          // El creador (blanco) envía la config al rival y arranca
           setTimeout(() => {
             red.conn.send({ tipo: 'config', config: { ...config } });
             iniciarJuego();
           }, 800);
         });
+      });
+
+      red.peer.on('error', (e) => {
+        console.log('[Online] Error creador PeerJS:', e.type, e);
+        mostrarErrorOnline('Error: ' + e.type);
       });
 
       red.peer.on('error', e => mostrarErrorOnline('Error de conexión: ' + e.type));
@@ -2125,20 +2130,28 @@
       red.miEquipo = 'rojo';
       red.peer = new Peer('mastergoal-guest-' + Date.now(), PEER_CONFIG);
 
-      red.peer.on('open', () => {
-        const conn = red.peer.connect(codigoAId(codigo), { reliable: true });
+      red.peer.on('open', (id) => {
+        console.log('[Online] Peer abierto con id:', id);
+        const targetId = codigoAId(codigo);
+        console.log('[Online] Conectando a:', targetId);
+        const conn = red.peer.connect(targetId, { reliable: true });
         red.conn = conn;
 
         conn.on('open', () => {
+          console.log('[Online] Conexión abierta con el creador');
           configurarConexion();
           mostrarErrorOnline('');
         });
 
-        conn.on('error', () => mostrarErrorOnline('No se pudo conectar. Verifica el código.'));
+        conn.on('error', (e) => {
+          console.log('[Online] Error en conexión:', e);
+          mostrarErrorOnline('No se pudo conectar. Verifica el código.');
+        });
       });
 
-      red.peer.on('error', () => {
-        mostrarErrorOnline('No se pudo conectar. Verifica el código.');
+      red.peer.on('error', (e) => {
+        console.log('[Online] Error PeerJS:', e.type, e);
+        mostrarErrorOnline('Error: ' + e.type);
         document.getElementById('codigo-input').disabled = false;
       });
     };
