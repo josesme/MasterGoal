@@ -1072,6 +1072,13 @@
     </div>
   </div>
 
+  <!-- Overlay gol de oro -->
+  <div id="goldeoro-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.82); z-index:300; flex-direction:column; align-items:center; justify-content:center; color:white; text-align:center;">
+    <div style="font-size:48px; margin-bottom:12px;">⚽</div>
+    <div style="font-size:26px; font-weight:800; letter-spacing:1px; color:#FFD700;">¡TIEMPO EXTRA!</div>
+    <div style="font-size:16px; margin-top:10px; opacity:0.85;">Gol de oro — el primero en marcar gana</div>
+  </div>
+
   <!-- Overlay fin de partida -->
   <div id="fin-overlay" class="fin-overlay">
     <div class="fin-content">
@@ -2198,14 +2205,23 @@
       estado.movimientosBalon = 0;
 
       // Modo turnos: descontar turno al equipo que acaba de jugar
-      if (config.encuentro === 'turnos') {
+      if (config.encuentro === 'turnos' && !victoria.golDeOro) {
         victoria.turnosRestantes[equipoQueAcaba]--;
         if (victoria.turnosRestantes.blanco <= 0 && victoria.turnosRestantes.rojo <= 0) {
-          // Ambos agotaron sus turnos
-          if (MARCADOR.blanco > MARCADOR.rojo)       finPartida('blanco', 'turnos');
-          else if (MARCADOR.rojo > MARCADOR.blanco)  finPartida('rojo',   'turnos');
-          else                                        finPartida('empate', 'turnos');
-          return;
+          if (MARCADOR.blanco > MARCADOR.rojo)      { finPartida('blanco', 'turnos'); return; }
+          else if (MARCADOR.rojo > MARCADOR.blanco) { finPartida('rojo',   'turnos'); return; }
+          else {
+            // Empate: activar gol de oro
+            victoria.golDeOro = true;
+            const ov = document.getElementById('goldeoro-overlay');
+            ov.style.display = 'flex';
+            setTimeout(() => {
+              ov.style.display = 'none';
+              actualizarUI();
+              if (estado.turno === 'rojo' && estado.modo === 'vsIA') ejecutarTurnoIA();
+            }, 2500);
+            return;
+          }
         }
       }
 
@@ -2458,7 +2474,8 @@
     const victoria = {
       turnosRestantes: { blanco: 0, rojo: 0 },
       tiempoRestante:  { blanco: 0, rojo: 0 }, // segundos
-      intervalo: null
+      intervalo: null,
+      golDeOro: false
     };
 
     // ====== MENU: SELECCION ======
@@ -2744,6 +2761,7 @@
 
     function arrancarPartida(equipoQueSaca) {
       MARCADOR.blanco = 0; MARCADOR.rojo = 0;
+      victoria.golDeOro = false;
       estado.modo = config.modo;
       recolocar(equipoQueSaca);
       document.getElementById('game-container').style.display = 'block';
@@ -2799,8 +2817,12 @@
         if (MARCADOR.rojo   >= config.goles) { finPartida('rojo',   'goles'); return true; }
       }
 
-      if (enc === 'turnos') {
-        // Se comprueba al final de cada turno en pasarTurno()
+      if (enc === 'turnos' || victoria.golDeOro) {
+        // Durante gol de oro, el primer gol cierra el partido
+        if (victoria.golDeOro) {
+          if (MARCADOR.blanco > MARCADOR.rojo) { finPartida('blanco', 'goldeoro'); return true; }
+          if (MARCADOR.rojo > MARCADOR.blanco) { finPartida('rojo',   'goldeoro'); return true; }
+        }
       }
 
       if (enc === 'crono') {
@@ -2825,11 +2847,16 @@
         titulo.textContent = 'Empate';
         detalle.textContent = 'Se agotaron los turnos sin diferencia.';
       } else {
-        const nombre = ganador === 'blanco' ? 'Blanco' : 'Rojo';
+        const todosEqF = equiposGuardados();
+        const eqGanador = ganador === 'blanco'
+          ? todosEqF.find(e => e.id === config.equipoLocal)
+          : todosEqF.find(e => e.id === config.equipoRival);
+        const nombre = eqGanador ? eqGanador.nombre : (ganador === 'blanco' ? 'Local' : 'Visitante');
         titulo.textContent = '¡Gana ' + nombre + '!';
-        if (motivo === 'goles')  detalle.textContent = 'Alcanzó el objetivo de goles.';
-        if (motivo === 'tiempo') detalle.textContent = 'Al rival se le agotó el tiempo.';
-        if (motivo === 'turnos') detalle.textContent = 'Más goles al acabar los turnos.';
+        if (motivo === 'goles')    detalle.textContent = 'Alcanzó el objetivo de goles.';
+        if (motivo === 'tiempo')   detalle.textContent = 'Al rival se le agotó el tiempo.';
+        if (motivo === 'turnos')   detalle.textContent = 'Más goles al acabar los turnos.';
+        if (motivo === 'goldeoro') detalle.textContent = '¡Gol de oro en tiempo extra!';
       }
 
       // Hook torneo
