@@ -1493,6 +1493,25 @@
       });
     }
 
+    function actualizarPatternFicha(id, cx, cy) {
+      const svgEl = document.querySelector('svg');
+      const defsEl = svgEl && svgEl.querySelector('defs');
+      if (!defsEl) return;
+      const r = 3.5;
+      const patId = 'pat_' + id;
+      const clipId = 'clip_' + id;
+      const pat = defsEl.querySelector(`pattern#${patId}`);
+      const clip = defsEl.querySelector(`clipPath#${clipId}`);
+      if (pat) {
+        pat.setAttribute('x', cx - r);
+        pat.setAttribute('y', cy - r);
+      }
+      if (clip) {
+        const c = clip.querySelector('circle');
+        if (c) { c.setAttribute('cx', cx); c.setAttribute('cy', cy); }
+      }
+    }
+
     // ====== UTILIDADES ======
     function casillaToSVG(fila, col) {
       return { cx: (col - 1) * 10 + 5, cy: fila * 10 + 5 };
@@ -1898,6 +1917,7 @@
       } else {
         el.setAttribute('cx', coords.cx);
         el.setAttribute('cy', coords.cy);
+        actualizarPatternFicha(id, coords.cx, coords.cy);
       }
 
       estado.fichas[id].fila = fDest;
@@ -2112,10 +2132,11 @@
           if (el) {
             el.setAttribute('cx', coords.cx);
             el.setAttribute('cy', coords.cy);
+            actualizarPatternFicha(id, coords.cx, coords.cy);
           }
         }
       }
-      
+
       actualizarUI();
       console.log('Recolocadas fichas. Saca:', saca);
     }
@@ -2575,6 +2596,7 @@
       } else if (el) {
         el.setAttribute('cx', coords.cx);
         el.setAttribute('cy', coords.cy);
+        actualizarPatternFicha(id, coords.cx, coords.cy);
       }
       estado.fichas[id].fila = fila;
       estado.fichas[id].col  = col;
