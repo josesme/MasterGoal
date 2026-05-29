@@ -3185,7 +3185,7 @@
     function torneoAvanzarRonda() {
       const { rondas, rondaActual, miEquipo } = torneoData;
       const partidos = rondas[rondaActual];
-      if (partidos.some(p => !p.jugado)) return;
+      if (partidos.some(p => !p.jugado)) { torneoGuardar(); mostrarBracket(); return; }
       const ganadores = partidos.map(p => p.golLocal > p.golVisitante ? p.local : p.visitante);
       if (ganadores.length === 1) { mostrarCampeon(ganadores[0]); return; }
       rellenarSiguienteRonda(ganadores);
