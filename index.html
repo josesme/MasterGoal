@@ -22,105 +22,72 @@
       overflow: hidden;
     }
     
+    /* UI Panel */
+    /* El game-container ocupa toda la pantalla */
     .game-container {
-      width: 100%;
-      max-width: min(100vw, calc(100vh * 13/19));
-      max-height: 100vh;
-      aspect-ratio: 13/19;
+      width: 100vw !important;
+      height: 100vh !important;
+      max-width: none !important;
+      aspect-ratio: unset !important;
+      display: flex !important;
+      align-items: center;
+      justify-content: center;
+      background: #2e2e2e;
     }
-    
+
     .game-container svg {
-      width: 100%;
-      height: 100%;
+      /* El SVG crece hasta llenar la pantalla manteniendo proporción */
+      width: auto !important;
+      height: 100vh !important;
+      max-height: 100vh;
+      max-width: 100vw;
       display: block;
     }
-    
-    /* UI Panel */
-    .ui-panel {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 70%, transparent 100%);
-      padding: 15px 20px 40px;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      z-index: 10;
-      pointer-events: none;
+
+    /* Ocultar barra superior antigua */
+    .ui-panel { display: none !important; }
+
+    /* ====== MARCADOR SVG ====== */
+    .hud-equipo {
+      font-family: system-ui, sans-serif;
     }
-    
-    .ui-panel > * {
-      pointer-events: auto;
+
+    .hud-goles {
+      font-size: 11px;
+      font-weight: bold;
+      fill: white;
     }
-    
-    .marcador {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      color: white;
-    }
-    
-    .equipo-info {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 28px;
+
+    .hud-turno-indicator {
+      font-size: 6px;
+      fill: #FFD700;
       font-weight: bold;
     }
-    
-    .ficha-icono {
-      font-size: 24px;
+
+    .hud-extra {
+      font-size: 5.5px;
+      fill: rgba(255,255,255,0.7);
     }
-    
-    .goles {
-      font-size: 32px;
-      min-width: 30px;
-      text-align: center;
-    }
-    
-    .vs {
-      font-size: 18px;
-      opacity: 0.6;
+
+    .hud-crono {
+      font-size: 6px;
+      font-family: monospace;
       font-weight: bold;
     }
-    
-    .info-juego {
-      text-align: center;
-      color: white;
+
+    .hud-crono.activo { fill: #FFD700; }
+    .hud-crono.pausado { fill: rgba(255,255,255,0.35); }
+
+    @keyframes hudPulso {
+      0%   { opacity: 1;   transform: scale(1); }
+      50%  { opacity: 0.3; transform: scale(0.75); }
+      100% { opacity: 1;   transform: scale(1); }
     }
-    
-    #texto-turno {
-      font-size: 16px;
-      margin-bottom: 4px;
-    }
-    
-    #texto-fase {
-      font-size: 13px;
-      opacity: 0.8;
-      font-style: italic;
-    }
-    
-    .btn-pasar {
-      background: #4caf50;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 6px;
-      font-size: 14px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    
-    .btn-pasar:hover:not(:disabled) {
-      background: #45a049;
-    }
-    
-    .btn-pasar:disabled {
-      background: #555;
-      cursor: not-allowed;
-      opacity: 0.5;
+
+    #hud-turno-b.activo, #hud-turno-r.activo {
+      animation: hudPulso 1s ease-in-out infinite;
+      transform-box: fill-box;
+      transform-origin: center;
     }
     
     /* Menu Inicial */
@@ -132,71 +99,464 @@
       justify-content: center;
       align-items: center;
       z-index: 100;
+      overflow-y: auto;
     }
-    
+
     .menu-content {
       text-align: center;
       color: white;
-      padding: 40px;
+      padding: 30px 20px;
+      width: 100%;
+      max-width: 420px;
     }
-    
+
     .menu-content h1 {
-      font-size: 48px;
-      margin-bottom: 10px;
+      font-size: 42px;
+      margin-bottom: 4px;
       text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
     }
-    
+
     .menu-subtitle {
-      font-size: 18px;
+      font-size: 15px;
       opacity: 0.8;
-      margin-bottom: 40px;
+      margin-bottom: 24px;
     }
-    
-    .menu-botones {
+
+    .menu-seccion {
+      background: rgba(0,0,0,0.25);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 14px;
+      text-align: left;
+    }
+
+    .menu-seccion h3 {
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      opacity: 0.6;
+      margin-bottom: 10px;
+    }
+
+    .radio-group {
       display: flex;
-      flex-direction: column;
-      gap: 20px;
-      max-width: 300px;
-      margin: 0 auto;
+      gap: 10px;
     }
-    
-    .btn-menu {
+
+    .radio-btn {
+      flex: 1;
+      padding: 10px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      background: transparent;
+      color: white;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: center;
+    }
+
+    .radio-btn:hover { border-color: rgba(255,255,255,0.5); }
+    .radio-btn.activo { background: rgba(255,255,255,0.2); border-color: white; }
+
+    .encuentro-opcion {
       display: flex;
       align-items: center;
-      gap: 15px;
-      padding: 20px 30px;
+      gap: 10px;
+      padding: 10px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .encuentro-opcion:last-child { margin-bottom: 0; }
+    .encuentro-opcion:hover { border-color: rgba(255,255,255,0.5); }
+    .encuentro-opcion.activo { border-color: white; background: rgba(255,255,255,0.1); }
+
+    .encuentro-opcion input[type=radio] { display: none; }
+
+    .encuentro-label {
+      font-size: 14px;
+      font-weight: bold;
+      min-width: 110px;
+    }
+
+    .selector-chips {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1.5px solid rgba(255,255,255,0.3);
+      background: transparent;
+      color: white;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+      opacity: 0.5;
+    }
+
+    .chip:hover { opacity: 0.8; }
+    .chip.activo { background: white; color: #2e7d32; opacity: 1; font-weight: bold; }
+    .chip:disabled, .chip.disabled { opacity: 0.2; pointer-events: none; }
+
+    .encuentro-sub {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+    }
+
+    .sub-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sub-label {
+      font-size: 11px;
+      opacity: 0.7;
+      min-width: 48px;
+    }
+
+    .btn-jugar {
+      width: 100%;
+      padding: 16px;
       border: none;
       border-radius: 12px;
+      background: linear-gradient(135deg, #FFD700, #FFA000);
+      color: #1a3a00;
       font-size: 18px;
       font-weight: bold;
       cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s;
-      color: white;
-      text-align: left;
+      margin-top: 6px;
+      transition: transform 0.15s, box-shadow 0.15s;
+      letter-spacing: 1px;
     }
-    
-    .btn-menu:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+
+    .btn-jugar:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
+
+    /* ====== SORTEO MONEDA ====== */
+    .moneda-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.88);
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 150;
+      font-family: monospace;
     }
-    
-    .btn-vs-humano {
-      background: linear-gradient(135deg, #2196F3, #1976D2);
+
+    .moneda-overlay.visible { display: flex; }
+
+    .moneda-titulo {
+      color: #FFD700;
+      font-size: 11px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 32px;
+      opacity: 0.8;
     }
-    
-    .btn-vs-ia {
-      background: linear-gradient(135deg, #FF9800, #F57C00);
+
+    /* Selección cara/cruz */
+    .moneda-seleccion {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 36px;
     }
-    
-    .btn-icon {
+
+    .moneda-btn {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      border: 3px solid rgba(255,215,0,0.4);
+      background: radial-gradient(circle at 35% 35%, #f5d76e, #c8a217 60%, #8a6800);
+      color: #3a2800;
       font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.3);
+      font-family: monospace;
     }
+
+    .moneda-btn span.etiqueta {
+      font-size: 9px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      opacity: 0.7;
+    }
+
+    .moneda-btn:hover {
+      transform: translateY(-3px);
+      border-color: #FFD700;
+      box-shadow: 0 8px 20px rgba(255,215,0,0.4), inset 0 1px 2px rgba(255,255,255,0.3);
+    }
+
+    .moneda-btn.seleccionado {
+      border-color: #FFD700;
+      box-shadow: 0 0 0 3px #FFD700, 0 8px 20px rgba(255,215,0,0.5);
+      transform: translateY(-2px);
+    }
+
+    /* Escenario de animación */
+    .moneda-escenario {
+      height: 140px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      perspective: 400px;
+      margin-bottom: 24px;
+    }
+
+    .moneda-3d {
+      width: 96px;
+      height: 96px;
+      position: relative;
+      transform-style: preserve-3d;
+    }
+
+    .moneda-cara, .moneda-cruz {
+      position: absolute;
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      backface-visibility: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+    }
+
+    .moneda-cara {
+      background: radial-gradient(circle at 35% 35%, #f5d76e, #c8a217 60%, #8a6800);
+      border: 4px solid #a07800;
+    }
+
+    .moneda-cruz {
+      background: radial-gradient(circle at 35% 35%, #e8c84a, #b89010 60%, #7a5800);
+      border: 4px solid #8a6800;
+      transform: rotateY(180deg);
+    }
+
+    /* Brillo animado sobre la moneda */
+    .moneda-brillo {
+      position: absolute;
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(255,255,255,0.4) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    @keyframes girarMoneda {
+      0%   { transform: rotateY(0deg)    translateY(0px); }
+      10%  { transform: rotateY(720deg)  translateY(-40px); }
+      40%  { transform: rotateY(2880deg) translateY(-60px); }
+      70%  { transform: rotateY(4680deg) translateY(-20px); }
+      88%  { transform: rotateY(5040deg) translateY(-4px); }
+      94%  { transform: rotateY(5220deg) translateY(-1px); }
+      100% { transform: rotateY(5400deg) translateY(0px); }
+    }
+
+    @keyframes girarMonedaCruz {
+      0%   { transform: rotateY(0deg)    translateY(0px); }
+      10%  { transform: rotateY(720deg)  translateY(-40px); }
+      40%  { transform: rotateY(2880deg) translateY(-60px); }
+      70%  { transform: rotateY(4680deg) translateY(-20px); }
+      88%  { transform: rotateY(5040deg) translateY(-4px); }
+      94%  { transform: rotateY(5220deg) translateY(-1px); }
+      100% { transform: rotateY(5580deg) translateY(0px); }
+    }
+
+    .moneda-3d.girando-cara {
+      animation: girarMoneda 2.8s cubic-bezier(0.2, 0.6, 0.4, 1) forwards;
+    }
+
+    .moneda-3d.girando-cruz {
+      animation: girarMonedaCruz 2.8s cubic-bezier(0.2, 0.6, 0.4, 1) forwards;
+    }
+
+    /* Resultado del sorteo */
+    .moneda-resultado {
+      color: white;
+      font-size: 13px;
+      letter-spacing: 1px;
+      text-align: center;
+      min-height: 24px;
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+
+    .moneda-resultado.visible { opacity: 1; }
+
+    .moneda-resultado .ganador {
+      font-size: 18px;
+      color: #FFD700;
+      font-weight: bold;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    /* Elección del ganador */
+    .moneda-eleccion {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .moneda-eleccion.visible { display: flex; }
+
+    .moneda-eleccion p {
+      color: #FFD700;
+      font-size: 12px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .eleccion-btns {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-eleccion {
+      padding: 10px 16px;
+      border: 2px solid rgba(255,215,0,0.5);
+      border-radius: 8px;
+      background: transparent;
+      color: white;
+      font-size: 12px;
+      font-family: monospace;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: all 0.15s;
+    }
+
+    .btn-eleccion:hover {
+      border-color: #FFD700;
+      background: rgba(255,215,0,0.15);
+      color: #FFD700;
+    }
+
+    /* Overlay de fin de partida */
+    .fin-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.75);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 200;
+    }
+
+    .fin-overlay.visible { display: flex; }
+
+    .fin-content {
+      background: linear-gradient(135deg, #1a5c1a, #2e7d32);
+      border-radius: 16px;
+      padding: 40px;
+      text-align: center;
+      color: white;
+      max-width: 320px;
+      width: 90%;
+    }
+
+    .fin-titulo {
+      font-size: 32px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .fin-resultado {
+      font-size: 48px;
+      font-weight: bold;
+      margin: 16px 0;
+    }
+
+    .fin-detalle {
+      font-size: 15px;
+      opacity: 0.8;
+      margin-bottom: 24px;
+    }
+
+    .btn-revancha {
+      padding: 12px 30px;
+      border: none;
+      border-radius: 10px;
+      background: white;
+      color: #1a5c1a;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin: 0 6px;
+    }
+
+    .btn-menu-volver {
+      padding: 12px 30px;
+      border: 2px solid white;
+      border-radius: 10px;
+      background: transparent;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin: 0 6px;
+    }
+
+    /* Cronómetro en UI */
+    .cronometros {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      font-size: 13px;
+    }
+
+    .crono-equipo {
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-weight: bold;
+      font-family: monospace;
+      font-size: 15px;
+      background: rgba(255,255,255,0.1);
+      transition: background 0.3s;
+    }
+
+    .crono-equipo.activo { background: rgba(255,255,255,0.25); }
+    .crono-equipo.agotado { background: rgba(255,0,0,0.4); }
+
+    .btn-icon { font-size: 28px; }
     .ficha {
       cursor: pointer;
       transition: filter 0.2s;
     }
     
     .ficha:hover {
+      filter: brightness(1.2);
+    }
+
+    .portero rect {
+      pointer-events: none;
+    }
+
+    g.portero:hover circle, g.portero:hover rect {
       filter: brightness(1.2);
     }
     
@@ -216,37 +576,147 @@
     <div class="menu-content">
       <h1>⚽ MasterGoal</h1>
       <p class="menu-subtitle">El juego de mesa en digital</p>
-      <div class="menu-botones">
-        <button class="btn-menu btn-vs-humano" onclick="iniciarJuego('vsHumano')">
-          <span class="btn-icon">👤👤</span>
-          <span class="btn-text">1 vs 1 (Local)</span>
+
+      <!-- MODO -->
+      <div class="menu-seccion">
+        <h3>Modo de juego</h3>
+        <div class="radio-group">
+          <button class="radio-btn activo" id="btn-modo-pvp" onclick="seleccionarModo('pvp')">👤👤 1 vs 1</button>
+          <button class="radio-btn" id="btn-modo-ia" onclick="seleccionarModo('vsIA')">👤🤖 vs IA</button>
+        </div>
+      </div>
+
+      <!-- TIPO DE ENCUENTRO -->
+      <div class="menu-seccion">
+        <h3>Tipo de encuentro</h3>
+
+        <!-- A goles -->
+        <label class="encuentro-opcion activo" id="op-goles" onclick="seleccionarEncuentro('goles')">
+          <input type="radio" name="encuentro" value="goles" checked>
+          <span class="encuentro-label">A goles</span>
+          <div class="selector-chips" id="chips-goles">
+            <button class="chip activo" onclick="seleccionarChip(event,'goles',1)">1</button>
+            <button class="chip" onclick="seleccionarChip(event,'goles',2)">2</button>
+            <button class="chip" onclick="seleccionarChip(event,'goles',3)">3</button>
+            <button class="chip" onclick="seleccionarChip(event,'goles',4)">4</button>
+            <button class="chip" onclick="seleccionarChip(event,'goles',5)">5</button>
+          </div>
+        </label>
+
+        <!-- Por turnos -->
+        <label class="encuentro-opcion" id="op-turnos" onclick="seleccionarEncuentro('turnos')">
+          <input type="radio" name="encuentro" value="turnos">
+          <span class="encuentro-label">Por turnos</span>
+          <div class="selector-chips" id="chips-turnos">
+            <button class="chip activo" onclick="seleccionarChip(event,'turnos',10)">10</button>
+            <button class="chip" onclick="seleccionarChip(event,'turnos',15)">15</button>
+            <button class="chip" onclick="seleccionarChip(event,'turnos',20)">20</button>
+          </div>
+        </label>
+
+        <!-- Contrarreloj -->
+        <label class="encuentro-opcion" id="op-crono" onclick="seleccionarEncuentro('crono')">
+          <input type="radio" name="encuentro" value="crono">
+          <span class="encuentro-label">Contrarreloj</span>
+          <div class="encuentro-sub">
+            <div class="sub-row">
+              <span class="sub-label">Tiempo</span>
+              <div class="selector-chips" id="chips-crono-tiempo">
+                <button class="chip activo" onclick="seleccionarChip(event,'crono-tiempo',3)">3'</button>
+                <button class="chip" onclick="seleccionarChip(event,'crono-tiempo',5)">5'</button>
+                <button class="chip" onclick="seleccionarChip(event,'crono-tiempo',10)">10'</button>
+                <button class="chip" onclick="seleccionarChip(event,'crono-tiempo',15)">15'</button>
+              </div>
+            </div>
+            <div class="sub-row">
+              <span class="sub-label">Goles</span>
+              <div class="selector-chips" id="chips-crono-goles">
+                <button class="chip activo" onclick="seleccionarChip(event,'crono-goles',1)">1</button>
+                <button class="chip" onclick="seleccionarChip(event,'crono-goles',2)">2</button>
+                <button class="chip" onclick="seleccionarChip(event,'crono-goles',3)">3</button>
+                <button class="chip" onclick="seleccionarChip(event,'crono-goles',4)">4</button>
+                <button class="chip" onclick="seleccionarChip(event,'crono-goles',5)">5</button>
+              </div>
+            </div>
+          </div>
+        </label>
+      </div>
+
+      <button class="btn-jugar" onclick="iniciarJuego()">JUGAR</button>
+    </div>
+  </div>
+
+  <!-- Overlay sorteo moneda -->
+  <div id="moneda-overlay" class="moneda-overlay">
+    <div class="moneda-titulo">★ SORTEO INICIAL ★</div>
+
+    <!-- Paso 1: elegir cara o cruz -->
+    <div id="moneda-paso1">
+      <div style="color:rgba(255,255,255,0.7); font-size:12px; letter-spacing:2px; text-align:center; margin-bottom:20px;">
+        JUGADOR BLANCO — ELIGE
+      </div>
+      <div class="moneda-seleccion">
+        <button class="moneda-btn" id="btn-cara" onclick="elegirCaraCruz('cara')">
+          <span>⚽</span>
+          <span class="etiqueta">Cara</span>
         </button>
-        <button class="btn-menu btn-vs-ia" onclick="iniciarJuego('vsIA')">
-          <span class="btn-icon">👤🤖</span>
-          <span class="btn-text">vs Computadora</span>
+        <button class="moneda-btn" id="btn-cruz" onclick="elegirCaraCruz('cruz')">
+          <span>★</span>
+          <span class="etiqueta">Cruz</span>
         </button>
+      </div>
+    </div>
+
+    <!-- Paso 2: animación y resultado -->
+    <div id="moneda-paso2" style="display:none; flex-direction:column; align-items:center;">
+      <div class="moneda-escenario">
+        <div class="moneda-3d" id="moneda-3d">
+          <div class="moneda-cara">⚽</div>
+          <div class="moneda-cruz">★</div>
+          <div class="moneda-brillo"></div>
+        </div>
+      </div>
+
+      <div class="moneda-resultado" id="moneda-resultado">
+        <span class="ganador" id="moneda-ganador"></span>
+        <span id="moneda-texto"></span>
+      </div>
+
+      <div class="moneda-eleccion" id="moneda-eleccion">
+        <p>Elige tu ventaja</p>
+        <div class="eleccion-btns">
+          <button class="btn-eleccion" onclick="elegirVentaja('superior')">⬆ Campo superior</button>
+          <button class="btn-eleccion" onclick="elegirVentaja('saque')">⚽ Saque</button>
+          <button class="btn-eleccion" onclick="elegirVentaja('inferior')">⬇ Campo inferior</button>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- UI Superior -->
+  <!-- Overlay fin de partida -->
+  <div id="fin-overlay" class="fin-overlay">
+    <div class="fin-content">
+      <div class="fin-titulo" id="fin-titulo">¡Fin de la partida!</div>
+      <div class="fin-resultado" id="fin-resultado">0 - 0</div>
+      <div class="fin-detalle" id="fin-detalle"></div>
+      <div>
+        <button class="btn-revancha" onclick="revancha()">Revancha</button>
+        <button class="btn-menu-volver" onclick="volverMenu()">Menú</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- UI Superior (oculta, mantenida por compatibilidad JS) -->
   <div class="ui-panel" id="ui-panel" style="display:none;">
-    <div class="marcador">
-      <div class="equipo-info">
-        <span class="ficha-icono blanco">⚪</span>
-        <span class="goles" id="goles-blanco">0</span>
-      </div>
-      <div class="vs">VS</div>
-      <div class="equipo-info">
-        <span class="goles" id="goles-rojo">0</span>
-        <span class="ficha-icono rojo">🔴</span>
-      </div>
+    <span id="goles-blanco" style="display:none;">0</span>
+    <span id="goles-rojo" style="display:none;">0</span>
+    <span id="texto-turno" style="display:none;"></span>
+    <span id="texto-fase" style="display:none;"></span>
+    <div id="cronometros" style="display:none;">
+      <span id="crono-blanco"></span>
+      <span id="crono-rojo"></span>
     </div>
-    <div class="info-juego">
-      <div id="texto-turno">Turno de: <strong>Blanco</strong></div>
-      <div id="texto-fase">Mueve un jugador</div>
-    </div>
-    <button id="btn-pasar" class="btn-pasar" disabled>Pasar turno</button>
+    <button id="btn-pasar" style="display:none;" disabled></button>
   </div>
 
   <div class="game-container" id="game-container" style="display:none;">
@@ -412,37 +882,97 @@
       <circle cx="35" cy="105" r="0.75" fill="#ffffff" opacity="0.3"/>
       <circle cx="75" cy="105" r="0.75" fill="#ffffff" opacity="0.3"/>
       <circle cx="55" cy="75" r="0.75" fill="#ffffff"/>
-      <circle cx="5" cy="15" r="0.75" class="punto-amarillo"/> <circle cx="15" cy="15" r="0.75" class="punto-amarillo"/>
-      <circle cx="25" cy="15" r="0.75" class="punto-amarillo"/> <circle cx="35" cy="15" r="0.75" class="punto-amarillo"/>
-      <circle cx="45" cy="15" r="0.75" class="punto-amarillo"/> <circle cx="55" cy="15" r="0.75" class="punto-amarillo"/>
-      <circle cx="65" cy="15" r="0.75" class="punto-amarillo"/> <circle cx="75" cy="15" r="0.75" class="punto-amarillo"/>
-      <circle cx="85" cy="15" r="0.75" class="punto-amarillo"/> <circle cx="95" cy="15" r="0.75" class="punto-amarillo"/>
+      <!-- Fila 1: col 1, 4-8, 11 -->
+      <circle cx="5" cy="15" r="0.75" class="punto-amarillo"/>
+      <circle cx="35" cy="15" r="0.75" class="punto-amarillo"/> <circle cx="45" cy="15" r="0.75" class="punto-amarillo"/>
+      <circle cx="55" cy="15" r="0.75" class="punto-amarillo"/> <circle cx="65" cy="15" r="0.75" class="punto-amarillo"/>
+      <circle cx="75" cy="15" r="0.75" class="punto-amarillo"/>
       <circle cx="105" cy="15" r="0.75" class="punto-amarillo"/>
-      <circle cx="5" cy="135" r="0.75" class="punto-amarillo"/> <circle cx="15" cy="135" r="0.75" class="punto-amarillo"/>
-      <circle cx="25" cy="135" r="0.75" class="punto-amarillo"/> <circle cx="35" cy="135" r="0.75" class="punto-amarillo"/>
-      <circle cx="45" cy="135" r="0.75" class="punto-amarillo"/> <circle cx="55" cy="135" r="0.75" class="punto-amarillo"/>
-      <circle cx="65" cy="135" r="0.75" class="punto-amarillo"/> <circle cx="75" cy="135" r="0.75" class="punto-amarillo"/>
-      <circle cx="85" cy="135" r="0.75" class="punto-amarillo"/> <circle cx="95" cy="135" r="0.75" class="punto-amarillo"/>
+      <!-- Fila 13: col 1, 4-8, 11 -->
+      <circle cx="5" cy="135" r="0.75" class="punto-amarillo"/>
+      <circle cx="35" cy="135" r="0.75" class="punto-amarillo"/> <circle cx="45" cy="135" r="0.75" class="punto-amarillo"/>
+      <circle cx="55" cy="135" r="0.75" class="punto-amarillo"/> <circle cx="65" cy="135" r="0.75" class="punto-amarillo"/>
+      <circle cx="75" cy="135" r="0.75" class="punto-amarillo"/>
       <circle cx="105" cy="135" r="0.75" class="punto-amarillo"/>
       <circle cx="5" cy="15" r="0.75" class="corner"/> <circle cx="105" cy="15" r="0.75" class="corner"/>
       <circle cx="5" cy="135" r="0.75" class="corner"/> <circle cx="105" cy="135" r="0.75" class="corner"/>
       
+      <!-- ====== HUD MARCADOR (laterales portería superior) ====== -->
+      <g id="hud" font-family="system-ui, sans-serif">
+
+        <!-- BLANCO — lateral izquierdo (x:-10 a 29, y:-20 a 0) -->
+        <!-- Layout: [◀ INDICADOR] [● ICONO] [GOLES] [extra/crono] -->
+        <g id="hud-blanco">
+          <rect x="-10" y="-20" width="39" height="20" fill="rgba(0,0,0,0.5)" rx="2"/>
+          <!-- Indicador turno: exterior izquierdo, con pulso -->
+          <text id="hud-turno-b" x="-7" y="-8" font-size="9" fill="#FFD700"
+                font-weight="bold" opacity="0" text-anchor="middle">▶</text>
+          <!-- Icono equipo -->
+          <circle cx="5" cy="-11" r="3.5" fill="white" stroke="#bbb" stroke-width="0.3"/>
+          <!-- Goles -->
+          <text id="hud-goles-b" x="14" y="-7" font-size="10" font-weight="bold"
+                fill="white" text-anchor="middle">0</text>
+          <!-- Extra (turnos) -->
+          <text id="hud-extra-b" x="24" y="-12" font-size="4.5"
+                fill="rgba(255,255,255,0.65)" text-anchor="middle"></text>
+          <!-- Cronómetro -->
+          <text id="hud-crono-b" x="24" y="-5" font-size="5" font-family="monospace"
+                font-weight="bold" fill="rgba(255,255,255,0.35)"
+                text-anchor="middle" visibility="hidden"></text>
+        </g>
+
+        <!-- ROJO — lateral derecho (x:81 a 120, y:-20 a 0) — espejo de blanco -->
+        <g id="hud-rojo">
+          <rect x="81" y="-20" width="39" height="20" fill="rgba(0,0,0,0.5)" rx="2"/>
+          <!-- Extra (turnos) — interior izquierdo -->
+          <text id="hud-extra-r" x="86" y="-12" font-size="4.5"
+                fill="rgba(255,255,255,0.65)" text-anchor="middle"></text>
+          <!-- Cronómetro -->
+          <text id="hud-crono-r" x="86" y="-5" font-size="5" font-family="monospace"
+                font-weight="bold" fill="rgba(255,255,255,0.35)"
+                text-anchor="middle" visibility="hidden"></text>
+          <!-- Goles -->
+          <text id="hud-goles-r" x="96" y="-7" font-size="10" font-weight="bold"
+                fill="white" text-anchor="middle">0</text>
+          <!-- Icono equipo -->
+          <circle cx="105" cy="-11" r="3.5" fill="#d32f2f" stroke="#b71c1c" stroke-width="0.3"/>
+          <!-- Indicador turno: exterior derecho, con pulso -->
+          <text id="hud-turno-r" x="117" y="-8" font-size="9" fill="#FFD700"
+                font-weight="bold" opacity="0" text-anchor="middle">◀</text>
+        </g>
+
+      </g>
+
       <!-- ====== FICHAS ====== -->
       <!-- Equipo Blanco (defiende P1) -->
       <g id="equipo-blanco">
-        <!-- Portero 2-6 -->
-        <circle id="b-portero" cx="55" cy="25" r="3.5" fill="#ffffff" stroke="#333" stroke-width="0.3" class="ficha"/>
+        <!-- Portero 2-6: grupo con cuerpo + brazos -->
+        <g id="b-portero" class="ficha portero" data-equipo="blanco">
+          <rect id="b-portero-brazo-izq" x="46.5" y="23.75" width="5" height="2.5" rx="1.25"
+                fill="#ffffff" fill-opacity="0.6" stroke="#333" stroke-width="0.3"/>
+          <rect id="b-portero-brazo-der" x="58.5" y="23.75" width="5" height="2.5" rx="1.25"
+                fill="#ffffff" fill-opacity="0.6" stroke="#333" stroke-width="0.3"/>
+          <circle id="b-portero-cuerpo" cx="55" cy="25" r="3.5"
+                  fill="#ffffff" stroke="#333" stroke-width="0.3"/>
+        </g>
         <!-- Jugadores -->
         <circle id="b-j1" cx="35" cy="45" r="3.5" fill="#ffffff" stroke="#333" stroke-width="0.3" class="ficha"/>
         <circle id="b-j2" cx="75" cy="45" r="3.5" fill="#ffffff" stroke="#333" stroke-width="0.3" class="ficha"/>
         <circle id="b-j3" cx="25" cy="65" r="3.5" fill="#ffffff" stroke="#333" stroke-width="0.3" class="ficha"/>
         <circle id="b-j4" cx="85" cy="65" r="3.5" fill="#ffffff" stroke="#333" stroke-width="0.3" class="ficha"/>
       </g>
-      
+
       <!-- Equipo Rojo (defiende P2) -->
       <g id="equipo-rojo">
-        <!-- Portero 12-6 -->
-        <circle id="r-portero" cx="55" cy="125" r="3.5" fill="#d32f2f" stroke="#333" stroke-width="0.3" class="ficha"/>
+        <!-- Portero 12-6: grupo con cuerpo + brazos -->
+        <g id="r-portero" class="ficha portero" data-equipo="rojo">
+          <rect id="r-portero-brazo-izq" x="46.5" y="123.75" width="5" height="2.5" rx="1.25"
+                fill="#d32f2f" fill-opacity="0.6" stroke="#333" stroke-width="0.3"/>
+          <rect id="r-portero-brazo-der" x="58.5" y="123.75" width="5" height="2.5" rx="1.25"
+                fill="#d32f2f" fill-opacity="0.6" stroke="#333" stroke-width="0.3"/>
+          <circle id="r-portero-cuerpo" cx="55" cy="125" r="3.5"
+                  fill="#d32f2f" stroke="#333" stroke-width="0.3"/>
+        </g>
         <!-- Jugadores -->
         <circle id="r-j1" cx="25" cy="85" r="3.5" fill="#d32f2f" stroke="#333" stroke-width="0.3" class="ficha"/>
         <circle id="r-j2" cx="85" cy="85" r="3.5" fill="#d32f2f" stroke="#333" stroke-width="0.3" class="ficha"/>
@@ -663,6 +1193,32 @@
       return false;
     }
     
+    // Verifica si el balon saltaria sobre algun jugador (de cualquier equipo) dentro del area chica
+    // Regla: "Nunca sobre los Jugadores que estén defendiendo dentro del área chica"
+    // Area chica P1 (porteria blanca): filas 1-2, cols 3-9
+    // Area chica P2 (porteria roja):   filas 12-13, cols 3-9
+    function saltaJugadorEnAreaChica(fOrigen, cOrigen, fDest, cDest) {
+      const df = Math.sign(fDest - fOrigen);
+      const dc = Math.sign(cDest - cOrigen);
+
+      let cf = fOrigen + df;
+      let cc = cOrigen + dc;
+
+      while (cf !== fDest || cc !== cDest) {
+        const enAreaChica = (cf >= 1 && cf <= 2 && cc >= 3 && cc <= 9) ||
+                            (cf >= 12 && cf <= 13 && cc >= 3 && cc <= 9);
+        if (enAreaChica) {
+          for (const [id, d] of Object.entries(estado.fichas)) {
+            if (id === 'balon') continue;
+            if (d.fila === cf && d.col === cc) return true;
+          }
+        }
+        cf += df;
+        cc += dc;
+      }
+      return false;
+    }
+
     // Verifica si una casilla es un brazo del portero rival (para restringir movimiento de jugadores)
     // Regla: "Ningun Jugador puede colocarse en las casillas laterales del Portero"
     function esBrazoPorteroRival(f, c) {
@@ -709,6 +1265,9 @@
       
       // Filtrar saltos sobre portero contrario en area grande
       dest = dest.filter(d => !saltaPorteroContrario(f, c, d.fila, d.col));
+
+      // Filtrar saltos sobre cualquier jugador dentro del area chica
+      dest = dest.filter(d => !saltaJugadorEnAreaChica(f, c, d.fila, d.col));
       
       // Filtrar autopase (siempre, no solo en 4to movimiento)
       const antes = dest.length;
@@ -719,7 +1278,13 @@
       });
       if (antes !== dest.length) console.log('Autopases filtrados:', antes - dest.length);
       
-      // Filtrar destinos donde el rival obtenga posesion (no permitido)
+      // Si es el 4to movimiento, solo aplica la regla de destino válido (fuera de área propia y neutra)
+      // No se aplica el filtro de posesión rival porque la obligación ES dejar el balón sin posesión
+      if (estado.movimientosBalon === 3) {
+        return dest.filter(d => esDestinoValidoCuartoMovimiento(d.fila, d.col));
+      }
+
+      // Filtrar destinos donde el rival obtenga posesion (no permitido en movimientos 1-3)
       const balonOriginal2 = { ...estado.fichas.balon };
       dest = dest.filter(d => {
         if (esPorteria(d.fila, d.col)) return true;
@@ -732,11 +1297,6 @@
         return siguePosesion || neutra;
       });
 
-      // Si es el 4to movimiento, filtrar: fuera de areas propias y neutra
-      if (estado.movimientosBalon === 3) {
-        return dest.filter(d => esDestinoValidoCuartoMovimiento(d.fila, d.col));
-      }
-
       return dest;
     }
     
@@ -744,12 +1304,16 @@
     function esDestinoValidoCuartoMovimiento(f, c) {
       // 1. No puede ser gol (eso se maneja aparte)
       if (esPorteria(f, c)) return true; // Gol es siempre válido
-      
-      // 2. Fuera de areas propias
+
+      // 2. No puede ser el córner propio (prohibido enviar el balón al córner del equipo)
+      if (estado.turno === 'blanco' && ((f === 1 && c === 1) || (f === 1 && c === 11))) return false;
+      if (estado.turno === 'rojo'   && ((f === 13 && c === 1) || (f === 13 && c === 11))) return false;
+
+      // 3. Fuera de area propia (area grande: filas 1-4 cols 2-10 para blanco, filas 10-13 cols 2-10 para rojo)
       if (estado.turno === 'blanco') {
-        if (f <= 4) return false; // Area blanca (filas 1-4)
+        if (f >= 1 && f <= 4 && c >= 2 && c <= 10) return false;
       } else {
-        if (f >= 10) return false; // Area roja (filas 10-13)
+        if (f >= 10 && f <= 13 && c >= 2 && c <= 10) return false;
       }
       
       // 3. Debe quedar en casilla neutra (igual numero de colindantes de ambos equipos)
@@ -769,8 +1333,17 @@
       limpiarSeleccion();
       estado.seleccionado = id;
       const el = document.getElementById(id);
-      el.setAttribute('stroke', '#ffd700');
-      el.setAttribute('stroke-width', '1');
+      if (esPortero(id)) {
+        document.getElementById(id + '-cuerpo').setAttribute('stroke', '#ffd700');
+        document.getElementById(id + '-cuerpo').setAttribute('stroke-width', '1');
+        const brazoIzq = document.getElementById(id + '-brazo-izq');
+        const brazoDer = document.getElementById(id + '-brazo-der');
+        if (brazoIzq) { brazoIzq.setAttribute('stroke', '#ffd700'); brazoIzq.setAttribute('stroke-width', '0.6'); }
+        if (brazoDer) { brazoDer.setAttribute('stroke', '#ffd700'); brazoDer.setAttribute('stroke-width', '0.6'); }
+      } else {
+        el.setAttribute('stroke', '#ffd700');
+        el.setAttribute('stroke-width', '1');
+      }
       
       const d = estado.fichas[id];
       let destinos;
@@ -787,9 +1360,17 @@
     
     function limpiarSeleccion() {
       estado.seleccionado = null;
-      document.querySelectorAll('.ficha, .balon').forEach(el => {
+      document.querySelectorAll('.ficha:not(.portero), .balon').forEach(el => {
         el.setAttribute('stroke', '#333');
         el.setAttribute('stroke-width', '0.3');
+      });
+      ['b-portero', 'r-portero'].forEach(pid => {
+        const cuerpo = document.getElementById(pid + '-cuerpo');
+        if (cuerpo) { cuerpo.setAttribute('stroke', '#333'); cuerpo.setAttribute('stroke-width', '0.3'); }
+        ['izq', 'der'].forEach(lado => {
+          const brazo = document.getElementById(pid + '-brazo-' + lado);
+          if (brazo) { brazo.setAttribute('stroke', '#333'); brazo.setAttribute('stroke-width', '0.3'); }
+        });
       });
       destinosGroup.innerHTML = '';
     }
@@ -825,9 +1406,15 @@
       
       const el = document.getElementById(id);
       const coords = casillaToSVG(fDest, cDest);
-      el.setAttribute('cx', coords.cx);
-      el.setAttribute('cy', coords.cy);
-      
+      if (esPortero(id)) {
+        document.getElementById(id + '-cuerpo').setAttribute('cx', coords.cx);
+        document.getElementById(id + '-cuerpo').setAttribute('cy', coords.cy);
+        actualizarBrazosPortero(id, fDest, cDest);
+      } else {
+        el.setAttribute('cx', coords.cx);
+        el.setAttribute('cy', coords.cy);
+      }
+
       estado.fichas[id].fila = fDest;
       estado.fichas[id].col = cDest;
       
@@ -886,23 +1473,27 @@
     function verificarGol() {
       const b = estado.fichas.balon;
       if (b.fila === 0) {
-        // Gol de rojo (metio en P1)
         MARCADOR.rojo++;
         console.log('GOOOOL de ROJO! Marcador:', MARCADOR.blanco, '-', MARCADOR.rojo);
-        recolocar('rojo'); // El que marco gol saca primero
+        if (verificarVictoria()) return;
+        recolocar('rojo');
       } else if (b.fila === 14) {
-        // Gol de blanco (metio en P2)
         MARCADOR.blanco++;
         console.log('GOOOOL de BLANCO! Marcador:', MARCADOR.blanco, '-', MARCADOR.rojo);
-        recolocar('blanco'); // El que marco gol saca primero
+        if (verificarVictoria()) return;
+        recolocar('blanco');
       }
     }
     
     // ====== CASILLAS ESPECIALES ======
-    // Casillas amarillas: fila 13 cols 1-11 (para blanco), fila 1 cols 1-11 (para rojo)
+    // Casillas amarillas: col 1, 4-8 y 11 de la linea de fondo contraria
+    // Blanco ataca fila 13, rojo ataca fila 1
     // Si un equipo coloca el balon en su casilla especial, gana un turno extra
     // Nota: Si un jugador/portero esta en la casilla, pierde su condicion de especial
     function esCasillaEspecial(f, c, equipo) {
+      // Solo columnas con punto amarillo: 1, 4-8, 11
+      if (c !== 1 && (c < 4 || c > 8) && c !== 11) return false;
+
       // Verificar si hay algun jugador/portero en esa casilla (pierde condicion)
       for (const [id, d] of Object.entries(estado.fichas)) {
         if (id === 'balon') continue;
@@ -910,9 +1501,9 @@
       }
 
       if (equipo === 'blanco') {
-        return f === 13 && c >= 1 && c <= 11;
+        return f === 13;
       } else {
-        return f === 1 && c >= 1 && c <= 11;
+        return f === 1;
       }
     }
     
@@ -947,24 +1538,72 @@
     function actualizarUI() {
       document.getElementById('goles-blanco').textContent = MARCADOR.blanco;
       document.getElementById('goles-rojo').textContent = MARCADOR.rojo;
-      
-      let turnoTexto = 'Turno de: <strong>' + (estado.turno === 'blanco' ? 'Blanco' : 'Rojo') + '</strong>';
-      if (estado.turnoExtra) {
-        turnoTexto += ' <span style="color: #ffd700;">(TURNO EXTRA!)</span>';
+      actualizarHUD();
+    }
+
+    function actualizarHUD() {
+      // Goles
+      document.getElementById('hud-goles-b').textContent = MARCADOR.blanco;
+      document.getElementById('hud-goles-r').textContent = MARCADOR.rojo;
+
+      // Indicador de turno activo
+      const esB = estado.turno === 'blanco';
+      document.getElementById('hud-turno-b').setAttribute('opacity', esB ? '1' : '0');
+      document.getElementById('hud-turno-r').setAttribute('opacity', esB ? '0' : '1');
+
+      // Turno extra
+      const extraSufijo = estado.turnoExtra ? ' +' : '';
+
+      // Dato central según modo
+      const enc = config.encuentro;
+      const extraB = document.getElementById('hud-extra-b');
+      const extraR = document.getElementById('hud-extra-r');
+      const cronoB = document.getElementById('hud-crono-b');
+      const cronoR = document.getElementById('hud-crono-r');
+
+      // Animación pulso en el indicador activo
+      document.getElementById('hud-turno-b').classList.toggle('activo', esB);
+      document.getElementById('hud-turno-r').classList.toggle('activo', !esB);
+
+      if (enc === 'goles') {
+        extraB.textContent = extraSufijo ? 'EXTRA' : '';
+        extraR.textContent = '';
+        cronoB.setAttribute('visibility', 'hidden');
+        cronoR.setAttribute('visibility', 'hidden');
+
+      } else if (enc === 'turnos') {
+        const tb = victoria.turnosRestantes.blanco;
+        const tr = victoria.turnosRestantes.rojo;
+        const total = config.turnos;
+        const turnoActualB = Math.min(total - tb + 1, total);
+        const turnoActualR = Math.min(total - tr + 1, total);
+        extraB.textContent = turnoActualB + '/' + total + (extraSufijo && esB ? '+' : '');
+        extraR.textContent = turnoActualR + '/' + total + (extraSufijo && !esB ? '+' : '');
+        cronoB.setAttribute('visibility', 'hidden');
+        cronoR.setAttribute('visibility', 'hidden');
+
+      } else if (enc === 'crono') {
+        extraB.textContent = extraSufijo && esB ? 'EXTRA' : '';
+        extraR.textContent = extraSufijo && !esB ? 'EXTRA' : '';
+        cronoB.setAttribute('visibility', 'visible');
+        cronoR.setAttribute('visibility', 'visible');
+        actualizarCronometrosHUD();
       }
-      document.getElementById('texto-turno').innerHTML = turnoTexto;
-      
-      let faseTexto = '';
-      if (estado.fase === 'MOVER_JUGADOR') {
-        faseTexto = 'Mueve un jugador';
-      } else if (estado.fase === 'MOVER_BALON') {
-        faseTexto = 'Tienes el balón. Mueve el balón (' + estado.movimientosBalon + '/4)';
-      }
-      document.getElementById('texto-fase').textContent = faseTexto;
-      
-      // Botón pasar turno: solo activo cuando tienes el balón y está en casilla neutra
-      const btn = document.getElementById('btn-pasar');
-      btn.disabled = !(estado.fase === 'MOVER_BALON' && esCasillaNeutra());
+    }
+
+    function actualizarCronometrosHUD() {
+      ['blanco', 'rojo'].forEach(eq => {
+        const el = document.getElementById('hud-crono-' + eq[0]);
+        if (!el) return;
+        const s = victoria.tiempoRestante[eq] || 0;
+        const mm = String(Math.floor(s / 60)).padStart(2, '0');
+        const ss = String(s % 60).padStart(2, '0');
+        el.textContent = mm + ':' + ss;
+        const activo = eq === estado.turno;
+        el.setAttribute('fill', activo ? '#FFD700' : 'rgba(255,255,255,0.35)');
+        // Pulso animado cuando activo y quedan menos de 30s
+        el.style.fontWeight = activo ? 'bold' : 'normal';
+      });
     }
     
     // ====== RECOLOCAR ======
@@ -978,10 +1617,18 @@
       
       // Actualizar visual
       for (const [id, d] of Object.entries(estado.fichas)) {
-        const el = document.getElementById(id);
         const coords = casillaToSVG(d.fila, d.col);
-        el.setAttribute('cx', coords.cx);
-        el.setAttribute('cy', coords.cy);
+        if (esPortero(id)) {
+          document.getElementById(id + '-cuerpo').setAttribute('cx', coords.cx);
+          document.getElementById(id + '-cuerpo').setAttribute('cy', coords.cy);
+          actualizarBrazosPortero(id, d.fila, d.col);
+        } else {
+          const el = document.getElementById(id);
+          if (el) {
+            el.setAttribute('cx', coords.cx);
+            el.setAttribute('cy', coords.cy);
+          }
+        }
       }
       
       actualizarUI();
@@ -1014,24 +1661,85 @@
         return;
       }
       
+      const equipoQueAcaba = estado.turno;
       estado.turno = estado.turno === 'blanco' ? 'rojo' : 'blanco';
       estado.fase = 'MOVER_JUGADOR';
       estado.posesion = false;
       estado.movimientosBalon = 0;
+
+      // Modo turnos: descontar turno al equipo que acaba de jugar
+      if (config.encuentro === 'turnos') {
+        victoria.turnosRestantes[equipoQueAcaba]--;
+        if (victoria.turnosRestantes.blanco <= 0 && victoria.turnosRestantes.rojo <= 0) {
+          // Ambos agotaron sus turnos
+          if (MARCADOR.blanco > MARCADOR.rojo)       finPartida('blanco', 'turnos');
+          else if (MARCADOR.rojo > MARCADOR.blanco)  finPartida('rojo',   'turnos');
+          else                                        finPartida('empate', 'turnos');
+          return;
+        }
+      }
+
+      // Modo crono: cambiar qué reloj corre
+      if (config.encuentro === 'crono') {
+        actualizarCronometrosUI();
+      }
+
       actualizarUI();
       console.log('Turno de:', estado.turno);
-      
+
       // Si es turno de la IA, ejecutarla
       if (estado.turno === 'rojo' && estado.modo === 'vsIA') {
         ejecutarTurnoIA();
       }
     }
     
+    // ====== HELPERS PORTERO ======
+    function esPortero(id) {
+      return id === 'b-portero' || id === 'r-portero';
+    }
+
+    function actualizarBrazosPortero(id, fila, col) {
+      const esBlanco = id === 'b-portero';
+      const enAreaGrande = (f, c) => esBlanco
+        ? (f >= 1 && f <= 4 && c >= 2 && c <= 10)
+        : (f >= 10 && f <= 13 && c >= 2 && c <= 10);
+
+      const centro = casillaToSVG(fila, col);
+      // brazo izquierdo: sale del borde izquierdo del círculo hacia la casilla col-1
+      const brazoIzq = document.getElementById(id + '-brazo-izq');
+      if (enAreaGrande(fila, col - 1) && col - 1 >= 1) {
+        brazoIzq.setAttribute('x', centro.cx - 8.5);
+        brazoIzq.setAttribute('y', centro.cy - 1.25);
+        brazoIzq.setAttribute('visibility', 'visible');
+      } else {
+        brazoIzq.setAttribute('visibility', 'hidden');
+      }
+      // brazo derecho: sale del borde derecho del círculo hacia la casilla col+1
+      const brazoDer = document.getElementById(id + '-brazo-der');
+      if (enAreaGrande(fila, col + 1) && col + 1 <= 11) {
+        brazoDer.setAttribute('x', centro.cx + 3.5);
+        brazoDer.setAttribute('y', centro.cy - 1.25);
+        brazoDer.setAttribute('visibility', 'visible');
+      } else {
+        brazoDer.setAttribute('visibility', 'hidden');
+      }
+    }
+
+    // Inicializar brazos en posición inicial
+    actualizarBrazosPortero('b-portero', estado.fichas['b-portero'].fila, estado.fichas['b-portero'].col);
+    actualizarBrazosPortero('r-portero', estado.fichas['r-portero'].fila, estado.fichas['r-portero'].col);
+
     // ====== EVENTOS ======
     document.querySelectorAll('.ficha').forEach(el => {
       el.addEventListener('click', (e) => {
         e.stopPropagation();
-        const id = e.target.id;
+        // Para porteros (grupos <g>), subir hasta el elemento con id de ficha
+        let target = e.target;
+        while (target && !estado.fichas[target.id]) {
+          target = target.parentElement;
+        }
+        if (!target) return;
+        const id = target.id;
         const equipo = estado.fichas[id].equipo;
         
         // En fase MOVER_JUGADOR solo fichas del equipo del turno
@@ -1206,19 +1914,241 @@
       }
     }
     
-    // ====== MENU INICIAL ======
-    window.iniciarJuego = function(modo) {
-      estado.modo = modo;
+    // ====== CONFIGURACION DE PARTIDA ======
+    const config = {
+      modo: 'pvp',          // pvp | vsIA
+      encuentro: 'goles',   // goles | turnos | crono
+      goles: 1,
+      turnos: 10,
+      cronoTiempo: 3,
+      cronoGoles: 1
+    };
+
+    // ====== ESTADO DE VICTORIA ======
+    const victoria = {
+      turnosRestantes: { blanco: 0, rojo: 0 },
+      tiempoRestante:  { blanco: 0, rojo: 0 }, // segundos
+      intervalo: null
+    };
+
+    // ====== MENU: SELECCION ======
+    window.seleccionarModo = function(modo) {
+      config.modo = modo;
+      document.getElementById('btn-modo-pvp').classList.toggle('activo', modo === 'pvp');
+      document.getElementById('btn-modo-ia').classList.toggle('activo', modo === 'vsIA');
+    };
+
+    window.seleccionarEncuentro = function(tipo) {
+      config.encuentro = tipo;
+      ['goles','turnos','crono'].forEach(t => {
+        document.getElementById('op-' + t).classList.toggle('activo', t === tipo);
+      });
+    };
+
+    window.seleccionarChip = function(e, grupo, valor) {
+      e.stopPropagation();
+      const mapa = { 'goles': 'goles', 'turnos': 'turnos', 'crono-tiempo': 'cronoTiempo', 'crono-goles': 'cronoGoles' };
+      config[mapa[grupo]] = valor;
+      const contenedor = document.getElementById('chips-' + grupo);
+      contenedor.querySelectorAll('.chip').forEach(c => c.classList.remove('activo'));
+      e.target.classList.add('activo');
+      // Activar el tipo de encuentro correspondiente al chip tocado
+      if (grupo === 'goles') seleccionarEncuentro('goles');
+      if (grupo === 'turnos') seleccionarEncuentro('turnos');
+      if (grupo === 'crono-tiempo' || grupo === 'crono-goles') seleccionarEncuentro('crono');
+    };
+
+    // ====== SORTEO MONEDA ======
+    const sorteo = { eleccion: null, resultado: null, ganador: null };
+
+    window.iniciarJuego = function() {
+      // Abrir sorteo antes de empezar
       document.getElementById('menu-inicial').style.display = 'none';
+      document.getElementById('moneda-overlay').classList.add('visible');
+      document.getElementById('moneda-paso1').style.display = 'block';
+      document.getElementById('moneda-paso2').style.display = 'none';
+      document.getElementById('btn-cara').classList.remove('seleccionado');
+      document.getElementById('btn-cruz').classList.remove('seleccionado');
+    };
+
+    window.elegirCaraCruz = function(eleccion) {
+      sorteo.eleccion = eleccion;
+      document.getElementById('btn-cara').classList.toggle('seleccionado', eleccion === 'cara');
+      document.getElementById('btn-cruz').classList.toggle('seleccionado', eleccion === 'cruz');
+
+      // Pequeña pausa para que se vea la selección
+      setTimeout(() => {
+        document.getElementById('moneda-paso1').style.display = 'none';
+        document.getElementById('moneda-paso2').style.display = 'flex';
+
+        // Resultado aleatorio
+        sorteo.resultado = Math.random() < 0.5 ? 'cara' : 'cruz';
+        sorteo.ganador   = sorteo.resultado === sorteo.eleccion ? 'blanco' : 'rojo';
+
+        // Lanzar animación
+        const moneda = document.getElementById('moneda-3d');
+        moneda.className = 'moneda-3d';
+        void moneda.offsetWidth; // forzar reflow
+        moneda.classList.add(sorteo.resultado === 'cara' ? 'girando-cara' : 'girando-cruz');
+
+        // Mostrar resultado al acabar la animación
+        setTimeout(() => {
+          const nombreGanador = sorteo.ganador === 'blanco' ? 'BLANCO' : 'ROJO';
+          const nombreResultado = sorteo.resultado === 'cara' ? '⚽ CARA' : '★ CRUZ';
+          const tuEleccion = sorteo.eleccion === 'cara' ? '⚽ CARA' : '★ CRUZ';
+          const gano = sorteo.ganador === 'blanco';
+
+          const simboloResultado = sorteo.resultado === 'cara' ? '⚽' : '★';
+          const simboloEleccion  = sorteo.eleccion  === 'cara' ? '⚽' : '★';
+          document.getElementById('moneda-ganador').textContent =
+            (gano ? '¡Gana Blanco!' : '¡Gana Rojo!');
+          document.getElementById('moneda-texto').textContent =
+            'Salió ' + simboloResultado + ' ' + sorteo.resultado.toUpperCase() +
+            ' · Elegiste ' + simboloEleccion + ' ' + sorteo.eleccion.toUpperCase();
+
+          const res = document.getElementById('moneda-resultado');
+          res.classList.add('visible');
+
+          setTimeout(() => {
+            document.getElementById('moneda-eleccion').classList.add('visible');
+          }, 500);
+        }, 3000);
+      }, 300);
+    };
+
+    window.elegirVentaja = function(ventaja) {
+      document.getElementById('moneda-overlay').classList.remove('visible');
+      document.getElementById('moneda-resultado').classList.remove('visible');
+      document.getElementById('moneda-eleccion').classList.remove('visible');
+
+      // Si elige saque: el ganador saca primero
+      // Si elige campo: el perdedor saca, el ganador eligió campo
+      const equipoQueSaca = ventaja === 'saque'
+        ? sorteo.ganador
+        : (sorteo.ganador === 'blanco' ? 'rojo' : 'blanco');
+
+      arrancarPartida(equipoQueSaca);
+    };
+
+    function arrancarPartida(equipoQueSaca) {
+      estado.modo = config.modo;
+      recolocar(equipoQueSaca);
       document.getElementById('game-container').style.display = 'block';
       document.getElementById('ui-panel').style.display = 'flex';
-      actualizarUI();
-      
-      if (estado.turno === 'rojo' && estado.modo === 'vsIA') {
-        ejecutarTurnoIA();
+
+      // Inicializar condición de victoria
+      if (config.encuentro === 'turnos') {
+        victoria.turnosRestantes.blanco = config.turnos;
+        victoria.turnosRestantes.rojo   = config.turnos;
+      } else if (config.encuentro === 'crono') {
+        const segs = config.cronoTiempo * 60;
+        victoria.tiempoRestante.blanco = segs;
+        victoria.tiempoRestante.rojo   = segs;
+        document.getElementById('cronometros').style.display = 'flex';
+        actualizarCronometrosUI();
+        iniciarCronometro();
       }
+
+      actualizarUI();
+      if (estado.turno === 'rojo' && estado.modo === 'vsIA') ejecutarTurnoIA();
     };
-    
+
+    // ====== CRONOMETRO ======
+    function iniciarCronometro() {
+      if (victoria.intervalo) clearInterval(victoria.intervalo);
+      victoria.intervalo = setInterval(() => {
+        const equipo = estado.turno;
+        victoria.tiempoRestante[equipo]--;
+        actualizarCronometrosUI();
+        if (victoria.tiempoRestante[equipo] <= 0) {
+          clearInterval(victoria.intervalo);
+          victoria.tiempoRestante[equipo] = 0;
+          finPartida(equipo === 'blanco' ? 'rojo' : 'blanco', 'tiempo');
+        }
+      }, 1000);
+    }
+
+    function pausarCronometro() {
+      if (victoria.intervalo) { clearInterval(victoria.intervalo); victoria.intervalo = null; }
+    }
+
+    function actualizarCronometrosUI() {
+      actualizarCronometrosHUD();
+    }
+
+    // ====== VERIFICAR VICTORIA ======
+    function verificarVictoria() {
+      const enc = config.encuentro;
+
+      if (enc === 'goles') {
+        if (MARCADOR.blanco >= config.goles) { finPartida('blanco', 'goles'); return true; }
+        if (MARCADOR.rojo   >= config.goles) { finPartida('rojo',   'goles'); return true; }
+      }
+
+      if (enc === 'turnos') {
+        // Se comprueba al final de cada turno en pasarTurno()
+      }
+
+      if (enc === 'crono') {
+        if (MARCADOR.blanco >= config.cronoGoles) { pausarCronometro(); finPartida('blanco', 'goles'); return true; }
+        if (MARCADOR.rojo   >= config.cronoGoles) { pausarCronometro(); finPartida('rojo',   'goles'); return true; }
+      }
+
+      return false;
+    }
+
+    // ====== FIN DE PARTIDA ======
+    function finPartida(ganador, motivo) {
+      pausarCronometro();
+      const overlay = document.getElementById('fin-overlay');
+      const titulo  = document.getElementById('fin-titulo');
+      const result  = document.getElementById('fin-resultado');
+      const detalle = document.getElementById('fin-detalle');
+
+      result.textContent = MARCADOR.blanco + ' - ' + MARCADOR.rojo;
+
+      if (ganador === 'empate') {
+        titulo.textContent = 'Empate';
+        detalle.textContent = 'Se agotaron los turnos sin diferencia.';
+      } else {
+        const nombre = ganador === 'blanco' ? 'Blanco' : 'Rojo';
+        titulo.textContent = '¡Gana ' + nombre + '!';
+        if (motivo === 'goles')  detalle.textContent = 'Alcanzó el objetivo de goles.';
+        if (motivo === 'tiempo') detalle.textContent = 'Al rival se le agotó el tiempo.';
+        if (motivo === 'turnos') detalle.textContent = 'Más goles al acabar los turnos.';
+      }
+
+      overlay.classList.add('visible');
+    }
+
+    window.revancha = function() {
+      document.getElementById('fin-overlay').classList.remove('visible');
+      MARCADOR.blanco = 0; MARCADOR.rojo = 0;
+      recolocar('blanco');
+      if (config.encuentro === 'turnos') {
+        victoria.turnosRestantes.blanco = config.turnos;
+        victoria.turnosRestantes.rojo   = config.turnos;
+      } else if (config.encuentro === 'crono') {
+        const segs = config.cronoTiempo * 60;
+        victoria.tiempoRestante.blanco = segs;
+        victoria.tiempoRestante.rojo   = segs;
+        actualizarCronometrosUI();
+        iniciarCronometro();
+      }
+      actualizarUI();
+    };
+
+    window.volverMenu = function() {
+      pausarCronometro();
+      document.getElementById('fin-overlay').classList.remove('visible');
+      document.getElementById('game-container').style.display = 'none';
+      document.getElementById('ui-panel').style.display = 'none';
+      document.getElementById('cronometros').style.display = 'none';
+      document.getElementById('menu-inicial').style.display = 'flex';
+      MARCADOR.blanco = 0; MARCADOR.rojo = 0;
+      recolocar('blanco');
+    };
+
     // Inicializar UI (pero oculto hasta que elija modo)
     actualizarUI();
   </script>
