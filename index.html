@@ -2995,6 +2995,9 @@
       if (key) torneoConfig[key] = valor;
       const chips = document.querySelectorAll(`#t-chips-${tipo} .chip`);
       chips.forEach(c => c.classList.toggle('activo', c.textContent.replace("'",'') == valor));
+      if (tipo === 'goles') torneoSelEncuentro('goles');
+      else if (tipo === 'turnos') torneoSelEncuentro('turnos');
+      else if (tipo === 'crono-tiempo' || tipo === 'crono-goles') torneoSelEncuentro('crono');
     };
 
     function torneoGuardar() { localStorage.setItem('mg_torneo', JSON.stringify(torneoData)); }
