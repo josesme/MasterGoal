@@ -3227,11 +3227,13 @@
 
     window.torneoSimularSiguienteIA = function() {
       const { rondas, rondaActual, miEquipo } = torneoData;
-      const p = rondas[rondaActual].find(p => !p.jugado && p.local && p.visitante && p.local !== miEquipo && p.visitante !== miEquipo);
-      if (!p) return;
-      let gl = simularGoles(), gv = simularGoles();
-      if (gl === gv) Math.random() < 0.5 ? gl++ : gv++;
-      p.golLocal = gl; p.golVisitante = gv; p.jugado = true;
+      const pendientes = rondas[rondaActual].filter(p => !p.jugado && p.local && p.visitante && p.local !== miEquipo && p.visitante !== miEquipo);
+      if (!pendientes.length) return;
+      pendientes.forEach(p => {
+        let gl = simularGoles(), gv = simularGoles();
+        if (gl === gv) Math.random() < 0.5 ? gl++ : gv++;
+        p.golLocal = gl; p.golVisitante = gv; p.jugado = true;
+      });
       torneoAvanzarRonda();
     };
 
