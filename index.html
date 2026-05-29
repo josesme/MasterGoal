@@ -544,6 +544,7 @@
     }
     .torneo-rival-item.seleccionado { border-color: #4caf50; background: rgba(76,175,80,0.15); }
     .torneo-rival-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.3); }
+    .equipo-color-dot { width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.3); }
     .torneo-rivales-contador { font-size: 11px; opacity: 0.6; margin-bottom: 6px; }
     .btn-torneo-iniciar {
       width: 100%; padding: 14px; border-radius: 10px; border: none;
@@ -1412,6 +1413,28 @@
       { id: 'h4',       nombre: 'Cuadrícula',        gen: (c1,c2,s) => { const n=6; const c=s/n; return Array.from({length:n*n},(_,k)=>{const col=k%n,row=Math.floor(k/n);return `<rect x="${col*c}" y="${row*c}" width="${c}" height="${c}" fill="${(col+row)%2===0?c1:c2}"/>`;}).join(''); } },
       { id: 'hombros',  nombre: 'Hombros',          gen: (c1,c2,s) => `<rect width="${s}" height="${s}" fill="${c1}"/><rect width="${s}" height="${s*0.28}" fill="${c2}"/>` },
     ];
+
+    function miniJerseySVG(eq, size) {
+      if (!eq) return '';
+      const pat = PATRONES_EQUIPO.find(p => p.id === eq.patron) || PATRONES_EQUIPO[0];
+      const s = size; const corte = Math.round(s * 0.675);
+      const jerseyInner = pat.gen(eq.colorPrincipal, eq.colorSecundario, s);
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+        <rect width="${s}" height="${s}" fill="${eq.colorPantalon}"/>
+        <svg x="0" y="0" width="${s}" height="${corte}" viewBox="0 0 ${s} ${s}" preserveAspectRatio="none">${jerseyInner}</svg>
+        <line x1="0" y1="${corte}" x2="${s}" y2="${corte}" stroke="rgba(0,0,0,0.25)" stroke-width="1"/>
+      </svg>`;
+    }
+
+    function aplicarMiniJersey(el, eq, size) {
+      if (!el) return;
+      if (!eq) { el.style.background = 'rgba(255,255,255,0.15)'; el.style.backgroundImage = ''; return; }
+      const s = size || parseInt(el.getAttribute('data-jersey-size')) || parseInt(el.offsetWidth) || 14;
+      const svgStr = miniJerseySVG(eq, s);
+      el.style.backgroundImage = `url("data:image/svg+xml,${encodeURIComponent(svgStr)}")`;
+      el.style.backgroundSize = '100% 100%';
+      el.style.backgroundColor = '';
+    }
 
     const svg = document.querySelector('svg');
     const destinosGroup = document.getElementById('destinos');
@@ -2897,16 +2920,34 @@
       pintarFichasTablero(localEq, rivalEq);
 
       // Actualizar iconos de equipo en el HUD SVG
-      const iconoB = document.querySelector('#hud-blanco circle');
-      const iconoR = document.querySelector('#hud-rojo circle');
-      if (iconoB) {
-        iconoB.setAttribute('fill',   localEq ? localEq.colorPrincipal : '#ffffff');
-        iconoB.setAttribute('stroke', localEq ? localEq.colorSecundario : '#bbb');
-      }
-      if (iconoR) {
-        iconoR.setAttribute('fill',   rivalEq ? rivalEq.colorPrincipal : '#d32f2f');
-        iconoR.setAttribute('stroke', rivalEq ? rivalEq.colorSecundario : '#b71c1c');
-      }
+      [['hud-blanco', localEq, '#ffffff', '#bbb'], ['hud-rojo', rivalEq, '#d32f2f', '#b71c1c']].forEach(([hudId, eq, defFill, defStroke]) => {
+        const circ = document.querySelector(`#${hudId} circle`);
+        if (!circ) return;
+        if (!eq) { circ.setAttribute('fill', defFill); circ.setAttribute('stroke', defStroke); return; }
+        const svgEl = document.querySelector('svg');
+        let defsEl = svgEl.querySelector('defs');
+        if (!defsEl) { defsEl = document.createElementNS('http://www.w3.org/2000/svg','defs'); svgEl.prepend(defsEl); }
+        const patId = 'pat_' + hudId;
+        const clipId = 'clip_' + hudId;
+        ['pattern','clipPath'].forEach(tag => { const old = defsEl.querySelector(`${tag}#${tag==='pattern'?patId:clipId}`); if (old) old.remove(); });
+        const cx = parseFloat(circ.getAttribute('cx')), cy = parseFloat(circ.getAttribute('cy')), r = parseFloat(circ.getAttribute('r'));
+        const d = r * 2; const corte = r * 1.35;
+        const pat = PATRONES_EQUIPO.find(p => p.id === eq.patron) || PATRONES_EQUIPO[0];
+        const clip = document.createElementNS('http://www.w3.org/2000/svg','clipPath'); clip.id = clipId;
+        const cc = document.createElementNS('http://www.w3.org/2000/svg','circle');
+        cc.setAttribute('cx', cx); cc.setAttribute('cy', cy); cc.setAttribute('r', r - 0.3);
+        clip.appendChild(cc); defsEl.appendChild(clip);
+        const pattern = document.createElementNS('http://www.w3.org/2000/svg','pattern'); pattern.id = patId;
+        pattern.setAttribute('x', cx - r); pattern.setAttribute('y', cy - r);
+        pattern.setAttribute('width', d); pattern.setAttribute('height', d);
+        pattern.setAttribute('patternUnits', 'userSpaceOnUse');
+        pattern.innerHTML = `<rect width="${d}" height="${d}" fill="${eq.colorPantalon}"/><svg x="0" y="0" width="${d}" height="${corte}" viewBox="0 0 ${d} ${d}" preserveAspectRatio="none">${pat.gen(eq.colorPrincipal, eq.colorSecundario, d)}</svg><line x1="0" y1="${corte}" x2="${d}" y2="${corte}" stroke="rgba(0,0,0,0.3)" stroke-width="0.4"/>`;
+        defsEl.appendChild(pattern);
+        circ.setAttribute('fill', `url(#${patId})`);
+        circ.setAttribute('clip-path', `url(#${clipId})`);
+        circ.setAttribute('stroke', '#333');
+        circ.setAttribute('stroke-width', '0.3');
+      });
     }
 
     function guardarEquipos(lista) {
@@ -2955,7 +2996,7 @@
       if (!sel || !dot) return;
       const equipos = equiposGuardados();
       const eq = equipos.find(e => e.id === sel.value);
-      dot.style.background = eq ? eq.colorPrincipal : 'transparent';
+      aplicarMiniJersey(dot, eq || null, 22);
       if (lado === 'local') config.equipoLocal = sel.value || null;
       else config.equipoRival = sel.value || null;
     }
@@ -3066,7 +3107,7 @@
         div.dataset.id = e.id;
         const dot = document.createElement('div');
         dot.className = 'torneo-rival-dot';
-        dot.style.background = e.colorPrincipal;
+        aplicarMiniJersey(dot, e, 14);
         div.appendChild(dot);
         div.appendChild(document.createTextNode(e.nombre));
         div.onclick = () => {
@@ -3147,7 +3188,7 @@
             if (eqObj) {
               const dot = document.createElement('div');
               dot.className = 'bracket-dot';
-              dot.style.background = eqObj.colorPrincipal;
+              aplicarMiniJersey(dot, eqObj, 12);
               row.appendChild(dot);
               const nombre = document.createElement('span');
               nombre.textContent = eqObj.nombre;
@@ -3209,7 +3250,7 @@
       const equipos = equiposGuardados();
       const eq = equipos.find(e => e.id === id);
       document.getElementById('campeon-nombre').textContent = eq ? eq.nombre : id;
-      document.getElementById('campeon-dot').style.background = eq ? eq.colorPrincipal : '#fff';
+      aplicarMiniJersey(document.getElementById('campeon-dot'), eq || null, 48);
       document.getElementById('bracket-overlay').classList.remove('visible');
       document.getElementById('campeon-overlay').classList.add('visible');
     }
