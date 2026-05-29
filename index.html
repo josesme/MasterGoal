@@ -568,8 +568,118 @@
     .balon:hover {
       filter: brightness(1.2);
     }
+
+    /* ====== ONLINE PANEL ====== */
+    .online-panel {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .online-panel.visible { display: flex; }
+
+    .online-btns {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-online {
+      flex: 1;
+      padding: 12px;
+      border: 2px solid rgba(255,255,255,0.25);
+      border-radius: 8px;
+      background: transparent;
+      color: white;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.15s;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-online:hover { border-color: white; background: rgba(255,255,255,0.1); }
+    .btn-online.activo { border-color: white; background: rgba(255,255,255,0.15); }
+
+    .online-sala {
+      background: rgba(0,0,0,0.3);
+      border-radius: 8px;
+      padding: 14px;
+      text-align: center;
+      display: none;
+    }
+
+    .online-sala.visible { display: block; }
+
+    .sala-codigo {
+      font-size: 36px;
+      font-weight: bold;
+      letter-spacing: 8px;
+      color: #FFD700;
+      font-family: monospace;
+      margin: 8px 0;
+    }
+
+    .sala-estado {
+      font-size: 12px;
+      opacity: 0.7;
+      letter-spacing: 1px;
+    }
+
+    .sala-spinner {
+      display: inline-block;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .online-unirse {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .online-unirse.visible { display: flex; }
+
+    .codigo-input {
+      background: rgba(0,0,0,0.3);
+      border: 2px solid rgba(255,255,255,0.25);
+      border-radius: 8px;
+      color: white;
+      font-size: 28px;
+      font-weight: bold;
+      font-family: monospace;
+      letter-spacing: 6px;
+      text-align: center;
+      padding: 10px;
+      width: 100%;
+      box-sizing: border-box;
+      outline: none;
+    }
+
+    .codigo-input:focus { border-color: #FFD700; }
+    .codigo-input::placeholder { opacity: 0.3; letter-spacing: 4px; font-size: 20px; }
+
+    .btn-unirse {
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      background: #FFD700;
+      color: #1a3a00;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .online-error {
+      font-size: 11px;
+      color: #ff6b6b;
+      text-align: center;
+      min-height: 16px;
+    }
   </style>
 </head>
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <body>
   <!-- Menu Inicial -->
   <div id="menu-inicial" class="menu-overlay">
@@ -583,6 +693,32 @@
         <div class="radio-group">
           <button class="radio-btn activo" id="btn-modo-pvp" onclick="seleccionarModo('pvp')">👤👤 1 vs 1</button>
           <button class="radio-btn" id="btn-modo-ia" onclick="seleccionarModo('vsIA')">👤🤖 vs IA</button>
+          <button class="radio-btn" id="btn-modo-online" onclick="seleccionarModo('online')">🌐 Online</button>
+        </div>
+
+        <!-- Panel Online -->
+        <div class="online-panel" id="online-panel">
+          <div class="online-btns">
+            <button class="btn-online" id="btn-crear" onclick="onlineCrear()">➕ Crear partida</button>
+            <button class="btn-online" id="btn-unirse-tab" onclick="onlineMostrarUnirse()">🔗 Unirse</button>
+          </div>
+
+          <!-- Sala creada: mostrar código -->
+          <div class="online-sala" id="online-sala">
+            <div class="sala-estado" id="sala-estado-txt">Tu código de partida</div>
+            <div class="sala-codigo" id="sala-codigo">----</div>
+            <div class="sala-estado" id="sala-espera"><span class="sala-spinner">⟳</span> Esperando rival...</div>
+          </div>
+
+          <!-- Unirse: introducir código -->
+          <div class="online-unirse" id="online-unirse">
+            <input class="codigo-input" id="codigo-input" type="text"
+                   maxlength="4" placeholder="0000" inputmode="numeric"
+                   oninput="this.value=this.value.replace(/\D/g,'')"/>
+            <button class="btn-unirse" onclick="onlineUnirse()">CONECTAR</button>
+          </div>
+
+          <div class="online-error" id="online-error"></div>
         </div>
       </div>
 
@@ -1407,6 +1543,10 @@
         console.log('AUTOPASE INVALIDO: No puedes pasar el balon a una casilla donde el mismo jugador siga siendo el unico colindante.');
         return false;
       }
+      // Enviar movimiento al rival en modo online
+      if (config.modo === 'online') {
+        enviarMensaje({ tipo: 'mover', id, fila: fDest, col: cDest });
+      }
       
       const el = document.getElementById(id);
       const coords = casillaToSVG(fDest, cDest);
@@ -1748,7 +1888,8 @@
         
         // En fase MOVER_JUGADOR solo fichas del equipo del turno
         if (estado.fase === 'MOVER_JUGADOR') {
-          if (equipo !== estado.turno) { console.log('No es tu turno'); return; }
+          if (equipo !== estado.turno) { return; }
+          if (!esMiTurno()) { return; }
           if (estado.seleccionado === id) limpiarSeleccion();
           else seleccionar(id);
         }
@@ -1757,11 +1898,10 @@
     
     document.getElementById('balon').addEventListener('click', (e) => {
       e.stopPropagation();
+      if (!esMiTurno()) return;
       if (estado.fase === 'MOVER_BALON' && estado.posesion) {
         if (estado.seleccionado === 'balon') limpiarSeleccion();
         else seleccionar('balon');
-      } else {
-        console.log('No tienes posesion del balon');
       }
     });
     
@@ -1936,10 +2076,177 @@
     };
 
     // ====== MENU: SELECCION ======
+    // ====== ONLINE / PEERJS ======
+    const red = {
+      peer: null,       // instancia Peer local
+      conn: null,       // conexión con el rival
+      miEquipo: null,   // 'blanco' (creador) | 'rojo' (unido)
+      listo: false
+    };
+
+    function codigoAId(codigo) { return 'mastergoal-' + codigo; }
+
+    function mostrarErrorOnline(msg) {
+      document.getElementById('online-error').textContent = msg;
+    }
+
+    window.onlineCrear = function() {
+      mostrarErrorOnline('');
+      document.getElementById('btn-crear').classList.add('activo');
+      document.getElementById('btn-unirse-tab').classList.remove('activo');
+      document.getElementById('online-unirse').classList.remove('visible');
+
+      // Generar código de 4 dígitos
+      const codigo = String(Math.floor(1000 + Math.random() * 9000));
+      document.getElementById('sala-codigo').textContent = codigo;
+      document.getElementById('sala-espera').innerHTML = '<span class="sala-spinner">⟳</span> Esperando rival...';
+      document.getElementById('online-sala').classList.add('visible');
+
+      // Destruir peer anterior si existe
+      if (red.peer) red.peer.destroy();
+
+      red.miEquipo = 'blanco';
+      red.peer = new Peer(codigoAId(codigo));
+
+      red.peer.on('open', () => {
+        // Esperando conexión entrante
+        red.peer.on('connection', conn => {
+          red.conn = conn;
+          configurarConexion();
+          document.getElementById('sala-espera').textContent = '✓ Rival conectado. Iniciando...';
+          // El creador (blanco) envía la config al rival y arranca
+          setTimeout(() => {
+            red.conn.send({ tipo: 'config', config: { ...config } });
+            iniciarJuego();
+          }, 800);
+        });
+      });
+
+      red.peer.on('error', e => mostrarErrorOnline('Error de conexión: ' + e.type));
+    };
+
+    window.onlineMostrarUnirse = function() {
+      mostrarErrorOnline('');
+      document.getElementById('btn-unirse-tab').classList.add('activo');
+      document.getElementById('btn-crear').classList.remove('activo');
+      document.getElementById('online-sala').classList.remove('visible');
+      document.getElementById('online-unirse').classList.add('visible');
+    };
+
+    window.onlineUnirse = function() {
+      const codigo = document.getElementById('codigo-input').value.trim();
+      if (codigo.length !== 4) { mostrarErrorOnline('Introduce un código de 4 dígitos'); return; }
+      mostrarErrorOnline('');
+      document.getElementById('codigo-input').disabled = true;
+
+      if (red.peer) red.peer.destroy();
+
+      red.miEquipo = 'rojo';
+      // ID aleatorio para el que se une
+      red.peer = new Peer('mastergoal-guest-' + Date.now());
+
+      red.peer.on('open', () => {
+        const conn = red.peer.connect(codigoAId(codigo), { reliable: true });
+        red.conn = conn;
+
+        conn.on('open', () => {
+          configurarConexion();
+          mostrarErrorOnline('');
+        });
+
+        conn.on('error', () => mostrarErrorOnline('No se pudo conectar. Verifica el código.'));
+      });
+
+      red.peer.on('error', () => {
+        mostrarErrorOnline('No se pudo conectar. Verifica el código.');
+        document.getElementById('codigo-input').disabled = false;
+      });
+    };
+
+    function configurarConexion() {
+      red.listo = true;
+      red.conn.on('data', recibirMensaje);
+      red.conn.on('close', () => {
+        mostrarErrorOnline('Rival desconectado.');
+        red.listo = false;
+      });
+    }
+
+    function enviarMensaje(msg) {
+      if (red.conn && red.conn.open) red.conn.send(msg);
+    }
+
+    function recibirMensaje(msg) {
+      if (msg.tipo === 'config') {
+        // El que se une recibe la config del creador
+        Object.assign(config, msg.config);
+        iniciarJuego();
+
+      } else if (msg.tipo === 'mover') {
+        // Aplicar movimiento del rival sin reenviar
+        aplicarMovimientoRemoto(msg.id, msg.fila, msg.col);
+
+      } else if (msg.tipo === 'moneda') {
+        // El rival completó el sorteo — arrancamos con el equipo que saca
+        arrancarPartida(msg.equipoQueSaca);
+
+      } else if (msg.tipo === 'revancha') {
+        // El rival pidió revancha
+        revancha();
+      }
+    }
+
+    function aplicarMovimientoRemoto(id, fila, col) {
+      // Igual que mover() pero sin enviar de vuelta al rival
+      const el = document.getElementById(id);
+      const coords = casillaToSVG(fila, col);
+      if (esPortero(id)) {
+        document.getElementById(id + '-cuerpo').setAttribute('cx', coords.cx);
+        document.getElementById(id + '-cuerpo').setAttribute('cy', coords.cy);
+        actualizarBrazosPortero(id, fila, col);
+      } else if (el) {
+        el.setAttribute('cx', coords.cx);
+        el.setAttribute('cy', coords.cy);
+      }
+      estado.fichas[id].fila = fila;
+      estado.fichas[id].col  = col;
+      limpiarSeleccion();
+
+      if (id === 'balon') {
+        estado.movimientosBalon++;
+        verificarGol();
+        if (estado.movimientosBalon >= 4) {
+          if (!esDestinoValidoCuartoMovimiento(fila, col)) { pasarTurno(); return; }
+        }
+        verificarCasillaEspecial();
+        if (!equipoTienePosesion(estado.turno)) { pasarTurno(); return; }
+        actualizarUI();
+        if (estado.movimientosBalon >= 4) pasarTurno();
+      } else {
+        if (equipoTienePosesion(estado.turno)) {
+          estado.posesion = true;
+          estado.fase = 'MOVER_BALON';
+          actualizarUI();
+        } else {
+          pasarTurno();
+        }
+      }
+    }
+
+    // Bloquear interacción cuando no es tu turno en modo online
+    function esMiTurno() {
+      if (config.modo !== 'online') return true;
+      return estado.turno === red.miEquipo;
+    }
+
     window.seleccionarModo = function(modo) {
       config.modo = modo;
       document.getElementById('btn-modo-pvp').classList.toggle('activo', modo === 'pvp');
       document.getElementById('btn-modo-ia').classList.toggle('activo', modo === 'vsIA');
+      document.getElementById('btn-modo-online').classList.toggle('activo', modo === 'online');
+      document.getElementById('online-panel').classList.toggle('visible', modo === 'online');
+      // En modo online ocultar el botón JUGAR — la partida arranca por la conexión
+      document.querySelector('.btn-jugar').style.display = modo === 'online' ? 'none' : '';
     };
 
     window.seleccionarEncuentro = function(tipo) {
@@ -2030,6 +2337,11 @@
       const equipoQueSaca = ventaja === 'saque'
         ? sorteo.ganador
         : (sorteo.ganador === 'blanco' ? 'rojo' : 'blanco');
+
+      // En modo online notificar al rival quién saca
+      if (config.modo === 'online') {
+        enviarMensaje({ tipo: 'moneda', equipoQueSaca });
+      }
 
       arrancarPartida(equipoQueSaca);
     };
