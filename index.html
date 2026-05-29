@@ -2057,6 +2057,13 @@
       listo: false
     };
 
+    const PEER_CONFIG = {
+      host: '0.peerjs.com',
+      port: 443,
+      secure: true,
+      path: '/'
+    };
+
     function codigoAId(codigo) { return 'mastergoal-' + codigo; }
 
     function mostrarErrorOnline(msg) {
@@ -2079,7 +2086,7 @@
       if (red.peer) red.peer.destroy();
 
       red.miEquipo = 'blanco';
-      red.peer = new Peer(codigoAId(codigo));
+      red.peer = new Peer(codigoAId(codigo), PEER_CONFIG);
 
       red.peer.on('open', () => {
         // Esperando conexión entrante
@@ -2116,8 +2123,7 @@
       if (red.peer) red.peer.destroy();
 
       red.miEquipo = 'rojo';
-      // ID aleatorio para el que se une
-      red.peer = new Peer('mastergoal-guest-' + Date.now());
+      red.peer = new Peer('mastergoal-guest-' + Date.now(), PEER_CONFIG);
 
       red.peer.on('open', () => {
         const conn = red.peer.connect(codigoAId(codigo), { reliable: true });
