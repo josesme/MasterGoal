@@ -2,7 +2,6 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <script src="peerjs.min.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MasterGoal - Tablero</title>
   <style>
@@ -1101,7 +1100,7 @@
     </svg>
   </div>
   
-  <script>
+  <script type="module">
     // ====== ESTADO DEL JUEGO ======
     const estado = {
       // Posiciones actuales
@@ -1518,7 +1517,7 @@
       }
       // Enviar movimiento al rival en modo online
       if (config.modo === 'online') {
-        enviarMensaje({ tipo: 'mover', id, fila: fDest, col: cDest });
+        enviarMensaje({ tipo: 'mover', id, fila: fDest, col: cDest, origen: red.miEquipo });
       }
       
       const el = document.getElementById(id);
@@ -2050,45 +2049,49 @@
 
     // ====== MENU: SELECCION ======
     // ====== ONLINE / PEERJS ======
+    // ====== FIREBASE ONLINE ======
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
+    import { getDatabase, ref, set, onValue, remove, onDisconnect } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js';
+
+    const firebaseConfig = {
+      apiKey: 'AIzaSyB2D0nfl42iTDQaudCvN7FexAZmBtEghnk',
+      authDomain: 'mastergoal.firebaseapp.com',
+      databaseURL: 'https://mastergoal-default-rtdb.europe-west1.firebasedatabase.app',
+      projectId: 'mastergoal',
+      storageBucket: 'mastergoal.firebasestorage.app',
+      messagingSenderId: '868610957654',
+      appId: '1:868610957654:web:6e76b59b96b2e3adb9b6f7'
+    };
+
+    const firebaseApp = initializeApp(firebaseConfig);
+    const db = getDatabase(firebaseApp);
+
     const red = {
-      peer: null,       // instancia Peer local
-      conn: null,       // conexión con el rival
       miEquipo: null,   // 'blanco' (creador) | 'rojo' (unido)
-      listo: false
+      codigo: null,
+      escucha: null     // unsubscribe de onValue
     };
 
-    const PEER_CONFIG = {
-      host: '0.peerjs.com',
-      port: 443,
-      secure: true,
-      path: '/',
-      config: {
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' },
-          {
-            urls: 'turn:openrelay.metered.ca:80',
-            username: 'openrelayproject',
-            credential: 'openrelayproject'
-          },
-          {
-            urls: 'turn:openrelay.metered.ca:443',
-            username: 'openrelayproject',
-            credential: 'openrelayproject'
-          },
-          {
-            urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-            username: 'openrelayproject',
-            credential: 'openrelayproject'
-          }
-        ]
-      }
-    };
-
-    function codigoAId(codigo) { return 'mastergoal-' + codigo; }
+    function salaRef(codigo)    { return ref(db, 'salas/' + codigo); }
+    function mensajeRef(codigo) { return ref(db, 'salas/' + codigo + '/mensaje'); }
 
     function mostrarErrorOnline(msg) {
       document.getElementById('online-error').textContent = msg;
+    }
+
+    function enviarMensaje(msg) {
+      if (!red.codigo) return;
+      set(mensajeRef(red.codigo), { ...msg, ts: Date.now() });
+    }
+
+    function escucharMensajes() {
+      red.escucha = onValue(mensajeRef(red.codigo), snap => {
+        const msg = snap.val();
+        if (!msg) return;
+        // Ignorar mensajes propios
+        if (msg.origen === red.miEquipo) return;
+        recibirMensaje(msg);
+      });
     }
 
     window.onlineCrear = function() {
@@ -2097,38 +2100,30 @@
       document.getElementById('btn-unirse-tab').classList.remove('activo');
       document.getElementById('online-unirse').classList.remove('visible');
 
-      // Generar código de 4 dígitos
       const codigo = String(Math.floor(1000 + Math.random() * 9000));
+      red.codigo   = codigo;
+      red.miEquipo = 'blanco';
+
       document.getElementById('sala-codigo').textContent = codigo;
       document.getElementById('sala-espera').innerHTML = '<span class="sala-spinner">⟳</span> Esperando rival...';
       document.getElementById('online-sala').classList.add('visible');
 
-      // Destruir peer anterior si existe
-      if (red.peer) red.peer.destroy();
+      // Crear sala en Firebase y escuchar
+      set(salaRef(codigo), { estado: 'esperando', ts: Date.now() });
+      onDisconnect(salaRef(codigo)).remove();
 
-      red.miEquipo = 'blanco';
-      red.peer = new Peer(codigoAId(codigo), PEER_CONFIG);
-
-      red.peer.on('open', (id) => {
-        console.log('[Online] Creador registrado con id:', id);
-        red.peer.on('connection', conn => {
-          console.log('[Online] Rival conectado:', conn.peer);
-          red.conn = conn;
-          configurarConexion();
+      escucharMensajes();
+      // Escuchar cuando el rival se une
+      onValue(ref(db, 'salas/' + codigo + '/rival'), snap => {
+        if (snap.val() === 'listo') {
           document.getElementById('sala-espera').textContent = '✓ Rival conectado. Iniciando...';
           setTimeout(() => {
-            red.conn.send({ tipo: 'config', config: { ...config } });
+            // Enviar config al rival
+            enviarMensaje({ tipo: 'config', config: { ...config }, origen: 'blanco' });
             iniciarJuego();
           }, 800);
-        });
+        }
       });
-
-      red.peer.on('error', (e) => {
-        console.log('[Online] Error creador PeerJS:', e.type, e);
-        mostrarErrorOnline('Error: ' + e.type);
-      });
-
-      red.peer.on('error', e => mostrarErrorOnline('Error de conexión: ' + e.type));
     };
 
     window.onlineMostrarUnirse = function() {
@@ -2143,87 +2138,52 @@
       const codigo = document.getElementById('codigo-input').value.trim();
       if (codigo.length !== 4) { mostrarErrorOnline('Introduce un código de 4 dígitos'); return; }
       mostrarErrorOnline('Conectando...');
-      console.log('[Online] Intentando unirse al código:', codigo, '| PeerJS disponible:', typeof Peer);
       document.getElementById('codigo-input').disabled = true;
 
-      if (red.peer) red.peer.destroy();
-
+      red.codigo   = codigo;
       red.miEquipo = 'rojo';
-      red.peer = new Peer('mastergoal-guest-' + Date.now(), PEER_CONFIG);
 
-      red.peer.on('open', (id) => {
-        console.log('[Online] Peer abierto con id:', id);
-        const targetId = codigoAId(codigo);
-        console.log('[Online] Conectando a:', targetId);
-        const conn = red.peer.connect(targetId, { reliable: true });
-        red.conn = conn;
-
-        conn.on('open', () => {
-          console.log('[Online] Conexión abierta con el creador');
-          configurarConexion();
-          mostrarErrorOnline('');
-        });
-
-        conn.on('error', (e) => {
-          console.log('[Online] Error en conexión:', e);
-          mostrarErrorOnline('No se pudo conectar. Verifica el código.');
-        });
-      });
-
-      red.peer.on('error', (e) => {
-        console.log('[Online] Error PeerJS:', e.type, e);
-        mostrarErrorOnline('Error: ' + e.type);
-        document.getElementById('codigo-input').disabled = false;
-      });
+      // Verificar que la sala existe
+      onValue(salaRef(codigo), snap => {
+        if (!snap.val()) {
+          mostrarErrorOnline('Código incorrecto o partida no encontrada.');
+          document.getElementById('codigo-input').disabled = false;
+          return;
+        }
+        // Notificar al creador que el rival está listo
+        set(ref(db, 'salas/' + codigo + '/rival'), 'listo');
+        escucharMensajes();
+        mostrarErrorOnline('✓ Conectado. Esperando inicio...');
+      }, { onlyOnce: true });
     };
-
-    function configurarConexion() {
-      red.listo = true;
-      red.conn.on('data', recibirMensaje);
-      red.conn.on('close', () => {
-        mostrarErrorOnline('Rival desconectado.');
-        red.listo = false;
-      });
-    }
-
-    function enviarMensaje(msg) {
-      if (red.conn && red.conn.open) red.conn.send(msg);
-    }
 
     function recibirMensaje(msg) {
       if (msg.tipo === 'config') {
-        // El rival recibe la config y lanza el mismo sorteo visual
         Object.assign(config, msg.config);
         document.getElementById('menu-inicial').style.display = 'none';
-        // Mostrar animación sincronizada (resultado llega por mensaje 'moneda')
         document.getElementById('moneda-overlay').classList.add('visible');
         document.getElementById('moneda-resultado').classList.remove('visible');
         const moneda = document.getElementById('moneda-3d');
         moneda.className = 'moneda-3d';
         void moneda.offsetWidth;
-        // Animar sin saber aún el resultado — se actualiza al recibir 'moneda'
         moneda.classList.add('girando-cara');
 
       } else if (msg.tipo === 'mover') {
         aplicarMovimientoRemoto(msg.id, msg.fila, msg.col);
 
       } else if (msg.tipo === 'moneda') {
-        // Recibimos resultado del sorteo del creador
         const { equipoQueSaca } = msg;
         const resultado = equipoQueSaca === 'blanco' ? 'cara' : 'cruz';
-        // Corregir animación si es necesario
         const moneda = document.getElementById('moneda-3d');
         moneda.className = 'moneda-3d';
         void moneda.offsetWidth;
         moneda.classList.add(resultado === 'cara' ? 'girando-cara' : 'girando-cruz');
-
         setTimeout(() => {
           const nombre = equipoQueSaca === 'blanco' ? 'Blanco' : 'Rojo';
           document.getElementById('moneda-ganador').textContent = 'Saca ' + nombre;
           document.getElementById('moneda-texto').textContent =
             'Salió ' + (resultado === 'cara' ? '⚽ CARA' : '★ CRUZ');
           document.getElementById('moneda-resultado').classList.add('visible');
-
           setTimeout(() => {
             document.getElementById('moneda-overlay').classList.remove('visible');
             document.getElementById('moneda-resultado').classList.remove('visible');
@@ -2237,7 +2197,6 @@
     }
 
     function aplicarMovimientoRemoto(id, fila, col) {
-      // Igual que mover() pero sin enviar de vuelta al rival
       const el = document.getElementById(id);
       const coords = casillaToSVG(fila, col);
       if (esPortero(id)) {
@@ -2273,7 +2232,6 @@
       }
     }
 
-    // Bloquear interacción cuando no es tu turno en modo online
     function esMiTurno() {
       if (config.modo !== 'online') return true;
       return estado.turno === red.miEquipo;
@@ -2350,7 +2308,7 @@
 
           // En modo online el creador (blanco) envía el resultado al rival
           if (config.modo === 'online' && red.miEquipo === 'blanco') {
-            enviarMensaje({ tipo: 'moneda', equipoQueSaca });
+            enviarMensaje({ tipo: 'moneda', equipoQueSaca, origen: 'blanco' });
           }
           arrancarPartida(equipoQueSaca);
         }, 2000);
