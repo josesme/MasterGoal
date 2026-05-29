@@ -929,7 +929,7 @@
           Torneo
         </button>
         <button class="inicio-btn disabled">
-          <span class="inicio-btn-icon">🥈</span>
+          <span class="inicio-btn-icon">🥇</span>
           Liga
         </button>
         <button class="inicio-btn" onclick="abrirEquipos()">
@@ -973,18 +973,24 @@
           <div class="online-error" id="online-error"></div>
         </div>
         <div id="picker-equipos-wrap" style="margin-top:12px; display:none;">
+        </div>
+      </div>
+
+      <div class="torneo-seccion">
+        <h3>Equipos</h3>
+        <div id="picker-equipos-local-rival">
           <div class="equipo-picker" id="picker-equipo-local">
             <span class="equipo-picker-label">Local</span>
             <div class="equipo-color-dot" id="dot-local"></div>
             <select class="equipo-select" id="sel-equipo-local" onchange="actualizarDotEquipo('local')">
-              <option value="">-- Visitante --</option>
+              <option value="">-- Sin equipo --</option>
             </select>
           </div>
           <div class="equipo-picker" id="picker-equipo-rival" style="margin-top:6px;">
             <span class="equipo-picker-label">Rival</span>
             <div class="equipo-color-dot" id="dot-rival"></div>
             <select class="equipo-select" id="sel-equipo-rival" onchange="actualizarDotEquipo('rival')">
-              <option value="">-- Visitante --</option>
+              <option value="">-- Sin equipo --</option>
             </select>
           </div>
         </div>
@@ -1737,6 +1743,13 @@
       // Filtrar saltos sobre cualquier jugador dentro del area chica
       dest = dest.filter(d => !saltaJugadorEnAreaChica(f, c, d.fila, d.col));
       
+      // Filtrar córner propio (siempre prohibido)
+      dest = dest.filter(d => {
+        if (estado.turno === 'blanco' && d.fila === 1  && (d.col === 1 || d.col === 11)) return false;
+        if (estado.turno === 'rojo'   && d.fila === 13 && (d.col === 1 || d.col === 11)) return false;
+        return true;
+      });
+
       // Filtrar autopase (siempre, no solo en 4to movimiento)
       const antes = dest.length;
       dest = dest.filter(d => {
@@ -2692,6 +2705,7 @@
         iniciarCronometro();
       }
 
+      aplicarEquiposAlHUD();
       actualizarUI();
       if (estado.turno === 'rojo' && estado.modo === 'vsIA') ejecutarTurnoIA();
     };
@@ -2849,6 +2863,27 @@
 
     function equiposGuardados() {
       return JSON.parse(localStorage.getItem('mg_equipos') || '[]');
+    }
+
+    function aplicarEquiposAlHUD() {
+      const todos = equiposGuardados();
+      const localEq  = todos.find(e => e.id === config.equipoLocal)  || null;
+      const rivalEq  = todos.find(e => e.id === config.equipoRival)  || null;
+
+      // Pintar fichas en el tablero
+      pintarFichasTablero(localEq, rivalEq);
+
+      // Actualizar iconos de equipo en el HUD SVG
+      const iconoB = document.querySelector('#hud-blanco circle');
+      const iconoR = document.querySelector('#hud-rojo circle');
+      if (iconoB) {
+        iconoB.setAttribute('fill',   localEq ? localEq.colorPrincipal : '#ffffff');
+        iconoB.setAttribute('stroke', localEq ? localEq.colorSecundario : '#bbb');
+      }
+      if (iconoR) {
+        iconoR.setAttribute('fill',   rivalEq ? rivalEq.colorPrincipal : '#d32f2f');
+        iconoR.setAttribute('stroke', rivalEq ? rivalEq.colorSecundario : '#b71c1c');
+      }
     }
 
     function guardarEquipos(lista) {
