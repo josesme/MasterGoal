@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <script src="peerjs.min.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MasterGoal - Tablero</title>
   <style>
@@ -679,7 +680,6 @@
     }
   </style>
 </head>
-<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <body>
   <!-- Menu Inicial -->
   <div id="menu-inicial" class="menu-overlay">
@@ -788,27 +788,9 @@
 
   <!-- Overlay sorteo moneda -->
   <div id="moneda-overlay" class="moneda-overlay">
-    <div class="moneda-titulo">★ SORTEO INICIAL ★</div>
+    <div class="moneda-titulo" id="moneda-titulo-txt">★ SORTEO INICIAL ★</div>
 
-    <!-- Paso 1: elegir cara o cruz -->
-    <div id="moneda-paso1">
-      <div style="color:rgba(255,255,255,0.7); font-size:12px; letter-spacing:2px; text-align:center; margin-bottom:20px;">
-        JUGADOR BLANCO — ELIGE
-      </div>
-      <div class="moneda-seleccion">
-        <button class="moneda-btn" id="btn-cara" onclick="elegirCaraCruz('cara')">
-          <span>⚽</span>
-          <span class="etiqueta">Cara</span>
-        </button>
-        <button class="moneda-btn" id="btn-cruz" onclick="elegirCaraCruz('cruz')">
-          <span>★</span>
-          <span class="etiqueta">Cruz</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Paso 2: animación y resultado -->
-    <div id="moneda-paso2" style="display:none; flex-direction:column; align-items:center;">
+    <div style="display:flex; flex-direction:column; align-items:center;">
       <div class="moneda-escenario">
         <div class="moneda-3d" id="moneda-3d">
           <div class="moneda-cara">⚽</div>
@@ -820,15 +802,6 @@
       <div class="moneda-resultado" id="moneda-resultado">
         <span class="ganador" id="moneda-ganador"></span>
         <span id="moneda-texto"></span>
-      </div>
-
-      <div class="moneda-eleccion" id="moneda-eleccion">
-        <p>Elige tu ventaja</p>
-        <div class="eleccion-btns">
-          <button class="btn-eleccion" onclick="elegirVentaja('superior')">⬆ Campo superior</button>
-          <button class="btn-eleccion" onclick="elegirVentaja('saque')">⚽ Saque</button>
-          <button class="btn-eleccion" onclick="elegirVentaja('inferior')">⬇ Campo inferior</button>
-        </div>
       </div>
     </div>
   </div>
@@ -2136,7 +2109,8 @@
     window.onlineUnirse = function() {
       const codigo = document.getElementById('codigo-input').value.trim();
       if (codigo.length !== 4) { mostrarErrorOnline('Introduce un código de 4 dígitos'); return; }
-      mostrarErrorOnline('');
+      mostrarErrorOnline('Conectando...');
+      console.log('[Online] Intentando unirse al código:', codigo, '| PeerJS disponible:', typeof Peer);
       document.getElementById('codigo-input').disabled = true;
 
       if (red.peer) red.peer.destroy();
@@ -2178,34 +2152,44 @@
 
     function recibirMensaje(msg) {
       if (msg.tipo === 'config') {
-        // El que se une recibe la config y muestra pantalla de espera
+        // El rival recibe la config y lanza el mismo sorteo visual
         Object.assign(config, msg.config);
         document.getElementById('menu-inicial').style.display = 'none';
-        // Mostrar pantalla de espera mientras el creador hace el sorteo
+        // Mostrar animación sincronizada (resultado llega por mensaje 'moneda')
         document.getElementById('moneda-overlay').classList.add('visible');
-        document.getElementById('moneda-paso1').style.display = 'none';
-        document.getElementById('moneda-paso2').style.display = 'flex';
         document.getElementById('moneda-resultado').classList.remove('visible');
-        document.getElementById('moneda-eleccion').classList.remove('visible');
-        // Mostrar spinner de espera
-        document.getElementById('moneda-ganador').textContent = '';
-        document.getElementById('moneda-texto').textContent = '';
         const moneda = document.getElementById('moneda-3d');
         moneda.className = 'moneda-3d';
-        // Mensaje de espera en lugar de la moneda
-        document.querySelector('.moneda-titulo').textContent = '★ ESPERANDO SORTEO ★';
-        const res = document.getElementById('moneda-resultado');
-        res.classList.add('visible');
-        document.getElementById('moneda-ganador').textContent = 'Rival realizando el sorteo...';
+        void moneda.offsetWidth;
+        // Animar sin saber aún el resultado — se actualiza al recibir 'moneda'
+        moneda.classList.add('girando-cara');
 
       } else if (msg.tipo === 'mover') {
         aplicarMovimientoRemoto(msg.id, msg.fila, msg.col);
 
       } else if (msg.tipo === 'moneda') {
-        // Recibimos el resultado del sorteo — arrancar directamente
-        document.getElementById('moneda-overlay').classList.remove('visible');
-        document.querySelector('.moneda-titulo').textContent = '★ SORTEO INICIAL ★';
-        arrancarPartida(msg.equipoQueSaca);
+        // Recibimos resultado del sorteo del creador
+        const { equipoQueSaca } = msg;
+        const resultado = equipoQueSaca === 'blanco' ? 'cara' : 'cruz';
+        // Corregir animación si es necesario
+        const moneda = document.getElementById('moneda-3d');
+        moneda.className = 'moneda-3d';
+        void moneda.offsetWidth;
+        moneda.classList.add(resultado === 'cara' ? 'girando-cara' : 'girando-cruz');
+
+        setTimeout(() => {
+          const nombre = equipoQueSaca === 'blanco' ? 'Blanco' : 'Rojo';
+          document.getElementById('moneda-ganador').textContent = 'Saca ' + nombre;
+          document.getElementById('moneda-texto').textContent =
+            'Salió ' + (resultado === 'cara' ? '⚽ CARA' : '★ CRUZ');
+          document.getElementById('moneda-resultado').classList.add('visible');
+
+          setTimeout(() => {
+            document.getElementById('moneda-overlay').classList.remove('visible');
+            document.getElementById('moneda-resultado').classList.remove('visible');
+            arrancarPartida(equipoQueSaca);
+          }, 2000);
+        }, 3000);
 
       } else if (msg.tipo === 'revancha') {
         revancha();
@@ -2289,78 +2273,49 @@
     const sorteo = { eleccion: null, resultado: null, ganador: null };
 
     window.iniciarJuego = function() {
-      // Abrir sorteo antes de empezar
       document.getElementById('menu-inicial').style.display = 'none';
+      lanzarSorteo();
+    };
+
+    function lanzarSorteo() {
+      // Sorteo automático — ambos jugadores ven la animación simultáneamente
+      const resultado = Math.random() < 0.5 ? 'cara' : 'cruz';
+      // Quien saca: cara = blanco, cruz = rojo (aleatorio efectivo)
+      const equipoQueSaca = resultado === 'cara' ? 'blanco' : 'rojo';
+      sorteo.resultado    = resultado;
+      sorteo.equipoQueSaca = equipoQueSaca;
+
+      // Mostrar overlay de moneda
       document.getElementById('moneda-overlay').classList.add('visible');
-      document.getElementById('moneda-paso1').style.display = 'block';
-      document.getElementById('moneda-paso2').style.display = 'none';
-      document.getElementById('btn-cara').classList.remove('seleccionado');
-      document.getElementById('btn-cruz').classList.remove('seleccionado');
-    };
-
-    window.elegirCaraCruz = function(eleccion) {
-      sorteo.eleccion = eleccion;
-      document.getElementById('btn-cara').classList.toggle('seleccionado', eleccion === 'cara');
-      document.getElementById('btn-cruz').classList.toggle('seleccionado', eleccion === 'cruz');
-
-      // Pequeña pausa para que se vea la selección
-      setTimeout(() => {
-        document.getElementById('moneda-paso1').style.display = 'none';
-        document.getElementById('moneda-paso2').style.display = 'flex';
-
-        // Resultado aleatorio
-        sorteo.resultado = Math.random() < 0.5 ? 'cara' : 'cruz';
-        sorteo.ganador   = sorteo.resultado === sorteo.eleccion ? 'blanco' : 'rojo';
-
-        // Lanzar animación
-        const moneda = document.getElementById('moneda-3d');
-        moneda.className = 'moneda-3d';
-        void moneda.offsetWidth; // forzar reflow
-        moneda.classList.add(sorteo.resultado === 'cara' ? 'girando-cara' : 'girando-cruz');
-
-        // Mostrar resultado al acabar la animación
-        setTimeout(() => {
-          const nombreGanador = sorteo.ganador === 'blanco' ? 'BLANCO' : 'ROJO';
-          const nombreResultado = sorteo.resultado === 'cara' ? '⚽ CARA' : '★ CRUZ';
-          const tuEleccion = sorteo.eleccion === 'cara' ? '⚽ CARA' : '★ CRUZ';
-          const gano = sorteo.ganador === 'blanco';
-
-          const simboloResultado = sorteo.resultado === 'cara' ? '⚽' : '★';
-          const simboloEleccion  = sorteo.eleccion  === 'cara' ? '⚽' : '★';
-          document.getElementById('moneda-ganador').textContent =
-            (gano ? '¡Gana Blanco!' : '¡Gana Rojo!');
-          document.getElementById('moneda-texto').textContent =
-            'Salió ' + simboloResultado + ' ' + sorteo.resultado.toUpperCase() +
-            ' · Elegiste ' + simboloEleccion + ' ' + sorteo.eleccion.toUpperCase();
-
-          const res = document.getElementById('moneda-resultado');
-          res.classList.add('visible');
-
-          setTimeout(() => {
-            document.getElementById('moneda-eleccion').classList.add('visible');
-          }, 500);
-        }, 3000);
-      }, 300);
-    };
-
-    window.elegirVentaja = function(ventaja) {
-      document.getElementById('moneda-overlay').classList.remove('visible');
       document.getElementById('moneda-resultado').classList.remove('visible');
-      document.getElementById('moneda-eleccion').classList.remove('visible');
 
-      // Si elige saque: el ganador saca primero
-      // Si elige campo: el perdedor saca, el ganador eligió campo
-      const equipoQueSaca = ventaja === 'saque'
-        ? sorteo.ganador
-        : (sorteo.ganador === 'blanco' ? 'rojo' : 'blanco');
+      // Lanzar animación
+      const moneda = document.getElementById('moneda-3d');
+      moneda.className = 'moneda-3d';
+      void moneda.offsetWidth;
+      moneda.classList.add(resultado === 'cara' ? 'girando-cara' : 'girando-cruz');
 
-      // En modo online notificar al rival quién saca
-      if (config.modo === 'online') {
-        enviarMensaje({ tipo: 'moneda', equipoQueSaca });
-      }
+      // Mostrar resultado al acabar
+      setTimeout(() => {
+        const nombre = equipoQueSaca === 'blanco' ? 'Blanco' : 'Rojo';
+        document.getElementById('moneda-ganador').textContent = 'Saca ' + nombre;
+        document.getElementById('moneda-texto').textContent =
+          'Salió ' + (resultado === 'cara' ? '⚽ CARA' : '★ CRUZ');
+        document.getElementById('moneda-resultado').classList.add('visible');
 
-      arrancarPartida(equipoQueSaca);
-    };
+        // Arrancar partida tras un momento para leer el resultado
+        setTimeout(() => {
+          document.getElementById('moneda-overlay').classList.remove('visible');
+          document.getElementById('moneda-resultado').classList.remove('visible');
+
+          // En modo online el creador (blanco) envía el resultado al rival
+          if (config.modo === 'online' && red.miEquipo === 'blanco') {
+            enviarMensaje({ tipo: 'moneda', equipoQueSaca });
+          }
+          arrancarPartida(equipoQueSaca);
+        }, 2000);
+      }, 3000);
+    }
 
     function arrancarPartida(equipoQueSaca) {
       estado.modo = config.modo;
