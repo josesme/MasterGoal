@@ -2593,7 +2593,12 @@
         void moneda.offsetWidth;
         moneda.classList.add(resultado === 'cara' ? 'girando-cara' : 'girando-cruz');
         setTimeout(() => {
-          const nombre = equipoQueSaca === 'blanco' ? 'Blanco' : 'Rojo';
+          const todosEqO = equiposGuardados();
+          const eqLocalO = todosEqO.find(e => e.id === config.equipoLocal);
+          const eqRivalO = todosEqO.find(e => e.id === config.equipoRival);
+          const nombre = equipoQueSaca === 'blanco'
+            ? (eqLocalO ? eqLocalO.nombre : 'Local')
+            : (eqRivalO ? eqRivalO.nombre : 'Visitante');
           document.getElementById('moneda-ganador').textContent = 'Saca ' + nombre;
           document.getElementById('moneda-texto').textContent =
             'Salió ' + (resultado === 'cara' ? '⚽ CARA' : '★ CRUZ');
@@ -2712,7 +2717,12 @@
 
       // Mostrar resultado al acabar
       setTimeout(() => {
-        const nombre = equipoQueSaca === 'blanco' ? 'Blanco' : 'Rojo';
+        const todosEq = equiposGuardados();
+        const eqLocal = todosEq.find(e => e.id === config.equipoLocal);
+        const eqRival = todosEq.find(e => e.id === config.equipoRival);
+        const nombre = equipoQueSaca === 'blanco'
+          ? (eqLocal ? eqLocal.nombre : 'Local')
+          : (eqRival ? eqRival.nombre : 'Visitante');
         document.getElementById('moneda-ganador').textContent = 'Saca ' + nombre;
         document.getElementById('moneda-texto').textContent =
           'Salió ' + (resultado === 'cara' ? '⚽ CARA' : '★ CRUZ');
