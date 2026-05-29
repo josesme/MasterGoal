@@ -2178,20 +2178,36 @@
 
     function recibirMensaje(msg) {
       if (msg.tipo === 'config') {
-        // El que se une recibe la config del creador
+        // El que se une recibe la config y muestra pantalla de espera
         Object.assign(config, msg.config);
-        iniciarJuego();
+        document.getElementById('menu-inicial').style.display = 'none';
+        // Mostrar pantalla de espera mientras el creador hace el sorteo
+        document.getElementById('moneda-overlay').classList.add('visible');
+        document.getElementById('moneda-paso1').style.display = 'none';
+        document.getElementById('moneda-paso2').style.display = 'flex';
+        document.getElementById('moneda-resultado').classList.remove('visible');
+        document.getElementById('moneda-eleccion').classList.remove('visible');
+        // Mostrar spinner de espera
+        document.getElementById('moneda-ganador').textContent = '';
+        document.getElementById('moneda-texto').textContent = '';
+        const moneda = document.getElementById('moneda-3d');
+        moneda.className = 'moneda-3d';
+        // Mensaje de espera en lugar de la moneda
+        document.querySelector('.moneda-titulo').textContent = '★ ESPERANDO SORTEO ★';
+        const res = document.getElementById('moneda-resultado');
+        res.classList.add('visible');
+        document.getElementById('moneda-ganador').textContent = 'Rival realizando el sorteo...';
 
       } else if (msg.tipo === 'mover') {
-        // Aplicar movimiento del rival sin reenviar
         aplicarMovimientoRemoto(msg.id, msg.fila, msg.col);
 
       } else if (msg.tipo === 'moneda') {
-        // El rival completó el sorteo — arrancamos con el equipo que saca
+        // Recibimos el resultado del sorteo — arrancar directamente
+        document.getElementById('moneda-overlay').classList.remove('visible');
+        document.querySelector('.moneda-titulo').textContent = '★ SORTEO INICIAL ★';
         arrancarPartida(msg.equipoQueSaca);
 
       } else if (msg.tipo === 'revancha') {
-        // El rival pidió revancha
         revancha();
       }
     }
