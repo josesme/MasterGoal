@@ -565,8 +565,9 @@
     .bracket-content { width: 100%; max-width: 600px; color: white; }
     .bracket-titulo { font-size: 20px; font-weight: 700; text-align: center; margin-bottom: 4px; }
     .bracket-ronda-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; opacity: 0.45; text-align: center; margin-bottom: 16px; }
-    .bracket-rondas { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; }
-    .bracket-col { display: flex; flex-direction: column; gap: 8px; min-width: 150px; flex-shrink: 0; }
+    .bracket-rondas { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; align-items: stretch; }
+    .bracket-col { display: flex; flex-direction: column; min-width: 150px; flex-shrink: 0; }
+    .bracket-col-partidos { display: flex; flex-direction: column; justify-content: space-around; flex: 1; gap: 6px; }
     .bracket-col-titulo { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.45; text-align: center; margin-bottom: 4px; }
     .bracket-partido { border-radius: 8px; border: 1.5px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05); overflow: hidden; cursor: default; }
     .bracket-partido.jugable { border-color: #4caf50; cursor: pointer; }
@@ -3169,6 +3170,9 @@
         titulo.className = 'bracket-col-titulo';
         titulo.textContent = torneoNombreRonda(tamano, ri);
         col.appendChild(titulo);
+        const cardsWrap = document.createElement('div');
+        cardsWrap.className = 'bracket-col-partidos';
+        col.appendChild(cardsWrap);
         partidos.forEach((p, pi) => {
           const card = document.createElement('div');
           card.className = 'bracket-partido';
@@ -3208,12 +3212,7 @@
             }
             card.appendChild(row);
           });
-          col.appendChild(card);
-          if (pi < partidos.length - 1) {
-            const sp = document.createElement('div');
-            sp.style.height = ri === 0 ? '4px' : (Math.pow(2, ri) * 4 + 'px');
-            col.appendChild(sp);
-          }
+          cardsWrap.appendChild(card);
         });
         container.appendChild(col);
       });
