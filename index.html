@@ -3125,6 +3125,12 @@
     }
 
     function aplicarEquiposAlHUD() {
+      // Sincronizar config desde selects por si acaso
+      const selL = document.getElementById('sel-equipo-local');
+      const selR = document.getElementById('sel-equipo-rival');
+      if (selL && selL.value) config.equipoLocal = selL.value;
+      if (selR && selR.value) config.equipoRival = selR.value;
+
       const todos = equiposGuardados();
       const localEq  = todos.find(e => e.id === config.equipoLocal)  || null;
       const rivalEq  = todos.find(e => e.id === config.equipoRival)  || null;
@@ -3203,13 +3209,8 @@
 
     function actualizarDotEquipo(lado) {
       const selId = lado === 'local' ? 'sel-equipo-local' : 'sel-equipo-rival';
-      const dotId = lado === 'local' ? 'dot-local' : 'dot-rival';
       const sel = document.getElementById(selId);
-      const dot = document.getElementById(dotId);
-      if (!sel || !dot) return;
-      const equipos = equiposGuardados();
-      const eq = equipos.find(e => e.id === sel.value);
-      aplicarMiniJersey(dot, eq || null, 20);
+      if (!sel) return;
       if (lado === 'local') config.equipoLocal = sel.value || null;
       else config.equipoRival = sel.value || null;
     }
