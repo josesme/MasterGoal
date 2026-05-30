@@ -596,6 +596,42 @@
     .campeon-dot { width: 48px; height: 48px; border-radius: 50%; margin: 0 auto 20px; border: 2px solid rgba(255,255,255,0.4); }
     .btn-campeon-menu { padding: 14px 32px; border-radius: 10px; border: none; background: #43a047; color: white; font-size: 16px; font-weight: 700; cursor: pointer; }
 
+    /* ====== LIGA ====== */
+    .liga-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92);
+      z-index: 200; flex-direction: column; align-items: center; overflow-y: auto; padding: 20px 12px 40px;
+    }
+    .liga-overlay.visible { display: flex; }
+    .liga-tabs { display: flex; gap: 6px; margin-bottom: 16px; width: 100%; max-width: 560px; }
+    .liga-tab {
+      flex: 1; padding: 9px; border-radius: 8px; border: 1.5px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.6); font-size: 13px;
+      font-weight: 600; cursor: pointer; text-align: center; transition: all 0.15s;
+    }
+    .liga-tab.activo { border-color: #43a047; background: rgba(67,160,71,0.18); color: white; }
+    .liga-tabla { width: 100%; max-width: 560px; border-collapse: collapse; font-size: 12px; color: white; }
+    .liga-tabla th { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; opacity: 0.45; padding: 4px 6px; text-align: center; }
+    .liga-tabla th:first-child { text-align: left; }
+    .liga-tabla td { padding: 7px 6px; text-align: center; border-top: 1px solid rgba(255,255,255,0.06); }
+    .liga-tabla td:first-child { text-align: left; display: flex; align-items: center; gap: 7px; }
+    .liga-tabla tr.mi-equipo td { color: #81d4fa; font-weight: 700; }
+    .liga-tabla tr.lider td:first-child::before { content: '🥇 '; }
+    .liga-fixtures { width: 100%; max-width: 560px; display: flex; flex-direction: column; gap: 6px; }
+    .liga-jornada-titulo { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.4; margin: 10px 0 4px; }
+    .liga-partido {
+      display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+      border-radius: 8px; border: 1.5px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.04); font-size: 13px;
+    }
+    .liga-partido.jugable { border-color: #4caf50; cursor: pointer; }
+    .liga-partido.jugable:hover { background: rgba(76,175,80,0.1); }
+    .liga-partido.jugado { opacity: 0.6; }
+    .liga-partido-equipo { flex: 1; display: flex; align-items: center; gap: 6px; }
+    .liga-partido-equipo.derecha { flex-direction: row-reverse; text-align: right; }
+    .liga-partido-resultado { font-weight: 800; font-size: 15px; min-width: 36px; text-align: center; color: #FFD700; }
+    .liga-partido-vs { font-size: 11px; opacity: 0.4; min-width: 20px; text-align: center; }
+    .liga-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.25); }
+
     /* Overlay de fin de partida */
     .fin-overlay {
       position: fixed;
@@ -915,6 +951,64 @@
     <button class="btn-campeon-menu" onclick="torneoTerminar()">Volver al menú</button>
   </div>
 
+  <!-- Liga: overlay creación -->
+  <div id="liga-crear-overlay" class="torneo-overlay">
+    <div class="torneo-content">
+      <div class="torneo-titulo">🥇 Liga</div>
+      <div class="torneo-seccion">
+        <h3>Tu equipo</h3>
+        <select class="torneo-equipo-select" id="liga-mi-equipo" onchange="ligaActualizarRivales()">
+          <option value="">-- Selecciona tu equipo --</option>
+        </select>
+      </div>
+      <div class="torneo-seccion">
+        <h3>Rivales — <span id="liga-rivales-contador">Seleccionados: 0</span></h3>
+        <div class="torneo-rivales-grid" id="liga-rivales-grid"></div>
+      </div>
+      <div class="torneo-seccion">
+        <h3>Tipo de encuentro</h3>
+        <label class="encuentro-opcion activo" id="liga-op-goles" onclick="ligaSelEncuentro('goles')">
+          <input type="radio" name="liga-encuentro" value="goles" checked>
+          <span class="encuentro-label">A goles</span>
+          <div class="selector-chips" id="liga-chips-goles">
+            <button class="chip activo" onclick="ligaSelChip(event,'goles',1)">1</button>
+            <button class="chip" onclick="ligaSelChip(event,'goles',2)">2</button>
+            <button class="chip" onclick="ligaSelChip(event,'goles',3)">3</button>
+          </div>
+        </label>
+        <label class="encuentro-opcion" id="liga-op-turnos" onclick="ligaSelEncuentro('turnos')">
+          <input type="radio" name="liga-encuentro" value="turnos">
+          <span class="encuentro-label">Por turnos</span>
+          <div class="selector-chips" id="liga-chips-turnos">
+            <button class="chip activo" onclick="ligaSelChip(event,'turnos',10)">10</button>
+            <button class="chip" onclick="ligaSelChip(event,'turnos',15)">15</button>
+            <button class="chip" onclick="ligaSelChip(event,'turnos',20)">20</button>
+          </div>
+        </label>
+      </div>
+      <button class="btn-torneo-iniciar" id="btn-liga-iniciar" onclick="ligaIniciar()" disabled>INICIAR LIGA</button>
+      <button class="btn-torneo-cerrar" onclick="ligaCerrarCrear()">Volver</button>
+    </div>
+  </div>
+
+  <!-- Liga: overlay clasificación/fixtures -->
+  <div id="liga-overlay" class="liga-overlay">
+    <div style="width:100%;max-width:560px;">
+      <div class="torneo-titulo">🥇 Liga</div>
+      <div class="liga-tabs">
+        <div class="liga-tab activo" id="liga-tab-tabla" onclick="ligaMostrarTab('tabla')">Clasificación</div>
+        <div class="liga-tab" id="liga-tab-fixtures" onclick="ligaMostrarTab('fixtures')">Partidos</div>
+      </div>
+      <div id="liga-panel-tabla"></div>
+      <div id="liga-panel-fixtures" style="display:none;"></div>
+      <div style="display:flex;gap:8px;margin-top:16px;">
+        <button class="btn-torneo-simular" id="btn-liga-simular" onclick="ligaSimularPendientes()" style="display:none;">Simular partidos IA</button>
+      </div>
+      <button class="btn-torneo-cerrar" onclick="ligaVolverMenu()">Volver al menú</button>
+      <button class="btn-torneo-cerrar" style="color:#e57373;border-color:#e57373;margin-top:4px;" onclick="ligaAbandonar()">Abandonar liga</button>
+    </div>
+  </div>
+
   <!-- Menu Inicial (selector de modo) -->
   <div id="menu-inicial" class="menu-overlay">
     <div class="menu-content">
@@ -930,7 +1024,7 @@
           <span class="inicio-btn-icon">🏆</span>
           Torneo
         </button>
-        <button class="inicio-btn disabled">
+        <button class="inicio-btn" onclick="abrirLiga()">
           <span class="inicio-btn-icon">🥇</span>
           Liga
         </button>
@@ -2861,6 +2955,34 @@
         if (motivo === 'goldeoro') detalle.textContent = '¡Gol de oro en tiempo extra!';
       }
 
+      // Hook liga
+      if (config._ligaPendiente) {
+        config._ligaPendiente = false;
+        const p = config._ligaPartido;
+        const soyLocal = p.local === ligaData.miEquipo;
+        p.golLocal     = soyLocal ? MARCADOR.blanco : MARCADOR.rojo;
+        p.golVisitante = soyLocal ? MARCADOR.rojo   : MARCADOR.blanco;
+        p.jugado = true;
+        ligaRecalcularTabla();
+        ligaGuardar();
+        const btnRevancha = document.querySelector('.btn-revancha');
+        const btnMenu = document.querySelector('.btn-menu-volver');
+        if (btnRevancha) btnRevancha.style.display = 'none';
+        if (btnMenu) {
+          btnMenu.textContent = 'Ver liga';
+          btnMenu.onclick = () => {
+            btnMenu.textContent = 'Menú';
+            btnMenu.onclick = volverMenu;
+            if (btnRevancha) btnRevancha.style.display = '';
+            document.getElementById('fin-overlay').classList.remove('visible');
+            document.getElementById('game-container').style.display = 'none';
+            document.getElementById('ui-panel').style.display = 'none';
+            document.getElementById('cronometros').style.display = 'none';
+            ligaMostrar();
+          };
+        }
+      }
+
       // Hook torneo
       if (config._torneoPendiente) {
         config._torneoPendiente = false;
@@ -3345,6 +3467,295 @@
       actualizarDotEquipo('rival');
       iniciarJuego();
     }
+
+    // ====== LIGA ======
+    let ligaData = null;
+    const ligaConfig = { encuentro: 'goles', goles: 1, turnos: 10 };
+
+    function ligaGuardar() { localStorage.setItem('mg_liga', JSON.stringify(ligaData)); }
+    function ligaCargar()  { const d = localStorage.getItem('mg_liga'); return d ? JSON.parse(d) : null; }
+    function ligaBorrar()  { localStorage.removeItem('mg_liga'); }
+
+    window.abrirLiga = function() {
+      const saved = ligaCargar();
+      if (saved) {
+        ligaData = saved;
+        ligaMostrar();
+        return;
+      }
+      const equipos = equiposGuardados();
+      const sel = document.getElementById('liga-mi-equipo');
+      sel.innerHTML = '<option value="">-- Selecciona tu equipo --</option>';
+      equipos.forEach(e => {
+        const o = document.createElement('option');
+        o.value = e.id; o.textContent = e.nombre;
+        sel.appendChild(o);
+      });
+      ligaActualizarRivales();
+      document.getElementById('liga-crear-overlay').classList.add('visible');
+      document.getElementById('menu-inicial').style.display = 'none';
+    };
+
+    window.ligaCerrarCrear = function() {
+      document.getElementById('liga-crear-overlay').classList.remove('visible');
+      document.getElementById('menu-inicial').style.display = 'flex';
+    };
+
+    window.ligaActualizarRivales = function() {
+      const miId = document.getElementById('liga-mi-equipo').value;
+      const equipos = equiposGuardados().filter(e => e.id !== miId);
+      const grid = document.getElementById('liga-rivales-grid');
+      const seleccionados = new Set([...grid.querySelectorAll('.torneo-rival-item.seleccionado')].map(el => el.dataset.id));
+      grid.innerHTML = '';
+      equipos.forEach(e => {
+        const div = document.createElement('div');
+        div.className = 'torneo-rival-item' + (seleccionados.has(e.id) ? ' seleccionado' : '');
+        div.dataset.id = e.id;
+        const dot = document.createElement('div');
+        dot.className = 'torneo-rival-dot';
+        aplicarMiniJersey(dot, e, 14);
+        div.appendChild(dot);
+        div.appendChild(document.createTextNode(e.nombre));
+        div.onclick = () => { div.classList.toggle('seleccionado'); ligaActualizarContador(); };
+        grid.appendChild(div);
+      });
+      ligaActualizarContador();
+    };
+
+    function ligaActualizarContador() {
+      const miId = document.getElementById('liga-mi-equipo').value;
+      const activos = document.querySelectorAll('#liga-rivales-grid .torneo-rival-item.seleccionado').length;
+      document.getElementById('liga-rivales-contador').textContent = `Seleccionados: ${activos}`;
+      document.getElementById('btn-liga-iniciar').disabled = (!miId || activos < 1);
+    }
+
+    window.ligaSelEncuentro = function(tipo) {
+      ligaConfig.encuentro = tipo;
+      ['goles','turnos'].forEach(t => {
+        document.getElementById('liga-op-' + t).classList.toggle('activo', t === tipo);
+        const radio = document.querySelector(`#liga-op-${t} input`);
+        if (radio) radio.checked = t === tipo;
+      });
+    };
+
+    window.ligaSelChip = function(e, tipo, valor) {
+      e.stopPropagation();
+      if (tipo === 'goles') ligaConfig.goles = valor;
+      else if (tipo === 'turnos') ligaConfig.turnos = valor;
+      document.querySelectorAll(`#liga-chips-${tipo} .chip`).forEach(c => c.classList.toggle('activo', c.textContent == valor));
+      if (tipo === 'goles') ligaSelEncuentro('goles');
+      else ligaSelEncuentro('turnos');
+    };
+
+    window.ligaIniciar = function() {
+      const miId = document.getElementById('liga-mi-equipo').value;
+      const rivalIds = [...document.querySelectorAll('#liga-rivales-grid .torneo-rival-item.seleccionado')].map(el => el.dataset.id);
+      const todos = [miId, ...rivalIds];
+      // Generar todos los partidos (todos contra todos, solo ida)
+      const partidos = [];
+      for (let i = 0; i < todos.length; i++) {
+        for (let j = i + 1; j < todos.length; j++) {
+          partidos.push({ local: todos[i], visitante: todos[j], golLocal: null, golVisitante: null, jugado: false });
+        }
+      }
+      // Inicializar tabla
+      const tabla = {};
+      todos.forEach(id => { tabla[id] = { pj:0, g:0, e:0, p:0, gf:0, gc:0, pts:0 }; });
+      ligaData = { miEquipo: miId, equipos: todos, partidos, tabla, config: { ...ligaConfig } };
+      ligaGuardar();
+      document.getElementById('liga-crear-overlay').classList.remove('visible');
+      ligaMostrar();
+    };
+
+    function ligaMostrar() {
+      ligaRecalcularTabla();
+      ligaMostrarTab('tabla');
+      document.getElementById('liga-overlay').classList.add('visible');
+      document.getElementById('menu-inicial').style.display = 'none';
+    }
+
+    window.ligaMostrarTab = function(tab) {
+      document.getElementById('liga-tab-tabla').classList.toggle('activo', tab === 'tabla');
+      document.getElementById('liga-tab-fixtures').classList.toggle('activo', tab === 'fixtures');
+      document.getElementById('liga-panel-tabla').style.display = tab === 'tabla' ? '' : 'none';
+      document.getElementById('liga-panel-fixtures').style.display = tab === 'fixtures' ? '' : 'none';
+      if (tab === 'tabla') ligaRenderTabla();
+      else ligaRenderFixtures();
+    };
+
+    function ligaRecalcularTabla() {
+      const todos = ligaData.equipos;
+      const tabla = {};
+      todos.forEach(id => { tabla[id] = { pj:0, g:0, e:0, p:0, gf:0, gc:0, pts:0 }; });
+      ligaData.partidos.forEach(p => {
+        if (!p.jugado) return;
+        tabla[p.local].pj++;  tabla[p.visitante].pj++;
+        tabla[p.local].gf += p.golLocal;   tabla[p.local].gc += p.golVisitante;
+        tabla[p.visitante].gf += p.golVisitante; tabla[p.visitante].gc += p.golLocal;
+        if (p.golLocal > p.golVisitante) {
+          tabla[p.local].g++; tabla[p.local].pts += 3;
+          tabla[p.visitante].p++;
+        } else if (p.golLocal < p.golVisitante) {
+          tabla[p.visitante].g++; tabla[p.visitante].pts += 3;
+          tabla[p.local].p++;
+        } else {
+          tabla[p.local].e++; tabla[p.local].pts++;
+          tabla[p.visitante].e++; tabla[p.visitante].pts++;
+        }
+      });
+      ligaData.tabla = tabla;
+    }
+
+    function ligaOrdenarTabla() {
+      const equipos = equiposGuardados();
+      return [...ligaData.equipos].sort((a, b) => {
+        const ta = ligaData.tabla[a], tb = ligaData.tabla[b];
+        if (tb.pts !== ta.pts) return tb.pts - ta.pts;
+        const difA = ta.gf - ta.gc, difB = tb.gf - tb.gc;
+        if (difB !== difA) return difB - difA;
+        // Enfrentamiento directo
+        const directo = ligaData.partidos.find(p =>
+          (p.local === a && p.visitante === b) || (p.local === b && p.visitante === a));
+        if (directo && directo.jugado) {
+          const gA = directo.local === a ? directo.golLocal : directo.golVisitante;
+          const gB = directo.local === b ? directo.golLocal : directo.golVisitante;
+          return gB - gA;
+        }
+        return 0;
+      });
+    }
+
+    function ligaRenderTabla() {
+      const equipos = equiposGuardados();
+      const eq = id => equipos.find(e => e.id === id);
+      const orden = ligaOrdenarTabla();
+      let html = `<table class="liga-tabla">
+        <thead><tr>
+          <th style="min-width:110px">Equipo</th>
+          <th>PJ</th><th>G</th><th>E</th><th>P</th>
+          <th>GF</th><th>GC</th><th>DIF</th><th>PTS</th>
+        </tr></thead><tbody>`;
+      orden.forEach((id, i) => {
+        const t = ligaData.tabla[id];
+        const e = eq(id);
+        const esMio = id === ligaData.miEquipo;
+        const esLider = i === 0;
+        const svgStr = e ? miniJerseySVG(e, 14) : '';
+        const dotHtml = e ? `<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background-image:url('data:image/svg+xml,${encodeURIComponent(svgStr)}');background-size:100%;border:1px solid rgba(255,255,255,0.25);flex-shrink:0;"></span>` : '';
+        html += `<tr class="${esMio ? 'mi-equipo' : ''} ${esLider ? 'lider' : ''}">
+          <td>${dotHtml}${e ? e.nombre : id}</td>
+          <td>${t.pj}</td><td>${t.g}</td><td>${t.e}</td><td>${t.p}</td>
+          <td>${t.gf}</td><td>${t.gc}</td><td>${t.gf-t.gc>0?'+':''}${t.gf-t.gc}</td>
+          <td><strong>${t.pts}</strong></td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+      document.getElementById('liga-panel-tabla').innerHTML = html;
+    }
+
+    function ligaRenderFixtures() {
+      const equipos = equiposGuardados();
+      const eq = id => equipos.find(e => e.id === id);
+      const { partidos, miEquipo } = ligaData;
+      const pendientes = partidos.filter(p => !p.jugado);
+      const jugados = partidos.filter(p => p.jugado);
+      const container = document.getElementById('liga-panel-fixtures');
+      container.innerHTML = '';
+
+      const renderPartido = (p) => {
+        const eLocal = eq(p.local), eVisit = eq(p.visitante);
+        const jugable = !p.jugado && (p.local === miEquipo || p.visitante === miEquipo);
+        const div = document.createElement('div');
+        div.className = 'liga-partido' + (jugable ? ' jugable' : '') + (p.jugado ? ' jugado' : '');
+        if (jugable) div.onclick = () => ligaJugarPartido(p);
+
+        const dotL = document.createElement('div'); dotL.className = 'liga-dot';
+        aplicarMiniJersey(dotL, eLocal, 14);
+        const dotV = document.createElement('div'); dotV.className = 'liga-dot';
+        aplicarMiniJersey(dotV, eVisit, 14);
+
+        const equipoL = document.createElement('div'); equipoL.className = 'liga-partido-equipo';
+        equipoL.appendChild(dotL);
+        equipoL.appendChild(document.createTextNode(eLocal ? eLocal.nombre : p.local));
+
+        const equipoV = document.createElement('div'); equipoV.className = 'liga-partido-equipo derecha';
+        equipoV.appendChild(dotV);
+        equipoV.appendChild(document.createTextNode(eVisit ? eVisit.nombre : p.visitante));
+
+        const centro = document.createElement('div');
+        if (p.jugado) {
+          centro.className = 'liga-partido-resultado';
+          centro.textContent = p.golLocal + '-' + p.golVisitante;
+        } else {
+          centro.className = 'liga-partido-vs';
+          centro.textContent = jugable ? '▶' : 'vs';
+        }
+
+        div.appendChild(equipoL); div.appendChild(centro); div.appendChild(equipoV);
+        container.appendChild(div);
+      };
+
+      if (pendientes.length) {
+        const t = document.createElement('div'); t.className = 'liga-jornada-titulo';
+        t.textContent = 'Pendientes';
+        container.appendChild(t);
+        pendientes.forEach(renderPartido);
+      }
+      if (jugados.length) {
+        const t = document.createElement('div'); t.className = 'liga-jornada-titulo';
+        t.textContent = 'Jugados';
+        container.appendChild(t);
+        jugados.forEach(renderPartido);
+      }
+
+      const hayIA = pendientes.some(p => p.local !== miEquipo && p.visitante !== miEquipo);
+      document.getElementById('btn-liga-simular').style.display = hayIA ? 'block' : 'none';
+    }
+
+    function ligaJugarPartido(p) {
+      const soyLocal = p.local === ligaData.miEquipo;
+      config.equipoLocal = soyLocal ? p.local : p.visitante;
+      config.equipoRival = soyLocal ? p.visitante : p.local;
+      config.modo = 'vsIA';
+      config.encuentro = ligaData.config.encuentro;
+      config.goles = ligaData.config.goles;
+      config.turnos = ligaData.config.turnos;
+      config._ligaPartido = p;
+      config._ligaPendiente = true;
+      actualizarSelectoresEquipo();
+      const selLocal = document.getElementById('sel-equipo-local');
+      const selRival = document.getElementById('sel-equipo-rival');
+      selLocal.value = config.equipoLocal || '';
+      selRival.value = config.equipoRival || '';
+      actualizarDotEquipo('local');
+      actualizarDotEquipo('rival');
+      document.getElementById('liga-overlay').classList.remove('visible');
+      iniciarJuego();
+    }
+
+    window.ligaSimularPendientes = function() {
+      const { partidos, miEquipo } = ligaData;
+      partidos.forEach(p => {
+        if (p.jugado || p.local === miEquipo || p.visitante === miEquipo) return;
+        let gl = simularGoles(), gv = simularGoles();
+        p.golLocal = gl; p.golVisitante = gv; p.jugado = true;
+      });
+      ligaRecalcularTabla();
+      ligaGuardar();
+      ligaMostrarTab('fixtures');
+    };
+
+    window.ligaVolverMenu = function() {
+      document.getElementById('liga-overlay').classList.remove('visible');
+      document.getElementById('menu-inicial').style.display = 'flex';
+    };
+
+    window.ligaAbandonar = function() {
+      if (!confirm('¿Abandonar la liga? Se perderá el progreso.')) return;
+      ligaBorrar(); ligaData = null;
+      document.getElementById('liga-overlay').classList.remove('visible');
+      document.getElementById('menu-inicial').style.display = 'flex';
+    };
 
     // Inicializar UI (pero oculto hasta que elija modo)
     actualizarUI();
