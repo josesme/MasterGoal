@@ -2508,6 +2508,33 @@
       return peor;
     }
 
+    // Devuelve los jugadores blancos ordenados por peligrosidad (más cerca de portería roja = más peligrosos)
+    function iaJugadoresBlancosPorPeligro() {
+      return Object.entries(estado.fichas)
+        .filter(([id, d]) => d.equipo === 'blanco' && id !== 'balon')
+        .map(([id, d]) => ({ id, fila: d.fila, col: d.col }))
+        .sort((a, b) => b.fila - a.fila); // mayor fila = más cerca portería roja
+    }
+
+    // Cuántas líneas de pase desde el balón quedan bloqueadas por rojos en (df, dc)
+    function iaPasesQueCorta(df, dc, balonF, balonC) {
+      // Un pase desde el balón hacia un blanco queda cortado si un rojo en (df,dc)
+      // se interpone — está en la misma línea y más cerca del balón que el blanco
+      const blancos = iaJugadoresBlancosPorPeligro();
+      let cortados = 0;
+      for (const b of blancos) {
+        // Distancia balón→blanco
+        const distBB = iaDistancia(balonF, balonC, b.fila, b.col);
+        // Distancia balón→rojo candidato
+        const distBR = iaDistancia(balonF, balonC, df, dc);
+        // Distancia rojo→blanco
+        const distRB = iaDistancia(df, dc, b.fila, b.col);
+        // El rojo está en la línea entre balón y blanco si distBR + distRB ≈ distBB
+        if (distBR < distBB && distBR + distRB <= distBB + 1) cortados++;
+      }
+      return cortados;
+    }
+
     function iaMoverJugador() {
       const balonF = estado.fichas.balon.fila;
       const balonC = estado.fichas.balon.col;
@@ -2516,16 +2543,26 @@
         .filter(([id, d]) => d.equipo === 'rojo')
         .map(([id, d]) => ({ id, ...d }));
 
+      // Identificar el presionador: el rojo más cercano al balón
+      const presionadorId = piezasIA
+        .filter(p => !esPortero(p.id))
+        .sort((a, b) => iaDistancia(a.fila, a.col, balonF, balonC) - iaDistancia(b.fila, b.col, balonF, balonC))[0]?.id;
+
+      // Jugadores blancos peligrosos ordenados (para asignar marcaje)
+      const blancosPeligrosos = iaJugadoresBlancosPorPeligro().filter(b => !esPortero(b.id));
+
       let candidatos = [];
 
       for (const pieza of piezasIA) {
         const destinos = obtenerDestinosJugador(pieza.fila, pieza.col)
           .filter(d => !estaOcupada(d.fila, d.col, pieza.id));
+        const esPresionador = pieza.id === presionadorId;
+        const esPorteroIA   = esPortero(pieza.id);
 
         for (const dest of destinos) {
           let score = 0;
 
-          // Simular movimiento del jugador
+          // Simular movimiento
           estado.fichas[pieza.id].fila = dest.fila;
           estado.fichas[pieza.id].col  = dest.col;
           const ganaPosesion  = equipoTienePosesion('rojo');
@@ -2533,55 +2570,87 @@
           estado.fichas[pieza.id].fila = pieza.fila;
           estado.fichas[pieza.id].col  = pieza.col;
 
+          // ── GANAR/QUITAR POSESIÓN ── siempre prioritario
           if (ganaPosesion) {
-            score += 2000;
-            // LOOKAHEAD: simular qué pases podría hacer con el balón desde esta posición
+            score += 2500;
             estado.fichas[pieza.id].fila = dest.fila;
             estado.fichas[pieza.id].col  = dest.col;
-            const potencialBalon = iaLookaheadBalon(balonF, balonC, 2);
+            score += iaLookaheadBalon(balonF, balonC, 2) * 0.5;
             estado.fichas[pieza.id].fila = pieza.fila;
             estado.fichas[pieza.id].col  = pieza.col;
-            score += potencialBalon * 0.5;
           }
 
-          if (quitaPosesion) {
-            score += 1800;
-            // Bonus si además reducimos la amenaza
-            score -= iaAmenazaRival(balonF, balonC) * 0.3;
-          }
+          if (quitaPosesion) score += 2000;
 
           if (!ganaPosesion) {
             if (rivalTienePosesion) {
-              // DEFENSA: interponerse entre balón y portería propia
-              const estaEntreBalon = dest.fila >= balonF && dest.fila <= 13;
-              const centralidad = 6 - Math.abs(dest.col - balonC);
-              if (estaEntreBalon) score += 500 + centralidad * 40;
-              if (balonF > 7) score += (dest.fila - pieza.fila) * 25;
-              // Reducir amenaza: cuanto más cortamos pases del rival, mejor
-              estado.fichas[pieza.id].fila = dest.fila;
-              estado.fichas[pieza.id].col  = dest.col;
-              const amenazaTras = iaAmenazaRival(balonF, balonC);
-              estado.fichas[pieza.id].fila = pieza.fila;
-              estado.fichas[pieza.id].col  = pieza.col;
-              score -= amenazaTras * 0.4;
+              // ── DEFENSA CON ROLES ──
+              if (esPorteroIA) {
+                // Portero: quedarse en su zona, nunca salir del área grande
+                const enAreaGrande = dest.fila >= 9 && dest.fila <= 13 && dest.col >= 2 && dest.col <= 10;
+                if (!enAreaGrande) score -= 2000;
+                // Centrarse respecto al balón
+                score -= Math.abs(dest.col - balonC) * 30;
+
+              } else if (esPresionador) {
+                // Presionador: acercarse AL PORTADOR del balón, no al balón en sí
+                const distActual = iaDistancia(pieza.fila, pieza.col, balonF, balonC);
+                const distNueva  = iaDistancia(dest.fila, dest.col, balonF, balonC);
+                score += (distActual - distNueva) * 120;
+                // No ir más allá del balón
+                if (dest.fila < balonF - 2) score -= 400;
+
+              } else {
+                // Resto: CORTAR LÍNEAS DE PASE — sombra de pase
+                // Cuántos pases corta desde esta posición
+                estado.fichas[pieza.id].fila = dest.fila;
+                estado.fichas[pieza.id].col  = dest.col;
+                const pasesQueCorta = iaPasesQueCorta(dest.fila, dest.col, balonF, balonC);
+                estado.fichas[pieza.id].fila = pieza.fila;
+                estado.fichas[pieza.id].col  = pieza.col;
+                score += pasesQueCorta * 600;
+
+                // Marcar al blanco más peligroso no cubierto
+                // (asignar cada rojo libre a un blanco peligroso distinto)
+                const idx = piezasIA.filter(p => !esPortero(p.id) && p.id !== presionadorId)
+                  .indexOf(pieza);
+                const objetivo = blancosPeligrosos[idx];
+                if (objetivo) {
+                  const distObj = iaDistancia(dest.fila, dest.col, objetivo.fila, objetivo.col);
+                  score += Math.max(0, 500 - distObj * 80);
+                  // Interponerse entre el blanco marcado y portería roja
+                  if (dest.fila > objetivo.fila && dest.fila <= 13) score += 200;
+                }
+
+                // Nunca subir más arriba del balón cuando defiende
+                if (dest.fila < balonF) score -= 500;
+              }
+
             } else {
-              // ATAQUE: posicionarse para recibir el balón con ventaja
-              const distActual = iaDistancia(pieza.fila, pieza.col, balonF, balonC);
-              const distNueva  = iaDistancia(dest.fila, dest.col, balonF, balonC);
-              score += (distActual - distNueva) * 45;
-              score += (14 - dest.fila) * 10;
-              // LOOKAHEAD: desde aquí, ¿qué tan buena sería la posición del balón?
-              estado.fichas[pieza.id].fila = dest.fila;
-              estado.fichas[pieza.id].col  = dest.col;
-              const potencial = iaLookaheadBalon(balonF, balonC, 1);
-              estado.fichas[pieza.id].fila = pieza.fila;
-              estado.fichas[pieza.id].col  = pieza.col;
-              score += potencial * 0.2;
+              // ── ATAQUE ──
+              if (esPorteroIA) {
+                // Portero en ataque: quedarse atrás
+                score += (dest.fila) * 20; // preferir filas altas (propias)
+              } else {
+                const distActual = iaDistancia(pieza.fila, pieza.col, balonF, balonC);
+                const distNueva  = iaDistancia(dest.fila, dest.col, balonF, balonC);
+                score += (distActual - distNueva) * 45;
+                score += (14 - dest.fila) * 12;
+                // Abrirse en anchura en zona de ataque para recibir
+                if (dest.fila <= 5) {
+                  score += Math.abs(dest.col - 6) * 15; // preferir bandas
+                }
+                estado.fichas[pieza.id].fila = dest.fila;
+                estado.fichas[pieza.id].col  = dest.col;
+                score += iaLookaheadBalon(balonF, balonC, 1) * 0.2;
+                estado.fichas[pieza.id].fila = pieza.fila;
+                estado.fichas[pieza.id].col  = pieza.col;
+              }
             }
           }
 
-          // Penalizar zona vulnerable propia
-          if (dest.fila >= 12 && dest.col >= 4 && dest.col <= 8) score -= 300;
+          // Penalizar zona vulnerable propia (solo jugadores de campo)
+          if (!esPorteroIA && dest.fila >= 12 && dest.col >= 4 && dest.col <= 8) score -= 400;
 
           candidatos.push({ piezaId: pieza.id, dest, score });
         }
