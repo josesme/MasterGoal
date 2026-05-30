@@ -1086,7 +1086,6 @@
               <button class="chip activo" onclick="seleccionarChip(event,'goles',1)">1</button>
               <button class="chip" onclick="seleccionarChip(event,'goles',2)">2</button>
               <button class="chip" onclick="seleccionarChip(event,'goles',3)">3</button>
-              <button class="chip" onclick="seleccionarChip(event,'goles',4)">4</button>
               <button class="chip" onclick="seleccionarChip(event,'goles',5)">5</button>
             </div>
           </div>
@@ -1102,8 +1101,7 @@
             <button class="torneo-tamano-btn" id="op-crono" onclick="seleccionarEncuentro('crono')">Contrarreloj</button>
             <div id="chips-wrap-crono" style="display:none;">
               <div class="selector-chips encuentro-col-chips" id="chips-crono-tiempo">
-                <button class="chip activo" onclick="seleccionarChip(event,'crono-tiempo',3)">3'</button>
-                <button class="chip" onclick="seleccionarChip(event,'crono-tiempo',5)">5'</button>
+                <button class="chip activo" onclick="seleccionarChip(event,'crono-tiempo',5)">5'</button>
                 <button class="chip" onclick="seleccionarChip(event,'crono-tiempo',10)">10'</button>
                 <button class="chip" onclick="seleccionarChip(event,'crono-tiempo',15)">15'</button>
               </div>
@@ -1113,7 +1111,6 @@
                   <button class="chip activo" onclick="seleccionarChip(event,'crono-goles',1)">1</button>
                   <button class="chip" onclick="seleccionarChip(event,'crono-goles',2)">2</button>
                   <button class="chip" onclick="seleccionarChip(event,'crono-goles',3)">3</button>
-                  <button class="chip" onclick="seleccionarChip(event,'crono-goles',4)">4</button>
                   <button class="chip" onclick="seleccionarChip(event,'crono-goles',5)">5</button>
                 </div>
               </div>
@@ -2613,7 +2610,7 @@
       encuentro: 'goles',   // goles | turnos | crono
       goles: 1,
       turnos: 20,
-      cronoTiempo: 3,
+      cronoTiempo: 5,
       cronoGoles: 1
     };
 
