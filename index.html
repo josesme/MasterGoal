@@ -2422,50 +2422,108 @@
       }, 600);
     }
     
+    // ---- Utilidades IA ----
+
+    function iaDistancia(f1, c1, f2, c2) {
+      return Math.abs(f1 - f2) + Math.abs(c1 - c2);
+    }
+
+    // Cuántos jugadores de 'equipo' quedan colindantes al balón si este estuviera en (bf,bc)
+    function iaColindantesSimulados(bf, bc, equipo) {
+      let n = 0;
+      for (const [id, d] of Object.entries(estado.fichas)) {
+        if (id === 'balon' || d.equipo !== equipo) continue;
+        if (Math.abs(d.fila - bf) <= 1 && Math.abs(d.col - bc) <= 1) n++;
+      }
+      return n;
+    }
+
+    // Evalúa cuán amenazante es la posición del balón para la portería propia (fila 14)
+    function iaPeligroDefensivo(bf, bc) {
+      // Cuanto más cerca de fila 14 y centrado, más peligroso
+      const cercania = bf; // fila alta = cerca portería roja
+      const centralidad = 6 - Math.abs(bc - 6); // cols 4-8 son más peligrosas
+      return cercania * 15 + centralidad * 10;
+    }
+
+    function iaElegir(candidatos) {
+      // Elige aleatoriamente entre el top-3 (ponderado por score) para reducir predictibilidad
+      if (candidatos.length === 0) return null;
+      candidatos.sort((a, b) => b.score - a.score);
+      const pool = candidatos.slice(0, Math.min(3, candidatos.length));
+      const total = pool.reduce((s, c) => s + Math.max(c.score, 1), 0);
+      let r = Math.random() * total;
+      for (const c of pool) {
+        r -= Math.max(c.score, 1);
+        if (r <= 0) return c;
+      }
+      return pool[0];
+    }
+
     function iaMoverJugador() {
+      const balonF = estado.fichas.balon.fila;
+      const balonC = estado.fichas.balon.col;
+      const rivalTienePosesion = equipoTienePosesion('blanco');
       const piezasIA = Object.entries(estado.fichas)
         .filter(([id, d]) => d.equipo === 'rojo')
         .map(([id, d]) => ({ id, ...d }));
-      
-      let mejoresMovimientos = [];
-      
+
+      let candidatos = [];
+
       for (const pieza of piezasIA) {
         const destinos = obtenerDestinosJugador(pieza.fila, pieza.col)
           .filter(d => !estaOcupada(d.fila, d.col, pieza.id));
-        
+
         for (const dest of destinos) {
           let score = 0;
-          
-          // Simular posesion tras este movimiento
-          const oldF = estado.fichas[pieza.id].fila;
-          const oldC = estado.fichas[pieza.id].col;
+
+          // Simular movimiento
           estado.fichas[pieza.id].fila = dest.fila;
-          estado.fichas[pieza.id].col = dest.col;
-          const tendraPosesion = equipoTienePosesion('rojo');
-          estado.fichas[pieza.id].fila = oldF;
-          estado.fichas[pieza.id].col = oldC;
-          
-          if (tendraPosesion) {
-            score += 1000;
-            // Evaluar calidad de la posesion (cerca de la porteria rival P1 = fila 0)
-            score += (14 - dest.fila) * 20; // Mas cerca de P1 = mejor
-          } else {
-            // Acercarse al balon
-            const distActual = Math.abs(pieza.fila - estado.fichas.balon.fila) + Math.abs(pieza.col - estado.fichas.balon.col);
-            const distNueva = Math.abs(dest.fila - estado.fichas.balon.fila) + Math.abs(dest.col - estado.fichas.balon.col);
-            if (distNueva < distActual) score += (distActual - distNueva) * 30;
+          estado.fichas[pieza.id].col  = dest.col;
+          const ganaPosesion   = equipoTienePosesion('rojo');
+          const quitaPosesion  = rivalTienePosesion && !equipoTienePosesion('blanco');
+          estado.fichas[pieza.id].fila = pieza.fila;
+          estado.fichas[pieza.id].col  = pieza.col;
+
+          if (ganaPosesion) {
+            score += 2000;
+            // Mejor si desde aquí el balón tiene línea a portería rival
+            score += (14 - balonF) * 25;
+            // Bonus si el balón ya está en zona de ataque
+            if (balonF <= 5) score += 500;
           }
-          
-          mejoresMovimientos.push({ piezaId: pieza.id, dest, score });
+
+          if (quitaPosesion) score += 1500;
+
+          if (!ganaPosesion) {
+            // Modo sin posesión: depende de quién tiene el balón
+            if (rivalTienePosesion) {
+              // DEFENSA: colocarse entre el balón y la portería propia (fila 14)
+              const estaEntreBalon = dest.fila >= balonF && dest.fila <= 13;
+              const centralidad = 6 - Math.abs(dest.col - balonC);
+              if (estaEntreBalon) score += 400 + centralidad * 30;
+              // Proteger portería: penalizar alejarse de ella cuando atacan
+              if (balonF > 8) score += (dest.fila - pieza.fila) * 20;
+            } else {
+              // ATAQUE: acercarse al balón para posible recepción
+              const distActual = iaDistancia(pieza.fila, pieza.col, balonF, balonC);
+              const distNueva  = iaDistancia(dest.fila, dest.col, balonF, balonC);
+              score += (distActual - distNueva) * 40;
+              // Bonus por posicionarse adelantado (cerca de portería rival)
+              score += (14 - dest.fila) * 8;
+            }
+          }
+
+          // Penalizar colocarse en casilla colindante a la portería propia (vulnerable)
+          if (dest.fila >= 12 && dest.col >= 4 && dest.col <= 8) score -= 200;
+
+          candidatos.push({ piezaId: pieza.id, dest, score });
         }
       }
-      
-      mejoresMovimientos.sort((a, b) => b.score - a.score);
-      
-      if (mejoresMovimientos.length > 0) {
-        const mejor = mejoresMovimientos[0];
-        const exito = mover(mejor.piezaId, mejor.dest.fila, mejor.dest.col);
-        
+
+      const elegido = iaElegir(candidatos);
+      if (elegido) {
+        const exito = mover(elegido.piezaId, elegido.dest.fila, elegido.dest.col);
         if (exito && estado.fase === 'MOVER_BALON' && estado.modo === 'vsIA') {
           ejecutarTurnoIA();
         }
@@ -2473,60 +2531,74 @@
         pasarTurno();
       }
     }
-    
+
     function iaMoverBalon() {
-      console.log('IA: Moviendo balon. Pos actual:', estado.fichas.balon.fila, estado.fichas.balon.col, 'Movimiento:', estado.movimientosBalon + 1, '/4');
       let destinos = obtenerDestinosBalon(estado.fichas.balon.fila, estado.fichas.balon.col);
-      console.log('IA: Destinos disponibles:', destinos.length);
 
-      if (destinos.length === 0) {
-        console.log('IA: No hay destinos validos para el balon');
-        pasarTurno();
-        return;
-      }
+      if (destinos.length === 0) { pasarTurno(); return; }
 
-      let mejores = [];
+      const movActual = estado.movimientosBalon;
+      const esUltimoMov = movActual >= 3;
+
+      let candidatos = [];
 
       for (const dest of destinos) {
         let score = 0;
 
-        // GOOOOL!
-        if (dest.fila === 0) {
-          score += 100000;
+        // GOL — prioridad absoluta
+        if (dest.fila === 0 && dest.col >= 4 && dest.col <= 8) {
+          score += 500000;
+          candidatos.push({ dest, score }); continue;
         }
 
-        // Casilla especial (amarilla) - turno extra
-        if (esCasillaEspecial(dest.fila, dest.col, 'rojo')) {
-          score += 5000;
-        }
+        // Casilla especial propia = turno extra
+        if (esCasillaEspecial(dest.fila, dest.col, 'rojo')) score += 8000;
 
-        // Distancia a porteria rival (fila 0)
-        score += (14 - dest.fila) * 100;
-
-        // Evaluar estado tras mover
+        // Simular balón en destino
         const oldBF = estado.fichas.balon.fila;
         const oldBC = estado.fichas.balon.col;
         estado.fichas.balon.fila = dest.fila;
-        estado.fichas.balon.col = dest.col;
+        estado.fichas.balon.col  = dest.col;
+        const rojosCol   = iaColindantesSimulados(dest.fila, dest.col, 'rojo');
+        const blancosCol = iaColindantesSimulados(dest.fila, dest.col, 'blanco');
         const siguePosesion = equipoTienePosesion('rojo');
         const neutra = esCasillaNeutra();
         estado.fichas.balon.fila = oldBF;
-        estado.fichas.balon.col = oldBC;
+        estado.fichas.balon.col  = oldBC;
 
-        if (siguePosesion) {
-          score += 200; // Puede continuar la cadena de pases
-        } else if (neutra) {
-          score += 50; // Terminar jugada validamente
+        // Avanzar hacia portería rival (fila 0)
+        score += (14 - dest.fila) * 120;
+
+        // Centralidad en zona de ataque
+        if (dest.fila <= 6) {
+          const centro = 6 - Math.abs(dest.col - 6);
+          score += centro * 40;
         }
 
-        mejores.push({ dest, score });
+        // Mantener posesión
+        if (siguePosesion) {
+          score += 300 + rojosCol * 80;
+        } else if (neutra) {
+          score += 60;
+        } else {
+          // Pierde posesión al rival — muy malo
+          score -= 600 + blancosCol * 150;
+        }
+
+        // En último movimiento: evitar dejar el balón en zona peligrosa
+        if (esUltimoMov && !siguePosesion) {
+          score -= iaPeligroDefensivo(dest.fila, dest.col);
+        }
+
+        // No dejar el balón cerca de la portería propia si pierde posesión
+        if (dest.fila >= 10 && blancosCol >= rojosCol) score -= 500;
+
+        candidatos.push({ dest, score });
       }
 
-      mejores.sort((a, b) => b.score - a.score);
-
-      if (mejores.length > 0) {
-        const exito = mover('balon', mejores[0].dest.fila, mejores[0].dest.col);
-
+      const elegido = iaElegir(candidatos);
+      if (elegido) {
+        const exito = mover('balon', elegido.dest.fila, elegido.dest.col);
         if (exito && estado.fase === 'MOVER_BALON' && estado.movimientosBalon < 4 && estado.modo === 'vsIA') {
           ejecutarTurnoIA();
         }
