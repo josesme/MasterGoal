@@ -1066,21 +1066,15 @@
 
       <div class="torneo-seccion">
         <h3>Local</h3>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div class="torneo-rival-dot" id="dot-local" style="width:20px;height:20px;flex-shrink:0;"></div>
-          <select class="torneo-equipo-select" id="sel-equipo-local" onchange="actualizarDotEquipo('local')" style="margin:0;">
-            <option value="">-- Sin equipo --</option>
-          </select>
-        </div>
+        <select class="torneo-equipo-select" id="sel-equipo-local" onchange="actualizarDotEquipo('local')">
+          <option value="">-- Sin equipo --</option>
+        </select>
       </div>
       <div class="torneo-seccion">
         <h3>Visitante</h3>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div class="torneo-rival-dot" id="dot-rival" style="width:20px;height:20px;flex-shrink:0;"></div>
-          <select class="torneo-equipo-select" id="sel-equipo-rival" onchange="actualizarDotEquipo('rival')" style="margin:0;">
-            <option value="">-- Sin equipo --</option>
-          </select>
-        </div>
+        <select class="torneo-equipo-select" id="sel-equipo-rival" onchange="actualizarDotEquipo('rival')">
+          <option value="">-- Sin equipo --</option>
+        </select>
       </div>
 
       <div class="torneo-seccion">
