@@ -962,7 +962,19 @@
         </select>
       </div>
       <div class="torneo-seccion">
-        <h3>Rivales — <span id="liga-rivales-contador">Seleccionados: 0</span></h3>
+        <h3>Número de equipos</h3>
+        <div class="torneo-tamano-btns" style="flex-wrap:wrap;gap:6px;">
+          <button class="torneo-tamano-btn" onclick="ligaSetTamano(8)">8</button>
+          <button class="torneo-tamano-btn activo" onclick="ligaSetTamano(10)">10</button>
+          <button class="torneo-tamano-btn" onclick="ligaSetTamano(12)">12</button>
+          <button class="torneo-tamano-btn" onclick="ligaSetTamano(14)">14</button>
+          <button class="torneo-tamano-btn" onclick="ligaSetTamano(16)">16</button>
+          <button class="torneo-tamano-btn" onclick="ligaSetTamano(18)">18</button>
+          <button class="torneo-tamano-btn" onclick="ligaSetTamano(20)">20</button>
+        </div>
+      </div>
+      <div class="torneo-seccion">
+        <h3>Rivales — <span id="liga-rivales-contador">Seleccionados: 0 / 9</span></h3>
         <div class="torneo-rivales-grid" id="liga-rivales-grid"></div>
       </div>
       <div class="torneo-seccion">
@@ -3475,7 +3487,7 @@
 
     // ====== LIGA ======
     let ligaData = null;
-    const ligaConfig = { encuentro: 'turnos', turnos: 10, cronoTiempo: 3 };
+    const ligaConfig = { encuentro: 'turnos', turnos: 10, cronoTiempo: 3, tamano: 10 };
 
     function ligaGuardar() { localStorage.setItem('mg_liga', JSON.stringify(ligaData)); }
     function ligaCargar()  { const d = localStorage.getItem('mg_liga'); return d ? JSON.parse(d) : null; }
@@ -3521,17 +3533,36 @@
         aplicarMiniJersey(dot, e, 14);
         div.appendChild(dot);
         div.appendChild(document.createTextNode(e.nombre));
-        div.onclick = () => { div.classList.toggle('seleccionado'); ligaActualizarContador(); };
+        div.onclick = () => {
+          const necesarios = ligaConfig.tamano - 1;
+          const activos = grid.querySelectorAll('.torneo-rival-item.seleccionado').length;
+          if (!div.classList.contains('seleccionado') && activos >= necesarios) return;
+          div.classList.toggle('seleccionado');
+          ligaActualizarContador();
+        };
         grid.appendChild(div);
       });
       ligaActualizarContador();
     };
 
+    window.ligaSetTamano = function(n) {
+      ligaConfig.tamano = n;
+      document.querySelectorAll('#liga-crear-overlay .torneo-tamano-btn').forEach(b =>
+        b.classList.toggle('activo', parseInt(b.textContent) === n)
+      );
+      // Deseleccionar los sobrantes si hay más seleccionados que el nuevo límite
+      const necesarios = n - 1;
+      const seleccionados = [...document.querySelectorAll('#liga-rivales-grid .torneo-rival-item.seleccionado')];
+      seleccionados.slice(necesarios).forEach(el => el.classList.remove('seleccionado'));
+      ligaActualizarContador();
+    };
+
     function ligaActualizarContador() {
       const miId = document.getElementById('liga-mi-equipo').value;
+      const necesarios = ligaConfig.tamano - 1;
       const activos = document.querySelectorAll('#liga-rivales-grid .torneo-rival-item.seleccionado').length;
-      document.getElementById('liga-rivales-contador').textContent = `Seleccionados: ${activos}`;
-      document.getElementById('btn-liga-iniciar').disabled = (!miId || activos < 1);
+      document.getElementById('liga-rivales-contador').textContent = `Seleccionados: ${activos} / ${necesarios}`;
+      document.getElementById('btn-liga-iniciar').disabled = (!miId || activos !== necesarios);
     }
 
     window.ligaSelEncuentro = function(tipo) {
