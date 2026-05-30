@@ -547,7 +547,6 @@
     }
     .torneo-rival-item.seleccionado { border-color: #4caf50; background: rgba(76,175,80,0.15); }
     .torneo-rival-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.3); }
-    .equipo-color-dot { width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.3); }
     .torneo-rivales-contador { font-size: 11px; opacity: 0.6; margin-bottom: 6px; }
     .btn-torneo-iniciar {
       width: 100%; padding: 14px; border-radius: 10px; border: none;
@@ -1066,22 +1065,21 @@
       </div>
 
       <div class="torneo-seccion">
-        <h3>Equipos</h3>
-        <div id="picker-equipos-local-rival">
-          <div class="equipo-picker" id="picker-equipo-local">
-            <span class="equipo-picker-label">Local</span>
-            <div class="equipo-color-dot" id="dot-local"></div>
-            <select class="equipo-select" id="sel-equipo-local" onchange="actualizarDotEquipo('local')">
-              <option value="">-- Sin equipo --</option>
-            </select>
-          </div>
-          <div class="equipo-picker" id="picker-equipo-rival" style="margin-top:6px;">
-            <span class="equipo-picker-label">Rival</span>
-            <div class="equipo-color-dot" id="dot-rival"></div>
-            <select class="equipo-select" id="sel-equipo-rival" onchange="actualizarDotEquipo('rival')">
-              <option value="">-- Sin equipo --</option>
-            </select>
-          </div>
+        <h3>Local</h3>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="torneo-rival-dot" id="dot-local" style="width:20px;height:20px;flex-shrink:0;"></div>
+          <select class="torneo-equipo-select" id="sel-equipo-local" onchange="actualizarDotEquipo('local')" style="margin:0;">
+            <option value="">-- Sin equipo --</option>
+          </select>
+        </div>
+      </div>
+      <div class="torneo-seccion">
+        <h3>Visitante</h3>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="torneo-rival-dot" id="dot-rival" style="width:20px;height:20px;flex-shrink:0;"></div>
+          <select class="torneo-equipo-select" id="sel-equipo-rival" onchange="actualizarDotEquipo('rival')" style="margin:0;">
+            <option value="">-- Sin equipo --</option>
+          </select>
         </div>
       </div>
 
@@ -3148,7 +3146,7 @@
       if (!sel || !dot) return;
       const equipos = equiposGuardados();
       const eq = equipos.find(e => e.id === sel.value);
-      aplicarMiniJersey(dot, eq || null, 22);
+      aplicarMiniJersey(dot, eq || null, 20);
       if (lado === 'local') config.equipoLocal = sel.value || null;
       else config.equipoRival = sel.value || null;
     }
