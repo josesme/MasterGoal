@@ -219,19 +219,19 @@
     }
 
     .chip {
-      padding: 4px 10px;
-      border-radius: 20px;
-      border: 1.5px solid rgba(255,255,255,0.3);
-      background: transparent;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 2px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.06);
       color: white;
-      font-size: 13px;
+      font-size: 14px;
+      font-weight: 600;
       cursor: pointer;
-      transition: all 0.15s;
-      opacity: 0.5;
+      transition: border-color 0.15s, background 0.15s;
     }
 
-    .chip:hover { opacity: 0.8; }
-    .chip.activo { background: white; color: #2e7d32; opacity: 1; font-weight: bold; }
+    .chip:hover { border-color: rgba(255,255,255,0.45); }
+    .chip.activo { border-color: #4caf50; background: rgba(76,175,80,0.18); color: white; font-weight: 700; }
     .chip:disabled, .chip.disabled { opacity: 0.2; pointer-events: none; }
 
     .encuentro-sub {
