@@ -2672,48 +2672,60 @@
       if (destinos.length === 0) { pasarTurno(); return; }
 
       const esUltimoMov = estado.movimientosBalon >= 3;
-      let candidatos = [];
+      const oldBF = estado.fichas.balon.fila, oldBC = estado.fichas.balon.col;
 
+      // Clasificar destinos por resultado de posesión — nunca regalar si hay alternativa
+      const conPosesion = [], neutros = [], sinPosesion = [];
       for (const dest of destinos) {
+        if (dest.fila === 0 && dest.col >= 4 && dest.col <= 8) {
+          conPosesion.unshift({ dest, gol: true }); continue;
+        }
+        estado.fichas.balon.fila = dest.fila; estado.fichas.balon.col = dest.col;
+        const roja      = equipoTienePosesion('rojo');
+        const neutra    = esCasillaNeutra();
+        const rojosCol  = iaColindantesSimulados(dest.fila, dest.col, 'rojo');
+        const blancosCol = iaColindantesSimulados(dest.fila, dest.col, 'blanco');
+        estado.fichas.balon.fila = oldBF; estado.fichas.balon.col = oldBC;
+        const item = { dest, rojosCol, blancosCol };
+        if (roja)        conPosesion.push(item);
+        else if (neutra) neutros.push(item);
+        else             sinPosesion.push(item);
+      }
+
+      // Usar el mejor grupo disponible
+      const grupo = conPosesion.length > 0 ? conPosesion
+                  : neutros.length > 0      ? neutros
+                  : sinPosesion;
+
+      let candidatos = [];
+      for (const item of grupo) {
+        if (item.gol) { candidatos.push({ dest: item.dest, score: 500000 }); continue; }
+        const { dest, rojosCol, blancosCol } = item;
         let score = 0;
 
-        // GOL — prioridad absoluta
-        if (dest.fila === 0 && dest.col >= 4 && dest.col <= 8) {
-          candidatos.push({ dest, score: 500000 }); continue;
-        }
-
-        // Turno extra
         if (esCasillaEspecial(dest.fila, dest.col, 'rojo')) score += 8000;
 
-        // Simular balón en destino
-        const oldBF = estado.fichas.balon.fila, oldBC = estado.fichas.balon.col;
-        estado.fichas.balon.fila = dest.fila; estado.fichas.balon.col = dest.col;
-        const rojosCol    = iaColindantesSimulados(dest.fila, dest.col, 'rojo');
-        const blancosCol  = iaColindantesSimulados(dest.fila, dest.col, 'blanco');
-        const siguePosesion = equipoTienePosesion('rojo');
-        const neutra = esCasillaNeutra();
-        estado.fichas.balon.fila = oldBF; estado.fichas.balon.col = oldBC;
-
-        // Evaluación base de la posición
-        score += iaEvaluarPosBalon(dest.fila, dest.col);
-
-        if (siguePosesion) {
-          score += 400 + rojosCol * 100;
-          // LOOKAHEAD: si sigue teniendo posesión, evaluar siguiente pase
+        if (grupo === conPosesion) {
+          // Tenemos posesión: optimizar avance y cadena
+          score += (14 - dest.fila) * 100;
+          if (dest.fila <= 6) score += (6 - Math.abs(dest.col - 6)) * 40;
+          score += rojosCol * 120;
           if (!esUltimoMov) {
             estado.fichas.balon.fila = dest.fila; estado.fichas.balon.col = dest.col;
             const siguiente = iaLookaheadBalon(dest.fila, dest.col, 2);
             estado.fichas.balon.fila = oldBF; estado.fichas.balon.col = oldBC;
             score += siguiente * 0.6;
           }
-        } else if (neutra) {
-          score += 80;
-          // En último movimiento: evaluar amenaza que dejamos al rival
-          if (esUltimoMov) score -= iaAmenazaRival(dest.fila, dest.col) * 0.5;
+        } else if (grupo === neutros) {
+          // Neutro: posición donde podamos recuperar el siguiente turno
+          score += (rojosCol - blancosCol) * 200; // superioridad de colindantes
+          score += (14 - dest.fila) * 20;         // algo de avance pero con cautela
+          score -= iaPeligroDefensivo(dest.fila, dest.col);
         } else {
-          // Pierde posesión — penalizar fuertemente, especialmente cerca de portería propia
-          score -= 800 + blancosCol * 200;
-          if (dest.fila >= 10) score -= iaPeligroDefensivo(dest.fila, dest.col) * 2;
+          // Sin posesión inevitable: minimizar daño
+          score -= iaPeligroDefensivo(dest.fila, dest.col) * 3;
+          score -= blancosCol * 200;
+          score += rojosCol * 100; // rojos cerca = más fácil recuperar
         }
 
         candidatos.push({ dest, score });
