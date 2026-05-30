@@ -973,24 +973,10 @@
       </div>
       <div class="torneo-seccion">
         <h3>Tipo de encuentro</h3>
-        <div class="encuentro-cols">
-          <div class="encuentro-col">
-            <button class="torneo-tamano-btn activo" id="liga-op-turnos" onclick="ligaSelEncuentro('turnos')">Por turnos</button>
-            <div id="liga-chips-wrap-turnos" class="selector-chips encuentro-col-chips">
-              <button class="chip activo" onclick="ligaSelChip(event,'turnos',20)">20</button>
-              <button class="chip" onclick="ligaSelChip(event,'turnos',30)">30</button>
-              <button class="chip" onclick="ligaSelChip(event,'turnos',40)">40</button>
-            </div>
-          </div>
-          <div class="encuentro-col">
-            <button class="torneo-tamano-btn" id="liga-op-crono" onclick="ligaSelEncuentro('crono')">Contrarreloj</button>
-            <div id="liga-chips-wrap-crono" class="selector-chips encuentro-col-chips" style="display:none;">
-              <button class="chip activo" onclick="ligaSelChip(event,'crono-tiempo',3)">3'</button>
-              <button class="chip" onclick="ligaSelChip(event,'crono-tiempo',5)">5'</button>
-              <button class="chip" onclick="ligaSelChip(event,'crono-tiempo',10)">10'</button>
-              <button class="chip" onclick="ligaSelChip(event,'crono-tiempo',15)">15'</button>
-            </div>
-          </div>
+        <div class="selector-chips" style="margin-top:4px;">
+          <button class="chip activo" onclick="ligaSelChip(event,'turnos',20)">20</button>
+          <button class="chip" onclick="ligaSelChip(event,'turnos',30)">30</button>
+          <button class="chip" onclick="ligaSelChip(event,'turnos',40)">40</button>
         </div>
       </div>
       <button class="btn-torneo-iniciar" id="btn-liga-iniciar" onclick="ligaIniciar()" disabled>INICIAR LIGA</button>
@@ -3473,7 +3459,7 @@
 
     // ====== LIGA ======
     let ligaData = null;
-    const ligaConfig = { encuentro: 'turnos', turnos: 20, cronoTiempo: 3, tamano: 10 };
+    const ligaConfig = { encuentro: 'turnos', turnos: 20, tamano: 10 };
 
     function ligaGuardar() { localStorage.setItem('mg_liga', JSON.stringify(ligaData)); }
     function ligaCargar()  { const d = localStorage.getItem('mg_liga'); return d ? JSON.parse(d) : null; }
@@ -3551,21 +3537,10 @@
       document.getElementById('btn-liga-iniciar').disabled = (!miId || activos !== necesarios);
     }
 
-    window.ligaSelEncuentro = function(tipo) {
-      ligaConfig.encuentro = tipo;
-      ['turnos','crono'].forEach(t => {
-        document.getElementById('liga-op-' + t).classList.toggle('activo', t === tipo);
-        document.getElementById('liga-chips-wrap-' + t).style.display = t === tipo ? '' : 'none';
-      });
-    };
-
     window.ligaSelChip = function(e, tipo, valor) {
       e.stopPropagation();
       if (tipo === 'turnos') ligaConfig.turnos = valor;
-      else if (tipo === 'crono-tiempo') ligaConfig.cronoTiempo = valor;
-      document.querySelectorAll(`#liga-chips-${tipo} .chip`).forEach(c => c.classList.toggle('activo', c.textContent.replace("'",'') == valor));
-      if (tipo === 'turnos') ligaSelEncuentro('turnos');
-      else ligaSelEncuentro('crono');
+      e.currentTarget.closest('.selector-chips').querySelectorAll('.chip').forEach(c => c.classList.toggle('activo', c.textContent == valor));
     };
 
     window.ligaIniciar = function() {
