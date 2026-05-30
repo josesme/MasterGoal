@@ -967,22 +967,27 @@
       </div>
       <div class="torneo-seccion">
         <h3>Tipo de encuentro</h3>
-        <label class="encuentro-opcion activo" id="liga-op-goles" onclick="ligaSelEncuentro('goles')">
-          <input type="radio" name="liga-encuentro" value="goles" checked>
-          <span class="encuentro-label">A goles</span>
-          <div class="selector-chips" id="liga-chips-goles">
-            <button class="chip activo" onclick="ligaSelChip(event,'goles',1)">1</button>
-            <button class="chip" onclick="ligaSelChip(event,'goles',2)">2</button>
-            <button class="chip" onclick="ligaSelChip(event,'goles',3)">3</button>
-          </div>
-        </label>
-        <label class="encuentro-opcion" id="liga-op-turnos" onclick="ligaSelEncuentro('turnos')">
-          <input type="radio" name="liga-encuentro" value="turnos">
+        <label class="encuentro-opcion activo" id="liga-op-turnos" onclick="ligaSelEncuentro('turnos')">
+          <input type="radio" name="liga-encuentro" value="turnos" checked>
           <span class="encuentro-label">Por turnos</span>
           <div class="selector-chips" id="liga-chips-turnos">
             <button class="chip activo" onclick="ligaSelChip(event,'turnos',10)">10</button>
             <button class="chip" onclick="ligaSelChip(event,'turnos',15)">15</button>
             <button class="chip" onclick="ligaSelChip(event,'turnos',20)">20</button>
+          </div>
+        </label>
+        <label class="encuentro-opcion" id="liga-op-crono" onclick="ligaSelEncuentro('crono')">
+          <input type="radio" name="liga-encuentro" value="crono">
+          <span class="encuentro-label">Contrarreloj</span>
+          <div class="encuentro-sub">
+            <div class="sub-row">
+              <span class="sub-label">Tiempo</span>
+              <div class="selector-chips" id="liga-chips-crono-tiempo">
+                <button class="chip activo" onclick="ligaSelChip(event,'crono-tiempo',3)">3'</button>
+                <button class="chip" onclick="ligaSelChip(event,'crono-tiempo',5)">5'</button>
+                <button class="chip" onclick="ligaSelChip(event,'crono-tiempo',10)">10'</button>
+              </div>
+            </div>
           </div>
         </label>
       </div>
@@ -3470,7 +3475,7 @@
 
     // ====== LIGA ======
     let ligaData = null;
-    const ligaConfig = { encuentro: 'goles', goles: 1, turnos: 10 };
+    const ligaConfig = { encuentro: 'turnos', turnos: 10, cronoTiempo: 3 };
 
     function ligaGuardar() { localStorage.setItem('mg_liga', JSON.stringify(ligaData)); }
     function ligaCargar()  { const d = localStorage.getItem('mg_liga'); return d ? JSON.parse(d) : null; }
@@ -3531,7 +3536,7 @@
 
     window.ligaSelEncuentro = function(tipo) {
       ligaConfig.encuentro = tipo;
-      ['goles','turnos'].forEach(t => {
+      ['turnos','crono'].forEach(t => {
         document.getElementById('liga-op-' + t).classList.toggle('activo', t === tipo);
         const radio = document.querySelector(`#liga-op-${t} input`);
         if (radio) radio.checked = t === tipo;
@@ -3540,11 +3545,11 @@
 
     window.ligaSelChip = function(e, tipo, valor) {
       e.stopPropagation();
-      if (tipo === 'goles') ligaConfig.goles = valor;
-      else if (tipo === 'turnos') ligaConfig.turnos = valor;
-      document.querySelectorAll(`#liga-chips-${tipo} .chip`).forEach(c => c.classList.toggle('activo', c.textContent == valor));
-      if (tipo === 'goles') ligaSelEncuentro('goles');
-      else ligaSelEncuentro('turnos');
+      if (tipo === 'turnos') ligaConfig.turnos = valor;
+      else if (tipo === 'crono-tiempo') ligaConfig.cronoTiempo = valor;
+      document.querySelectorAll(`#liga-chips-${tipo} .chip`).forEach(c => c.classList.toggle('activo', c.textContent.replace("'",'') == valor));
+      if (tipo === 'turnos') ligaSelEncuentro('turnos');
+      else ligaSelEncuentro('crono');
     };
 
     window.ligaIniciar = function() {
@@ -3717,9 +3722,9 @@
       config.equipoLocal = soyLocal ? p.local : p.visitante;
       config.equipoRival = soyLocal ? p.visitante : p.local;
       config.modo = 'vsIA';
-      config.encuentro = ligaData.config.encuentro;
-      config.goles = ligaData.config.goles;
-      config.turnos = ligaData.config.turnos;
+      config.encuentro  = ligaData.config.encuentro;
+      config.turnos     = ligaData.config.turnos;
+      config.cronoTiempo = ligaData.config.cronoTiempo;
       config._ligaPartido = p;
       config._ligaPendiente = true;
       actualizarSelectoresEquipo();
