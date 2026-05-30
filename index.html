@@ -2709,6 +2709,8 @@
     const sorteo = { eleccion: null, resultado: null, ganador: null };
 
     window.iniciarJuego = function() {
+      actualizarDotEquipo('local');
+      actualizarDotEquipo('rival');
       document.getElementById('menu-inicial').style.display = 'none';
       document.getElementById('partido-overlay').classList.remove('visible');
       lanzarSorteo();
