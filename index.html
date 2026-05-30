@@ -895,9 +895,9 @@
           <input type="radio" name="t-encuentro" value="turnos">
           <span class="encuentro-label">Por turnos</span>
           <div class="selector-chips" id="t-chips-turnos">
-            <button class="chip activo" onclick="torneoSelChip(event,'turnos',10)">10</button>
-            <button class="chip" onclick="torneoSelChip(event,'turnos',15)">15</button>
-            <button class="chip" onclick="torneoSelChip(event,'turnos',20)">20</button>
+            <button class="chip activo" onclick="torneoSelChip(event,'turnos',20)">20</button>
+            <button class="chip" onclick="torneoSelChip(event,'turnos',30)">30</button>
+            <button class="chip" onclick="torneoSelChip(event,'turnos',40)">40</button>
           </div>
         </label>
         <label class="encuentro-opcion" id="t-op-crono" onclick="torneoSelEncuentro('crono')">
@@ -905,7 +905,6 @@
           <span class="encuentro-label">Contrarreloj</span>
           <div class="encuentro-sub">
             <div class="sub-row">
-              <span class="sub-label">Tiempo</span>
               <div class="selector-chips" id="t-chips-crono-tiempo">
                 <button class="chip activo" onclick="torneoSelChip(event,'crono-tiempo',3)">3'</button>
                 <button class="chip" onclick="torneoSelChip(event,'crono-tiempo',5)">5'</button>
@@ -983,9 +982,9 @@
           <input type="radio" name="liga-encuentro" value="turnos" checked>
           <span class="encuentro-label">Por turnos</span>
           <div class="selector-chips" id="liga-chips-turnos">
-            <button class="chip activo" onclick="ligaSelChip(event,'turnos',10)">10</button>
-            <button class="chip" onclick="ligaSelChip(event,'turnos',15)">15</button>
-            <button class="chip" onclick="ligaSelChip(event,'turnos',20)">20</button>
+            <button class="chip activo" onclick="ligaSelChip(event,'turnos',20)">20</button>
+            <button class="chip" onclick="ligaSelChip(event,'turnos',30)">30</button>
+            <button class="chip" onclick="ligaSelChip(event,'turnos',40)">40</button>
           </div>
         </label>
         <label class="encuentro-opcion" id="liga-op-crono" onclick="ligaSelEncuentro('crono')">
@@ -993,11 +992,11 @@
           <span class="encuentro-label">Contrarreloj</span>
           <div class="encuentro-sub">
             <div class="sub-row">
-              <span class="sub-label">Tiempo</span>
               <div class="selector-chips" id="liga-chips-crono-tiempo">
                 <button class="chip activo" onclick="ligaSelChip(event,'crono-tiempo',3)">3'</button>
                 <button class="chip" onclick="ligaSelChip(event,'crono-tiempo',5)">5'</button>
                 <button class="chip" onclick="ligaSelChip(event,'crono-tiempo',10)">10'</button>
+                <button class="chip" onclick="ligaSelChip(event,'crono-tiempo',15)">15'</button>
               </div>
             </div>
           </div>
@@ -1126,9 +1125,9 @@
           <input type="radio" name="encuentro" value="turnos">
           <span class="encuentro-label">Por turnos</span>
           <div class="selector-chips" id="chips-turnos">
-            <button class="chip activo" onclick="seleccionarChip(event,'turnos',10)">10</button>
-            <button class="chip" onclick="seleccionarChip(event,'turnos',15)">15</button>
-            <button class="chip" onclick="seleccionarChip(event,'turnos',20)">20</button>
+            <button class="chip activo" onclick="seleccionarChip(event,'turnos',20)">20</button>
+            <button class="chip" onclick="seleccionarChip(event,'turnos',30)">30</button>
+            <button class="chip" onclick="seleccionarChip(event,'turnos',40)">40</button>
           </div>
         </label>
         <label class="encuentro-opcion" id="op-crono" onclick="seleccionarEncuentro('crono')">
@@ -1136,7 +1135,6 @@
           <span class="encuentro-label">Contrarreloj</span>
           <div class="encuentro-sub">
             <div class="sub-row">
-              <span class="sub-label">Tiempo</span>
               <div class="selector-chips" id="chips-crono-tiempo">
                 <button class="chip activo" onclick="seleccionarChip(event,'crono-tiempo',3)">3'</button>
                 <button class="chip" onclick="seleccionarChip(event,'crono-tiempo',5)">5'</button>
@@ -2576,7 +2574,7 @@
       modo: 'pvp',          // pvp | vsIA
       encuentro: 'goles',   // goles | turnos | crono
       goles: 1,
-      turnos: 10,
+      turnos: 20,
       cronoTiempo: 3,
       cronoGoles: 1
     };
@@ -3198,7 +3196,7 @@
 
     // ====== TORNEO ======
     let torneoData = null;
-    const torneoConfig = { encuentro: 'goles', goles: 1, turnos: 10, cronoTiempo: 3, cronoGoles: 1 };
+    const torneoConfig = { encuentro: 'goles', goles: 1, turnos: 20, cronoTiempo: 3, cronoGoles: 1 };
 
     window.torneoSelEncuentro = function(tipo) {
       torneoConfig.encuentro = tipo;
@@ -3487,7 +3485,7 @@
 
     // ====== LIGA ======
     let ligaData = null;
-    const ligaConfig = { encuentro: 'turnos', turnos: 10, cronoTiempo: 3, tamano: 10 };
+    const ligaConfig = { encuentro: 'turnos', turnos: 20, cronoTiempo: 3, tamano: 10 };
 
     function ligaGuardar() { localStorage.setItem('mg_liga', JSON.stringify(ligaData)); }
     function ligaCargar()  { const d = localStorage.getItem('mg_liga'); return d ? JSON.parse(d) : null; }
