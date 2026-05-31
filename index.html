@@ -2905,8 +2905,18 @@
         }
       }
 
+      // Log top-5 candidatos
+      candidatos.sort((a, b) => b.score - a.score);
+      const rojoPos = equipoTienePosesion('rojo');
+      console.group(`%c🤖 IA MOVER JUGADOR | balón(${balonF},${balonC}) | posesión:${rojoPos?'ROJO':rivalTienePosesion?'BLANCO':'NADIE'}`, 'color:#4fc3f7;font-weight:bold');
+      candidatos.slice(0, 5).forEach((c, i) => {
+        console.log(`  ${i===0?'✅':'  '} ${c.piezaId} → (${c.dest.fila},${c.dest.col}) score:${Math.round(c.score)}`);
+      });
+      console.groupEnd();
+
       const elegido = iaElegir(candidatos);
       if (elegido) {
+        console.log(`%c🤖 ELEGIDO: ${elegido.piezaId} → (${elegido.dest.fila},${elegido.dest.col})`, 'color:#a5d6a7;font-weight:bold');
         const exito = mover(elegido.piezaId, elegido.dest.fila, elegido.dest.col);
         if (exito && estado.fase === 'MOVER_BALON' && estado.modo === 'vsIA') {
           ejecutarTurnoIA();
@@ -2924,23 +2934,28 @@
       const destinos = obtenerDestinosBalon(balonF, balonC);
       if (destinos.length === 0) { pasarTurno(); return; }
 
-      let primero;
+      let primero, secuencia = [], scoreElegido = 0;
 
       if (equipoTienePosesion('rojo')) {
-        // Con posesión: búsqueda recursiva de la mejor secuencia completa
         const res = iaBestBallSequence(balonF, balonC, movRestantes, -Infinity, Infinity);
         primero = res.seq.length > 0 ? res.seq[0] : null;
+        secuencia = res.seq;
+        scoreElegido = res.score;
       } else {
-        // Sin posesión (primer movimiento tras recuperar): greedy — mover a la mejor posición
         let mejorScore = -Infinity;
         for (const d of destinos) {
-          if (d.fila === 0 && d.col >= 4 && d.col <= 8) { primero = d; break; }
+          if (d.fila === 0 && d.col >= 4 && d.col <= 8) { primero = d; scoreElegido = 500000; break; }
           estado.fichas.balon.fila = d.fila; estado.fichas.balon.col = d.col;
           const s = iaEvaluarEstado();
           estado.fichas.balon.fila = balonF; estado.fichas.balon.col = balonC;
-          if (s > mejorScore) { mejorScore = s; primero = d; }
+          if (s > mejorScore) { mejorScore = s; primero = d; scoreElegido = s; }
         }
       }
+
+      const seqStr = secuencia.map(d => `(${d.fila},${d.col})`).join(' → ');
+      console.log(`%c🤖 IA BALÓN mov${estado.movimientosBalon+1} | balón(${balonF},${balonC}) | posesión:${equipoTienePosesion('rojo')?'ROJO':'NADIE'}`, 'color:#ffcc80;font-weight:bold');
+      console.log(`   secuencia: ${seqStr || '(ninguna)'} | score:${Math.round(scoreElegido)}`);
+      console.log(`   primer paso: (${primero?.fila},${primero?.col})`);
 
       if (!primero) { pasarTurno(); return; }
 
