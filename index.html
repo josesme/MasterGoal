@@ -2110,16 +2110,21 @@
     // Quien marca gol, saca primero en el siguiente turno
     function verificarGol() {
       const b = estado.fichas.balon;
-      if (b.fila === 0) {
-        MARCADOR.rojo++;
-        console.log('GOOOOL de ROJO! Marcador:', MARCADOR.blanco, '-', MARCADOR.rojo);
+      if (b.fila === 0 || b.fila === 14) {
+        // Determinar quién marca (portería 0 = gol del rojo o autogol del blanco)
+        const marcaRojo  = b.fila === 0;  // portería blanca
+        const marcaBlanco = b.fila === 14; // portería roja
+        if (marcaRojo)   MARCADOR.rojo++;
+        if (marcaBlanco) MARCADOR.blanco++;
+
+        // Descontar turno al equipo que estaba jugando (evita desincronía en modo turnos)
+        if (config.encuentro === 'turnos') {
+          victoria.turnosRestantes[estado.turno]--;
+        }
+
         if (verificarVictoria()) return;
-        recolocar('rojo');
-      } else if (b.fila === 14) {
-        MARCADOR.blanco++;
-        console.log('GOOOOL de BLANCO! Marcador:', MARCADOR.blanco, '-', MARCADOR.rojo);
-        if (verificarVictoria()) return;
-        recolocar('blanco');
+        // Saca el equipo que recibió el gol (o el que marcó en autogol sigue su adversario)
+        recolocar(marcaRojo ? 'rojo' : 'blanco');
       }
     }
     
