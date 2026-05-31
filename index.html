@@ -2705,19 +2705,29 @@
       const bc2 = iaColindantesSimulados(bf, bc, 'blanco');
       v += (rc - bc2) * 300;
 
-      // ── POSICIÓN DE JUGADORES (peso menor, solo desempata) ──
+      // ── POSICIÓN DE JUGADORES ──
+      // En zona peligrosa (bf>=8): recuperar el balón es el único objetivo
+      // En zona neutral/ofensiva: equilibrio entre posición ofensiva y proximidad al balón
+      const enPeligro = bf >= 8;
       for (const [id, d] of Object.entries(estado.fichas)) {
         if (id === 'balon' || esPortero(id)) continue;
         const distBal = iaDistancia(d.fila, d.col, bf, bc);
         const esColindante = Math.abs(d.fila - bf) <= 1 && Math.abs(d.col - bc) <= 1;
         if (d.equipo === 'rojo') {
-          v += (14 - d.fila) * 10;          // avance ofensivo
-          v += Math.max(0, 60 - distBal * 15); // proximidad al balón
-          if (esColindante) v += 200;        // colindante = puede recibir
+          if (enPeligro) {
+            // En peligro: solo importa acercarse al balón para recuperar
+            v += Math.max(0, 500 - distBal * 120);
+            if (esColindante) v += 600;
+          } else {
+            v += (14 - d.fila) * 10;
+            v += Math.max(0, 100 - distBal * 25);
+            if (esColindante) v += 200;
+          }
         } else {
-          v -= d.fila * 10;                  // blanco avanzado = peligro
-          v -= Math.max(0, 60 - distBal * 15);
-          if (esColindante) v -= 200;
+          // Blanco cerca del balón siempre es peligro
+          v -= Math.max(0, 100 - distBal * 25);
+          if (esColindante) v -= 300;
+          v -= d.fila * 10;
         }
       }
 
@@ -3572,13 +3582,13 @@
       });
     }
 
-    function actualizarDotEquipo(lado) {
+    window.actualizarDotEquipo = function actualizarDotEquipo(lado) {
       const selId = lado === 'local' ? 'sel-equipo-local' : 'sel-equipo-rival';
       const sel = document.getElementById(selId);
       if (!sel) return;
       if (lado === 'local') config.equipoLocal = sel.value || null;
       else config.equipoRival = sel.value || null;
-    }
+    };
 
     window.abrirEquipos = function() {
       // Placeholder: abre un futuro panel de edición de equipos
