@@ -2738,28 +2738,36 @@
     // Asume que es el turno del rojo y busca maximizar iaEvaluarEstado().
     // Usa estado.turno='rojo' para que obtenerDestinosBalon funcione correctamente.
     function iaBestBallSequence(f, c, movRestantes, alpha, beta) {
-      if (movRestantes === 0) return { score: iaEvaluarEstado(), seq: [] };
-
+      // El balón DEBE estar en (f,c) al entrar — el llamador lo posiciona
+      // Guardamos solo para restaurar al salir
       const oldF = estado.fichas.balon.fila, oldC = estado.fichas.balon.col;
       const oldTurno = estado.turno, oldMovs = estado.movimientosBalon;
 
-      // Forzar turno rojo para que los filtros de obtenerDestinosBalon sean correctos
-      estado.turno = 'rojo';
       estado.fichas.balon.fila = f; estado.fichas.balon.col = c;
+      estado.turno = 'rojo';
       estado.movimientosBalon = 4 - movRestantes;
+
+      if (movRestantes === 0) {
+        const s = iaEvaluarEstado();
+        estado.fichas.balon.fila = oldF; estado.fichas.balon.col = oldC;
+        estado.turno = oldTurno; estado.movimientosBalon = oldMovs;
+        return { score: s, seq: [] };
+      }
 
       const destinos = obtenerDestinosBalon(f, c);
 
-      estado.fichas.balon.fila = oldF; estado.fichas.balon.col = oldC;
-      estado.turno = oldTurno; estado.movimientosBalon = oldMovs;
+      if (destinos.length === 0) {
+        const s = iaEvaluarEstado();
+        estado.fichas.balon.fila = oldF; estado.fichas.balon.col = oldC;
+        estado.turno = oldTurno; estado.movimientosBalon = oldMovs;
+        return { score: s, seq: [] };
+      }
 
-      if (destinos.length === 0) return { score: iaEvaluarEstado(), seq: [] };
-
-      // Ordenar por evaluación rápida para mejorar alpha-beta
+      // Ordenar por evaluación con balón en destino (mejora alpha-beta)
       const scored = destinos.map(d => {
         estado.fichas.balon.fila = d.fila; estado.fichas.balon.col = d.col;
         const s = iaEvaluarEstado();
-        estado.fichas.balon.fila = oldF; estado.fichas.balon.col = oldC;
+        estado.fichas.balon.fila = f; estado.fichas.balon.col = c;
         return { d, s };
       });
       scored.sort((a, b) => b.s - a.s);
@@ -2770,29 +2778,35 @@
         // Gol: máximo absoluto
         if (d.fila === 0 && d.col >= 4 && d.col <= 8) {
           estado.fichas.balon.fila = oldF; estado.fichas.balon.col = oldC;
+          estado.turno = oldTurno; estado.movimientosBalon = oldMovs;
           return { score: 500000, seq: [d] };
         }
 
-        estado.fichas.balon.fila = d.fila; estado.fichas.balon.col = d.col;
+        // balón ya está en d.fila, d.col — evaluar
         const sigueRojo = equipoTienePosesion('rojo');
-        const scoreBase = iaEvaluarEstado();
-        estado.fichas.balon.fila = oldF; estado.fichas.balon.col = oldC;
+        const scoreAqui = iaEvaluarEstado();
 
         let resultado;
         if (sigueRojo && movRestantes > 1) {
+          // Continuar secuencia — la llamada recursiva recibe el balón ya en d
           resultado = iaBestBallSequence(d.fila, d.col, movRestantes - 1, alpha, beta);
           resultado = { score: resultado.score, seq: [d, ...resultado.seq] };
         } else {
-          // Pierde posesión o último movimiento: penalización moderada por perder posesión
           const penal = (!sigueRojo && movRestantes > 1) ? -800 : 0;
-          resultado = { score: scoreBase + penal, seq: [d] };
+          resultado = { score: scoreAqui + penal, seq: [d] };
         }
+
+        // Restaurar balón a posición de este nivel (f,c)
+        estado.fichas.balon.fila = f; estado.fichas.balon.col = c;
 
         if (resultado.score > mejorScore) { mejorScore = resultado.score; mejorSeq = resultado.seq; }
         alpha = Math.max(alpha, mejorScore);
         if (beta <= alpha) break;
       }
 
+      // Restaurar estado completo al salir
+      estado.fichas.balon.fila = oldF; estado.fichas.balon.col = oldC;
+      estado.turno = oldTurno; estado.movimientosBalon = oldMovs;
       return { score: mejorScore, seq: mejorSeq };
     }
 
@@ -2821,12 +2835,10 @@
           // Estado actual tras mover jugador
           const estadoBase = iaEvaluarEstado();
 
-          // Si blanco gana posesión, evalúa su mejor secuencia de balón
+          // Evaluar el estado desde perspectiva del rojo (negativo = peligroso para rojo)
+          // Si blanco gana posesión, penalizar adicionalmente
           let scoreFinal = estadoBase;
-          if (equipoTienePosesion('blanco')) {
-            const res = iaBestBallSequence(balonF, balonC, 4, 'blanco', -Infinity, Infinity);
-            scoreFinal = -res.score; // convertir a perspectiva rojo
-          }
+          if (equipoTienePosesion('blanco')) scoreFinal -= 1500;
 
           if (scoreFinal < peorParaRojo) peorParaRojo = scoreFinal;
 
