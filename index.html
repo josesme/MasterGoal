@@ -2786,20 +2786,21 @@
         const sigueRojo = equipoTienePosesion('rojo');
         const scoreAqui = iaEvaluarEstado();
 
+        // Penalizar si hay jugadores blancos colindantes al destino (pueden tomar posesión)
+        const blancosColindantes = iaColindantesSimulados(d.fila, d.col, 'blanco');
+        const rojosColindantes = iaColindantesSimulados(d.fila, d.col, 'rojo');
+        const penalExposicion = (!sigueRojo && blancosColindantes > rojosColindantes) ? -600 : 0;
+
         let resultado;
         if (sigueRojo && movRestantes > 1) {
           // Mantiene posesión: continuar secuencia
           resultado = iaBestBallSequence(d.fila, d.col, movRestantes - 1, alpha, beta);
           resultado = { score: resultado.score, seq: [d, ...resultado.seq] };
         } else if (!sigueRojo && movRestantes > 1) {
-          // Pierde posesión en paso intermedio: explorar igualmente el siguiente movimiento
-          // porque el 4º movimiento no requiere posesión (puede terminar sin ella)
           const subRes = iaBestBallSequence(d.fila, d.col, movRestantes - 1, alpha, beta);
-          // Penalizar perder posesión pero no cortar la búsqueda
-          resultado = { score: subRes.score - 800, seq: [d, ...subRes.seq] };
+          resultado = { score: subRes.score - 800 + penalExposicion, seq: [d, ...subRes.seq] };
         } else {
-          // Último movimiento (movRestantes === 1): evaluar estado final
-          resultado = { score: scoreAqui, seq: [d] };
+          resultado = { score: scoreAqui + penalExposicion, seq: [d] };
         }
 
         // Restaurar balón a posición de este nivel (f,c)
@@ -2921,7 +2922,7 @@
             // Con posesión (propia o recién ganada): evaluar secuencia completa de balón
             const resPropio = iaBestBallSequence(balonF, balonC, 4, -Infinity, Infinity);
             const scoreRival = iaSimularMejorTurnoBlanco();
-            scoreTotal = resPropio.score - scoreRival * 0.5;
+            scoreTotal = resPropio.score - scoreRival * 0.8;
             if (ganaPosesionAhora && !rojoTienePosesion) scoreTotal += 500; // bonus por recuperar
           } else {
             // Sin posesión y sin ganarla: evaluar estado resultante
