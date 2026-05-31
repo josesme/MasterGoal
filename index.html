@@ -2315,10 +2315,15 @@
     function pasarTurno() {
       console.log('DEBUG pasarTurno: turnoExtra =', estado.turnoExtra, 'turno =', estado.turno);
 
-      // Validacion defensiva: nunca pasar turno si el balon tiene posesion del equipo actual
+      // Validacion defensiva: no pasar turno con posesion salvo que no haya destinos válidos
       if (estado.fase === 'MOVER_BALON' && equipoTienePosesion(estado.turno)) {
-        console.log('ERROR: No se puede pasar turno con posesion del balon.');
-        return;
+        const b = estado.fichas.balon;
+        const destinos = obtenerDestinosBalon(b.fila, b.col);
+        if (destinos.length > 0) {
+          console.log('ERROR: No se puede pasar turno con posesion del balon y destinos disponibles.');
+          return;
+        }
+        // Sin destinos válidos (ej: todos autopases) → permitir pasar turno
       }
 
       // Si hay turno extra, el mismo equipo juega de nuevo
