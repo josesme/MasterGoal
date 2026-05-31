@@ -2594,6 +2594,16 @@
       // Jugadores blancos peligrosos ordenados (para asignar marcaje)
       const blancosPeligrosos = iaJugadoresBlancosPorPeligro().filter(b => !esPortero(b.id));
 
+      // Calcular amenaza de gol una sola vez — independiente de posesión
+      const amenazasGolActuales = iaDetectarAmenazaGol();
+      const bloqueosPorAmenaza = [];
+      for (const gol of amenazasGolActuales) {
+        for (const b of iaCasillasBloqueo(balonF, balonC, gol.fila, gol.col)) {
+          bloqueosPorAmenaza.push(b);
+        }
+      }
+      const hayAmenazaGol = amenazasGolActuales.length > 0;
+
       let candidatos = [];
 
       for (const pieza of piezasIA) {
@@ -2626,52 +2636,36 @@
           if (quitaPosesion) score += 2000;
 
           if (!ganaPosesion) {
-            if (rivalTienePosesion) {
-              // ── DEFENSA CON ROLES ──
-              if (esPorteroIA) {
-                // Portero: quedarse en su zona, nunca salir del área grande
-                const enAreaGrande = dest.fila >= 9 && dest.fila <= 13 && dest.col >= 2 && dest.col <= 10;
-                if (!enAreaGrande) { score -= 5000; }
-                else {
-                  // Detectar amenaza de gol inmediata
-                  const amenazasGol = iaDetectarAmenazaGol();
-                  if (amenazasGol.length > 0) {
-                    // Hay disparo posible: bonus masivo por estar en la trayectoria
-                    for (const gol of amenazasGol) {
-                      const bloqueos = iaCasillasBloqueo(balonF, balonC, gol.fila, gol.col);
-                      for (const b of bloqueos) {
-                        if (b.fila === dest.fila && b.col === dest.col) {
-                          score += 15000; // bloquear el disparo es prioridad máxima
-                        }
-                      }
-                    }
-                    // Si no bloquea ningún disparo, al menos centrarse en la col media de amenazas
-                    const colMedia = Math.round(amenazasGol.reduce((s, g) => s + g.col, 0) / amenazasGol.length);
-                    score -= Math.abs(dest.col - colMedia) * 60;
-                    score -= Math.abs(dest.fila - 13) * 20; // acercarse a línea de gol
-                  } else {
-                    // Sin amenaza inmediata: centrarse respecto al balón
-                    score -= Math.abs(dest.col - balonC) * 30;
-                    score -= Math.abs(dest.fila - 13) * 10;
-                  }
-                }
-
-              } else if (esPresionador) {
-                // Primero: ¿hay amenaza de gol inmediata? Interponerse tiene prioridad sobre presionar
-                const amenazasGol = iaDetectarAmenazaGol();
-                if (amenazasGol.length > 0) {
-                  for (const gol of amenazasGol) {
-                    const bloqueos = iaCasillasBloqueo(balonF, balonC, gol.fila, gol.col);
-                    for (const b of bloqueos) {
-                      if (b.fila === dest.fila && b.col === dest.col) score += 8000;
-                    }
-                  }
+            // ── BLOQUEO DE GOL: siempre prioritario, independiente de posesión ──
+            if (esPorteroIA) {
+              const enAreaGrande = dest.fila >= 9 && dest.fila <= 13 && dest.col >= 2 && dest.col <= 10;
+              if (!enAreaGrande) {
+                score -= 5000;
+              } else if (hayAmenazaGol) {
+                // Posicionarse en trayectoria de disparo — prioridad absoluta
+                const estaEnBloqueo = bloqueosPorAmenaza.some(b => b.fila === dest.fila && b.col === dest.col);
+                if (estaEnBloqueo) score += 50000;
+                // Si no puede bloquear directamente, acercarse a col media de amenazas
+                const colMedia = Math.round(amenazasGolActuales.reduce((s, g) => s + g.col, 0) / amenazasGolActuales.length);
+                score -= Math.abs(dest.col - colMedia) * 80;
+                score -= Math.abs(dest.fila - 13) * 30;
+              } else {
+                // Sin amenaza: centrarse respecto al balón
+                score -= Math.abs(dest.col - balonC) * 30;
+                score -= Math.abs(dest.fila - 13) * 10;
+              }
+            } else if (rivalTienePosesion) {
+              // ── DEFENSA CON ROLES (solo cuando rival tiene posesión) ──
+              if (esPresionador) {
+                // Interponerse en trayectoria si hay amenaza
+                if (hayAmenazaGol) {
+                  const estaEnBloqueo = bloqueosPorAmenaza.some(b => b.fila === dest.fila && b.col === dest.col);
+                  if (estaEnBloqueo) score += 8000;
                 }
                 // Presionador: acercarse AL PORTADOR del balón
                 const distActual = iaDistancia(pieza.fila, pieza.col, balonF, balonC);
                 const distNueva  = iaDistancia(dest.fila, dest.col, balonF, balonC);
                 score += (distActual - distNueva) * 120;
-                // No ir más allá del balón
                 if (dest.fila < balonF - 2) score -= 400;
 
               } else {
@@ -2700,26 +2694,20 @@
                 if (dest.fila < balonF) score -= 500;
               }
 
-            } else {
-              // ── ATAQUE ──
-              if (esPorteroIA) {
-                // Portero en ataque: quedarse atrás
-                score += (dest.fila) * 20; // preferir filas altas (propias)
-              } else {
-                const distActual = iaDistancia(pieza.fila, pieza.col, balonF, balonC);
-                const distNueva  = iaDistancia(dest.fila, dest.col, balonF, balonC);
-                score += (distActual - distNueva) * 45;
-                score += (14 - dest.fila) * 12;
-                // Abrirse en anchura en zona de ataque para recibir
-                if (dest.fila <= 5) {
-                  score += Math.abs(dest.col - 6) * 15; // preferir bandas
-                }
-                estado.fichas[pieza.id].fila = dest.fila;
-                estado.fichas[pieza.id].col  = dest.col;
-                score += iaLookaheadBalon(balonF, balonC, 1) * 0.2;
-                estado.fichas[pieza.id].fila = pieza.fila;
-                estado.fichas[pieza.id].col  = pieza.col;
+            } else if (!esPorteroIA) {
+              // ── ATAQUE (jugadores de campo) ──
+              const distActual = iaDistancia(pieza.fila, pieza.col, balonF, balonC);
+              const distNueva  = iaDistancia(dest.fila, dest.col, balonF, balonC);
+              score += (distActual - distNueva) * 45;
+              score += (14 - dest.fila) * 12;
+              if (dest.fila <= 5) {
+                score += Math.abs(dest.col - 6) * 15;
               }
+              estado.fichas[pieza.id].fila = dest.fila;
+              estado.fichas[pieza.id].col  = dest.col;
+              score += iaLookaheadBalon(balonF, balonC, 1) * 0.2;
+              estado.fichas[pieza.id].fila = pieza.fila;
+              estado.fichas[pieza.id].col  = pieza.col;
             }
           }
 
