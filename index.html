@@ -2766,16 +2766,30 @@
               // ── ATAQUE (jugadores de campo) ──
               const distActual = iaDistancia(pieza.fila, pieza.col, balonF, balonC);
               const distNueva  = iaDistancia(dest.fila, dest.col, balonF, balonC);
-              score += (distActual - distNueva) * 45;
-              score += (14 - dest.fila) * 12;
-              if (dest.fila <= 5) {
-                score += Math.abs(dest.col - 6) * 15;
+
+              if (rivalTienePosesion) {
+                // Sin posesión: acercarse al balón para recuperar
+                score += (distActual - distNueva) * 45;
+                score += (14 - dest.fila) * 12;
+              } else {
+                // Con posesión propia: reposicionarse para recibir en posición ventajosa
+                // Bonus por quedar colindante al balón (puede recibir el pase)
+                const colindanteNuevo = Math.abs(dest.fila - balonF) <= 1 && Math.abs(dest.col - balonC) <= 1;
+                const colindanteActual = Math.abs(pieza.fila - balonF) <= 1 && Math.abs(pieza.col - balonC) <= 1;
+                if (colindanteNuevo) score += 300;
+                // Bonus por avanzar hacia portería rival
+                score += (14 - dest.fila) * 25;
+                // Bonus por abrirse en anchura en zona ofensiva (crear opciones de pase)
+                if (dest.fila <= 8) score += Math.abs(dest.col - 6) * 20;
+                // Bonus por quedar en posición desde la que el lookahead es mejor
+                estado.fichas[pieza.id].fila = dest.fila;
+                estado.fichas[pieza.id].col  = dest.col;
+                score += iaLookaheadBalon(balonF, balonC, 2) * 0.35;
+                estado.fichas[pieza.id].fila = pieza.fila;
+                estado.fichas[pieza.id].col  = pieza.col;
+                // Penalizar quedarse muy lejos del balón cuando ya está colocado
+                if (distNueva > 4 && colindanteActual) score -= 200;
               }
-              estado.fichas[pieza.id].fila = dest.fila;
-              estado.fichas[pieza.id].col  = dest.col;
-              score += iaLookaheadBalon(balonF, balonC, 1) * 0.2;
-              estado.fichas[pieza.id].fila = pieza.fila;
-              estado.fichas[pieza.id].col  = pieza.col;
             }
           }
 
@@ -2859,6 +2873,18 @@
         }
 
         candidatos.push({ dest, score });
+      }
+
+      // Opción de pasar turno (no mover balón) si ya tenemos posesión y no es el último movimiento
+      // Útil para reposicionar jugadores antes de atacar
+      if (!esUltimoMov && estado.movimientosBalon === 0 && equipoTienePosesion('rojo')) {
+        const posActual = iaEvaluarPosBalon(oldBF, oldBC);
+        const mejorPase = candidatos.length > 0 ? Math.max(...candidatos.map(c => c.score)) : -Infinity;
+        // Si la posición actual del balón ya es buena y el mejor pase no mejora mucho, conservar
+        if (posActual > 800 && mejorPase < posActual * 0.8) {
+          pasarTurno();
+          return;
+        }
       }
 
       const elegido = iaElegir(candidatos);
