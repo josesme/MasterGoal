@@ -1439,7 +1439,20 @@
       </g>
       
       <!-- Balon 7-6 -->
-      <circle id="balon" cx="55" cy="75" r="3" fill="#ffc107" stroke="#333" stroke-width="0.3" class="balon"/>
+      <!-- Círculo invisible: ancla de posición y eventos click -->
+      <circle id="balon" cx="55" cy="75" r="3.2" fill="transparent" stroke="none" class="balon" style="cursor:pointer;"/>
+      <!-- Visual del balón: se sincroniza con el círculo via JS -->
+      <g id="balon-visual" transform="translate(55,75)" pointer-events="none">
+        <circle r="3" fill="white" stroke="#222" stroke-width="0.35"/>
+        <!-- Pentágono central -->
+        <polygon points="0,-1.35 1.28,-0.42 0.79,1.1 -0.79,1.1 -1.28,-0.42" fill="#222"/>
+        <!-- 5 pentágonos en corona -->
+        <polygon points="0,-2.85 0.7,-2.2 0.43,-1.55 -0.43,-1.55 -0.7,-2.2" fill="#222" transform="rotate(0)"/>
+        <polygon points="0,-2.85 0.7,-2.2 0.43,-1.55 -0.43,-1.55 -0.7,-2.2" fill="#222" transform="rotate(72)"/>
+        <polygon points="0,-2.85 0.7,-2.2 0.43,-1.55 -0.43,-1.55 -0.7,-2.2" fill="#222" transform="rotate(144)"/>
+        <polygon points="0,-2.85 0.7,-2.2 0.43,-1.55 -0.43,-1.55 -0.7,-2.2" fill="#222" transform="rotate(216)"/>
+        <polygon points="0,-2.85 0.7,-2.2 0.43,-1.55 -0.43,-1.55 -0.7,-2.2" fill="#222" transform="rotate(288)"/>
+      </g>
       
       <!-- Capa para mostrar destinos posibles (se rellena con JS) -->
       <g id="destinos"></g>
@@ -1597,6 +1610,11 @@
     }
 
     function actualizarPatternFicha(id, cx, cy) {
+      if (id === 'balon') {
+        const v = document.getElementById('balon-visual');
+        if (v) v.setAttribute('transform', `translate(${cx},${cy})`);
+        return;
+      }
       const svgEl = document.querySelector('svg');
       const defsEl = svgEl && svgEl.querySelector('defs');
       if (!defsEl) return;
