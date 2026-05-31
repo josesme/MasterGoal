@@ -1804,8 +1804,10 @@
         const enAreaChica = (cf >= 1 && cf <= 2 && cc >= 3 && cc <= 9) ||
                             (cf >= 12 && cf <= 13 && cc >= 3 && cc <= 9);
         if (enAreaChica) {
+          const equipoRival = estado.turno === 'blanco' ? 'rojo' : 'blanco';
           for (const [id, d] of Object.entries(estado.fichas)) {
             if (id === 'balon') continue;
+            if (d.equipo !== equipoRival) continue;
             if (d.fila === cf && d.col === cc) return true;
           }
         }
