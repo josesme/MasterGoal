@@ -2235,13 +2235,23 @@
     function actualizarMovimientosHUD() {
       const g = document.getElementById('hud-movimientos');
       if (!g) return;
-      const esHumano = config.modo === 'pvp' || (config.modo === 'vsIA' && estado.turno === 'blanco');
-      const visible = estado.fase === 'MOVER_BALON' && esHumano;
-      g.setAttribute('visibility', visible ? 'visible' : 'hidden');
-      if (!visible) return;
-      const mov = estado.movimientosBalon; // 0=ninguno, 1=primero, ...
-      const equipo = estado.turno; // 'blanco' o 'rojo'
+      const esVsIA = config.modo === 'vsIA';
+      const visible = estado.fase === 'MOVER_BALON' &&
+        (config.modo === 'pvp' || (esVsIA && estado.turno === 'blanco'));
+      // En vsIA: mantener visible pero solo mostrar lado blanco
+      if (config.modo !== 'pvp' && !esVsIA) { g.setAttribute('visibility', 'hidden'); return; }
+      g.setAttribute('visibility', visible || esVsIA ? 'visible' : 'hidden');
+      const mov = visible ? estado.movimientosBalon : 0;
+      const equipo = estado.turno;
       ['b','r'].forEach(lado => {
+        // En vsIA nunca mostrar los del rojo (IA)
+        if (esVsIA && lado === 'r') {
+          for (let i = 1; i <= 4; i++) {
+            const el = document.getElementById(`hud-mov-r-${i}`);
+            if (el) { el.setAttribute('fill', 'none'); el.setAttribute('stroke', 'rgba(255,255,255,0.4)'); }
+          }
+          return;
+        }
         for (let i = 1; i <= 4; i++) {
           const el = document.getElementById(`hud-mov-${lado}-${i}`);
           if (!el) return;
