@@ -2509,17 +2509,29 @@
       return peor;
     }
 
-    // Detecta si el blanco puede meter gol en el siguiente movimiento de balón
-    // Devuelve array de casillas {fila,col} desde las que el balón puede entrar en portería roja
+    // Detecta si el balón puede llegar a portería roja (fila 14) en línea recta
+    // Independiente del turno — proyecta las 8 direcciones sin filtros de posesión
     function iaDetectarAmenazaGol() {
       const balonF = estado.fichas.balon.fila;
       const balonC = estado.fichas.balon.col;
-      // Solo relevante si blanco tiene posesión o el balón está en zona peligrosa
       const amenazas = [];
-      const destinos = obtenerDestinosBalon(balonF, balonC);
-      for (const d of destinos) {
-        if (esPorteria(d.fila, d.col) && d.fila === 14) {
-          amenazas.push({ fila: d.fila, col: d.col });
+      const dirs = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+      for (const [df, dc] of dirs) {
+        for (let dist = 1; dist <= 4; dist++) {
+          const nf = balonF + df * dist;
+          const nc = balonC + dc * dist;
+          // ¿Llega a portería roja?
+          if (nf === 14 && nc >= 4 && nc <= 8) {
+            amenazas.push({ fila: nf, col: nc });
+            break;
+          }
+          // ¿Casilla bloqueada por una ficha? El balón no puede pasar (en área chica por rival)
+          // Para la detección de amenaza simplificamos: parar si hay ficha roja en el camino
+          if (estaOcupada(nf, nc, 'balon')) {
+            const ocupante = Object.values(estado.fichas).find(f => f.fila === nf && f.col === nc);
+            if (ocupante && ocupante.equipo === 'rojo') break; // rojo bloquea
+          }
+          if (!esCasillaValida(nf, nc) && !esPorteria(nf, nc)) break;
         }
       }
       return amenazas;
