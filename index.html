@@ -1401,6 +1401,20 @@
 
       </g>
 
+      <!-- ====== INDICADOR MOVIMIENTOS BALÓN ====== -->
+      <g id="hud-movimientos" visibility="hidden">
+        <!-- Blanco: centrado en x=9.5, y=3 -->
+        <circle id="hud-mov-b-1" cx="3"   cy="3" r="1.4" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.5"/>
+        <circle id="hud-mov-b-2" cx="7.5" cy="3" r="1.4" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.5"/>
+        <circle id="hud-mov-b-3" cx="12"  cy="3" r="1.4" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.5"/>
+        <circle id="hud-mov-b-4" cx="16.5"cy="3" r="1.4" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.5"/>
+        <!-- Rojo: espejo en x=100.5 -->
+        <circle id="hud-mov-r-1" cx="93.5" cy="3" r="1.4" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.5"/>
+        <circle id="hud-mov-r-2" cx="98"   cy="3" r="1.4" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.5"/>
+        <circle id="hud-mov-r-3" cx="102.5"cy="3" r="1.4" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.5"/>
+        <circle id="hud-mov-r-4" cx="107"  cy="3" r="1.4" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.5"/>
+      </g>
+
       <!-- ====== FICHAS ====== -->
       <!-- Equipo Blanco (defiende P1) -->
       <g id="equipo-blanco">
@@ -2213,6 +2227,28 @@
         cronoR.setAttribute('visibility', 'visible');
         actualizarCronometrosHUD();
       }
+
+      // Indicador de movimientos de balón (solo en fase MOVER_BALON, modo pvp)
+      actualizarMovimientosHUD();
+    }
+
+    function actualizarMovimientosHUD() {
+      const g = document.getElementById('hud-movimientos');
+      if (!g) return;
+      const visible = estado.fase === 'MOVER_BALON' && config.modo === 'pvp';
+      g.setAttribute('visibility', visible ? 'visible' : 'hidden');
+      if (!visible) return;
+      const mov = estado.movimientosBalon; // 0=ninguno, 1=primero, ...
+      const equipo = estado.turno; // 'blanco' o 'rojo'
+      ['b','r'].forEach(lado => {
+        for (let i = 1; i <= 4; i++) {
+          const el = document.getElementById(`hud-mov-${lado}-${i}`);
+          if (!el) return;
+          const esActivo = lado[0] === equipo[0] && i <= mov;
+          el.setAttribute('fill', esActivo ? 'white' : 'none');
+          el.setAttribute('stroke', esActivo ? 'white' : 'rgba(255,255,255,0.4)');
+        }
+      });
     }
 
     function actualizarCronometrosHUD() {
