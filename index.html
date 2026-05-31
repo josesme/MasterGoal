@@ -2235,7 +2235,8 @@
     function actualizarMovimientosHUD() {
       const g = document.getElementById('hud-movimientos');
       if (!g) return;
-      const visible = estado.fase === 'MOVER_BALON' && config.modo === 'pvp';
+      const esHumano = config.modo === 'pvp' || (config.modo === 'vsIA' && estado.turno === 'blanco');
+      const visible = estado.fase === 'MOVER_BALON' && esHumano;
       g.setAttribute('visibility', visible ? 'visible' : 'hidden');
       if (!visible) return;
       const mov = estado.movimientosBalon; // 0=ninguno, 1=primero, ...
