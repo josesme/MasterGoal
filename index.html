@@ -2502,12 +2502,41 @@
       if (destinos.length === 0) return 0;
       let peor = 0;
       for (const d of destinos) {
-        // Gol del rival = muy malo
         if (d.fila === 14 && d.col >= 4 && d.col <= 8) return 500000;
         const amenaza = (d.fila) * 80 + (6 - Math.abs(d.col - 6)) * 20;
         if (amenaza > peor) peor = amenaza;
       }
       return peor;
+    }
+
+    // Detecta si el blanco puede meter gol en el siguiente movimiento de balón
+    // Devuelve array de casillas {fila,col} desde las que el balón puede entrar en portería roja
+    function iaDetectarAmenazaGol() {
+      const balonF = estado.fichas.balon.fila;
+      const balonC = estado.fichas.balon.col;
+      // Solo relevante si blanco tiene posesión o el balón está en zona peligrosa
+      const amenazas = [];
+      const destinos = obtenerDestinosBalon(balonF, balonC);
+      for (const d of destinos) {
+        if (esPorteria(d.fila, d.col) && d.fila === 14) {
+          amenazas.push({ fila: d.fila, col: d.col });
+        }
+      }
+      return amenazas;
+    }
+
+    // Dado un disparo hacia portería (de balonF,balonC hacia goF,goC),
+    // devuelve las casillas intermedias que el portero puede ocupar para bloquearlo
+    function iaCasillasBloqueo(balonF, balonC, goF, goC) {
+      const df = Math.sign(goF - balonF);
+      const dc = Math.sign(goC - balonC);
+      const bloqueos = [];
+      let f = balonF + df, c = balonC + dc;
+      while (f !== goF || c !== goC) {
+        if (esCasillaValida(f, c)) bloqueos.push({ fila: f, col: c });
+        f += df; c += dc;
+      }
+      return bloqueos;
     }
 
     // Devuelve los jugadores blancos ordenados por peligrosidad (más cerca de portería roja = más peligrosos)
@@ -2590,12 +2619,43 @@
               if (esPorteroIA) {
                 // Portero: quedarse en su zona, nunca salir del área grande
                 const enAreaGrande = dest.fila >= 9 && dest.fila <= 13 && dest.col >= 2 && dest.col <= 10;
-                if (!enAreaGrande) score -= 2000;
-                // Centrarse respecto al balón
-                score -= Math.abs(dest.col - balonC) * 30;
+                if (!enAreaGrande) { score -= 5000; }
+                else {
+                  // Detectar amenaza de gol inmediata
+                  const amenazasGol = iaDetectarAmenazaGol();
+                  if (amenazasGol.length > 0) {
+                    // Hay disparo posible: bonus masivo por estar en la trayectoria
+                    for (const gol of amenazasGol) {
+                      const bloqueos = iaCasillasBloqueo(balonF, balonC, gol.fila, gol.col);
+                      for (const b of bloqueos) {
+                        if (b.fila === dest.fila && b.col === dest.col) {
+                          score += 15000; // bloquear el disparo es prioridad máxima
+                        }
+                      }
+                    }
+                    // Si no bloquea ningún disparo, al menos centrarse en la col media de amenazas
+                    const colMedia = Math.round(amenazasGol.reduce((s, g) => s + g.col, 0) / amenazasGol.length);
+                    score -= Math.abs(dest.col - colMedia) * 60;
+                    score -= Math.abs(dest.fila - 13) * 20; // acercarse a línea de gol
+                  } else {
+                    // Sin amenaza inmediata: centrarse respecto al balón
+                    score -= Math.abs(dest.col - balonC) * 30;
+                    score -= Math.abs(dest.fila - 13) * 10;
+                  }
+                }
 
               } else if (esPresionador) {
-                // Presionador: acercarse AL PORTADOR del balón, no al balón en sí
+                // Primero: ¿hay amenaza de gol inmediata? Interponerse tiene prioridad sobre presionar
+                const amenazasGol = iaDetectarAmenazaGol();
+                if (amenazasGol.length > 0) {
+                  for (const gol of amenazasGol) {
+                    const bloqueos = iaCasillasBloqueo(balonF, balonC, gol.fila, gol.col);
+                    for (const b of bloqueos) {
+                      if (b.fila === dest.fila && b.col === dest.col) score += 8000;
+                    }
+                  }
+                }
+                // Presionador: acercarse AL PORTADOR del balón
                 const distActual = iaDistancia(pieza.fila, pieza.col, balonF, balonC);
                 const distNueva  = iaDistancia(dest.fila, dest.col, balonF, balonC);
                 score += (distActual - distNueva) * 120;
