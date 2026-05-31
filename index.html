@@ -1936,6 +1936,32 @@
         return valido;
       });
 
+      // Filtrar destinos que dejarían sin movimientos válidos en el siguiente paso
+      // (evitar callejones sin salida: ej. pasar al portero propio que no puede hacer nada)
+      if (estado.movimientosBalon < 3) {
+        const movsActual = estado.movimientosBalon;
+        dest = dest.filter(d => {
+          if (esPorteria(d.fila, d.col)) return true; // gol siempre válido
+          // Simular balón en destino con movimiento siguiente
+          estado.fichas.balon.fila = d.fila;
+          estado.fichas.balon.col = d.col;
+          estado.movimientosBalon = movsActual + 1;
+          const siguientes = obtenerDestinosBalon(d.fila, d.col);
+          // Restaurar
+          estado.fichas.balon.fila = balonOriginal2.fila;
+          estado.fichas.balon.col = balonOriginal2.col;
+          estado.movimientosBalon = movsActual;
+          if (siguientes.length > 0) return true;
+          // Sin siguientes: válido solo si se puede terminar ahí (sin posesión propia)
+          estado.fichas.balon.fila = d.fila;
+          estado.fichas.balon.col = d.col;
+          const puedeTerminar = !equipoTienePosesion(estado.turno) && esDestinoValidoCuartoMovimiento(d.fila, d.col);
+          estado.fichas.balon.fila = balonOriginal2.fila;
+          estado.fichas.balon.col = balonOriginal2.col;
+          return puedeTerminar;
+        });
+      }
+
       return dest;
     }
     
@@ -2315,15 +2341,10 @@
     function pasarTurno() {
       console.log('DEBUG pasarTurno: turnoExtra =', estado.turnoExtra, 'turno =', estado.turno);
 
-      // Validacion defensiva: no pasar turno con posesion salvo que no haya destinos válidos
+      // Validacion defensiva: nunca pasar turno si el balon tiene posesion del equipo actual
       if (estado.fase === 'MOVER_BALON' && equipoTienePosesion(estado.turno)) {
-        const b = estado.fichas.balon;
-        const destinos = obtenerDestinosBalon(b.fila, b.col);
-        if (destinos.length > 0) {
-          console.log('ERROR: No se puede pasar turno con posesion del balon y destinos disponibles.');
-          return;
-        }
-        // Sin destinos válidos (ej: todos autopases) → permitir pasar turno
+        console.log('ERROR: No se puede pasar turno con posesion del balon.');
+        return;
       }
 
       // Si hay turno extra, el mismo equipo juega de nuevo
