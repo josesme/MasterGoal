@@ -2382,23 +2382,27 @@
     });
     
     // Botón pasar turno
+    function puedePasarTurnoConBalon() {
+      // En el 4º movimiento: el balón debe quedar fuera del área propia y sin posesión
+      if (estado.movimientosBalon >= 3) {
+        const { fila, col } = estado.fichas.balon;
+        return esDestinoValidoCuartoMovimiento(fila, col);
+      }
+      // En movimientos 1-3: válido si posesión propia o neutro (puede estar en área propia)
+      return equipoTienePosesion(estado.turno) || esCasillaNeutra();
+    }
+
     document.getElementById('btn-pasar').addEventListener('click', () => {
       if (estado.fase === 'MOVER_BALON') {
-        if (!esCasillaNeutra()) {
-          console.log('No puedes pasar turno. El balon debe quedar sin posesion (casilla neutra).');
-          return;
-        }
+        if (!puedePasarTurnoConBalon()) return;
         pasarTurno();
       }
     });
-    
+
     // Doble click en tablero = pasar turno (cuando no hay seleccion)
     svg.addEventListener('dblclick', () => {
       if (!estado.seleccionado && estado.fase === 'MOVER_BALON') {
-        if (!esCasillaNeutra()) {
-          console.log('No puedes pasar turno. El balon debe quedar sin posesion (casilla neutra).');
-          return;
-        }
+        if (!puedePasarTurnoConBalon()) return;
         pasarTurno();
       }
     });
