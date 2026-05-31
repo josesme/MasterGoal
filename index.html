@@ -1909,13 +1909,7 @@
       });
 
       // Filtrar autopase (siempre, no solo en 4to movimiento)
-      const antes = dest.length;
-      dest = dest.filter(d => {
-        const auto = esAutopase(d.fila, d.col);
-        if (auto) console.log('Filtrado autopase:', d.fila, d.col);
-        return !auto;
-      });
-      if (antes !== dest.length) console.log('Autopases filtrados:', antes - dest.length);
+      dest = dest.filter(d => !esAutopase(d.fila, d.col));
       
       // Si es el 4to movimiento, solo aplica la regla de destino válido (fuera de área propia y neutra)
       // No se aplica el filtro de posesión rival porque la obligación ES dejar el balón sin posesión
@@ -2677,44 +2671,48 @@
     // ======================================================
 
     // Evaluación estática del estado completo desde perspectiva del rojo.
-    // Positivo = bueno para rojo, negativo = bueno para blanco.
     function iaEvaluarEstado() {
       const bf = estado.fichas.balon.fila;
       const bc = estado.fichas.balon.col;
       let v = 0;
 
-      // Posesión
       const rojoTiene = equipoTienePosesion('rojo');
       const blancoTiene = equipoTienePosesion('blanco');
+
+      // Posesión — factor dominante
       if (rojoTiene)   v += 1500;
       if (blancoTiene) v -= 1500;
 
-      // Posición del balón: acercarse a portería rival (fila 0) es bueno para rojo
+      // Posición del balón
       v += (14 - bf) * 80;
-
-      // Centralidad en zona ofensiva
       if (bf <= 6) v += (6 - Math.abs(bc - 6)) * 30;
 
-      // Superioridad de colindantes
+      // Superioridad de colindantes al balón
       const rc = iaColindantesSimulados(bf, bc, 'rojo');
       const bc2 = iaColindantesSimulados(bf, bc, 'blanco');
       v += (rc - bc2) * 120;
 
-      // Posición de jugadores rojos: avanzados es mejor
+      // Posición de jugadores rojos de campo
       for (const [id, d] of Object.entries(estado.fichas)) {
-        if (id === 'balon' || d.equipo !== 'rojo') continue;
-        if (esPortero(id)) continue;
-        v += (14 - d.fila) * 15; // más cerca de portería rival
+        if (id === 'balon' || d.equipo !== 'rojo' || esPortero(id)) continue;
+        // Avanzar hacia portería rival
+        v += (14 - d.fila) * 25;
+        // Proximidad al balón — crucial para recuperar o mantener posesión
+        const distBal = iaDistancia(d.fila, d.col, bf, bc);
+        v += Math.max(0, 80 - distBal * 20);
+        // Bonus por ser colindante al balón
+        if (Math.abs(d.fila - bf) <= 1 && Math.abs(d.col - bc) <= 1) v += 150;
       }
 
-      // Posición de jugadores blancos: avanzados es peor para rojo
+      // Posición de jugadores blancos de campo
       for (const [id, d] of Object.entries(estado.fichas)) {
-        if (id === 'balon' || d.equipo !== 'blanco') continue;
-        if (esPortero(id)) continue;
-        v -= d.fila * 15; // más cerca de portería roja = más peligroso
+        if (id === 'balon' || d.equipo !== 'blanco' || esPortero(id)) continue;
+        v -= d.fila * 20;
+        const distBal = iaDistancia(d.fila, d.col, bf, bc);
+        v -= Math.max(0, 80 - distBal * 20); // blanco cerca del balón = peligro
       }
 
-      // Peligro defensivo: balón cerca de portería roja
+      // Peligro defensivo
       if (bf >= 9) v -= iaPeligroDefensivo(bf, bc) * 2;
 
       return v;
