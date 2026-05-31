@@ -2646,6 +2646,165 @@
       return cortados;
     }
 
+    // ======================================================
+    // IA v2 — Staged Lookahead Minimax
+    // ======================================================
+
+    // Evaluación estática del estado completo desde perspectiva del rojo.
+    // Positivo = bueno para rojo, negativo = bueno para blanco.
+    function iaEvaluarEstado() {
+      const bf = estado.fichas.balon.fila;
+      const bc = estado.fichas.balon.col;
+      let v = 0;
+
+      // Posesión
+      const rojoTiene = equipoTienePosesion('rojo');
+      const blancoTiene = equipoTienePosesion('blanco');
+      if (rojoTiene)   v += 1500;
+      if (blancoTiene) v -= 1500;
+
+      // Posición del balón: acercarse a portería rival (fila 0) es bueno para rojo
+      v += (14 - bf) * 80;
+
+      // Centralidad en zona ofensiva
+      if (bf <= 6) v += (6 - Math.abs(bc - 6)) * 30;
+
+      // Superioridad de colindantes
+      const rc = iaColindantesSimulados(bf, bc, 'rojo');
+      const bc2 = iaColindantesSimulados(bf, bc, 'blanco');
+      v += (rc - bc2) * 120;
+
+      // Posición de jugadores rojos: avanzados es mejor
+      for (const [id, d] of Object.entries(estado.fichas)) {
+        if (id === 'balon' || d.equipo !== 'rojo') continue;
+        if (esPortero(id)) continue;
+        v += (14 - d.fila) * 15; // más cerca de portería rival
+      }
+
+      // Posición de jugadores blancos: avanzados es peor para rojo
+      for (const [id, d] of Object.entries(estado.fichas)) {
+        if (id === 'balon' || d.equipo !== 'blanco') continue;
+        if (esPortero(id)) continue;
+        v -= d.fila * 15; // más cerca de portería roja = más peligroso
+      }
+
+      // Peligro defensivo: balón cerca de portería roja
+      if (bf >= 9) v -= iaPeligroDefensivo(bf, bc) * 2;
+
+      return v;
+    }
+
+    // Búsqueda recursiva de la mejor secuencia de balón para 'equipo' con movRestantes movimientos.
+    // Devuelve { score, secuencia[] } — no modifica estado de forma permanente.
+    // alpha/beta para poda.
+    function iaBestBallSequence(f, c, movRestantes, equipo, alpha, beta) {
+      if (movRestantes === 0) {
+        // Fin de secuencia: evaluar estado
+        const s = iaEvaluarEstado();
+        return { score: equipo === 'rojo' ? s : -s, seq: [] };
+      }
+
+      // Guardar estado del balón
+      const oldF = estado.fichas.balon.fila, oldC = estado.fichas.balon.col;
+      estado.fichas.balon.fila = f; estado.fichas.balon.col = c;
+
+      const destinos = obtenerDestinosBalon(f, c);
+      estado.fichas.balon.fila = oldF; estado.fichas.balon.col = oldC;
+
+      if (destinos.length === 0) {
+        return { score: iaEvaluarEstado(), seq: [] };
+      }
+
+      // Ordenar destinos por evaluación rápida para mejorar poda
+      const scored = destinos.map(d => {
+        estado.fichas.balon.fila = d.fila; estado.fichas.balon.col = d.col;
+        const s = iaEvaluarEstado();
+        estado.fichas.balon.fila = oldF; estado.fichas.balon.col = oldC;
+        return { d, s };
+      });
+      scored.sort((a, b) => equipo === 'rojo' ? b.s - a.s : a.s - b.s);
+
+      let mejorScore = equipo === 'rojo' ? -Infinity : Infinity;
+      let mejorSeq = [];
+
+      for (const { d } of scored) {
+        // Gol propio (portería rival para rojo = fila 0, para blanco = fila 14)
+        if (equipo === 'rojo'   && d.fila === 0  && d.col >= 4 && d.col <= 8) return { score: 500000, seq: [d] };
+        if (equipo === 'blanco' && d.fila === 14 && d.col >= 4 && d.col <= 8) return { score: 500000, seq: [d] };
+
+        estado.fichas.balon.fila = d.fila; estado.fichas.balon.col = d.col;
+        const sigueEquipo = equipoTienePosesion(equipo);
+        const score_base = iaEvaluarEstado();
+
+        let resultado;
+        if (sigueEquipo && movRestantes > 1) {
+          // Sigue con posesión: continuar secuencia
+          resultado = iaBestBallSequence(d.fila, d.col, movRestantes - 1, equipo, alpha, beta);
+          resultado = { score: resultado.score, seq: [d, ...resultado.seq] };
+        } else {
+          // Pierde posesión o último movimiento: evaluar estado terminal
+          // Penalización severa si pierde posesión (nunca regalar)
+          const penalPosesion = !sigueEquipo && movRestantes > 1 ? (equipo === 'rojo' ? -2000 : 2000) : 0;
+          resultado = { score: score_base + penalPosesion, seq: [d] };
+        }
+
+        estado.fichas.balon.fila = oldF; estado.fichas.balon.col = oldC;
+
+        if (equipo === 'rojo') {
+          if (resultado.score > mejorScore) { mejorScore = resultado.score; mejorSeq = resultado.seq; }
+          alpha = Math.max(alpha, mejorScore);
+        } else {
+          if (resultado.score < mejorScore) { mejorScore = resultado.score; mejorSeq = resultado.seq; }
+          beta = Math.min(beta, mejorScore);
+        }
+        if (beta <= alpha) break; // poda
+      }
+
+      return { score: mejorScore, seq: mejorSeq };
+    }
+
+    // Simula el mejor turno posible del blanco (1-ply: mover 1 jugador + mejor secuencia balón)
+    // Devuelve el score resultante desde perspectiva del rojo (negativo = peligroso para rojo)
+    function iaSimularMejorTurnoBlanco() {
+      const piezasBlanco = Object.entries(estado.fichas)
+        .filter(([id, d]) => d.equipo === 'blanco')
+        .map(([id, d]) => ({ id, fila: d.fila, col: d.col }));
+
+      let peorParaRojo = Infinity; // blanco maximiza, rojo minimiza
+
+      for (const pieza of piezasBlanco) {
+        const destinos = obtenerDestinosJugador(pieza.fila, pieza.col)
+          .filter(d => !estaOcupada(d.fila, d.col, pieza.id));
+
+        // Solo evaluar top-5 destinos por distancia al balón (poda de candidatos)
+        const balonF = estado.fichas.balon.fila, balonC = estado.fichas.balon.col;
+        destinos.sort((a, b) => iaDistancia(a.fila, a.col, balonF, balonC) - iaDistancia(b.fila, b.col, balonF, balonC));
+        const top = destinos.slice(0, 5);
+
+        for (const dest of top) {
+          estado.fichas[pieza.id].fila = dest.fila;
+          estado.fichas[pieza.id].col  = dest.col;
+
+          // Estado actual tras mover jugador
+          const estadoBase = iaEvaluarEstado();
+
+          // Si blanco gana posesión, evalúa su mejor secuencia de balón
+          let scoreFinal = estadoBase;
+          if (equipoTienePosesion('blanco')) {
+            const res = iaBestBallSequence(balonF, balonC, 4, 'blanco', -Infinity, Infinity);
+            scoreFinal = -res.score; // convertir a perspectiva rojo
+          }
+
+          if (scoreFinal < peorParaRojo) peorParaRojo = scoreFinal;
+
+          estado.fichas[pieza.id].fila = pieza.fila;
+          estado.fichas[pieza.id].col  = pieza.col;
+        }
+      }
+
+      return peorParaRojo === Infinity ? iaEvaluarEstado() : peorParaRojo;
+    }
+
     function iaMoverJugador() {
       const balonF = estado.fichas.balon.fila;
       const balonC = estado.fichas.balon.col;
@@ -2654,15 +2813,7 @@
         .filter(([id, d]) => d.equipo === 'rojo')
         .map(([id, d]) => ({ id, ...d }));
 
-      // Identificar el presionador: el rojo más cercano al balón
-      const presionadorId = piezasIA
-        .filter(p => !esPortero(p.id))
-        .sort((a, b) => iaDistancia(a.fila, a.col, balonF, balonC) - iaDistancia(b.fila, b.col, balonF, balonC))[0]?.id;
-
-      // Jugadores blancos peligrosos ordenados (para asignar marcaje)
-      const blancosPeligrosos = iaJugadoresBlancosPorPeligro().filter(b => !esPortero(b.id));
-
-      // Calcular amenaza de gol una sola vez — independiente de posesión
+      // Amenaza de gol para portero (mantener esta lógica reactiva)
       const amenazasGolActuales = iaDetectarAmenazaGol();
       const bloqueosPorAmenaza = [];
       for (const gol of amenazasGolActuales) {
@@ -2675,128 +2826,55 @@
       let candidatos = [];
 
       for (const pieza of piezasIA) {
+        const esPorteroIA = esPortero(pieza.id);
         const destinos = obtenerDestinosJugador(pieza.fila, pieza.col)
           .filter(d => !estaOcupada(d.fila, d.col, pieza.id));
-        const esPresionador = pieza.id === presionadorId;
-        const esPorteroIA   = esPortero(pieza.id);
 
-        for (const dest of destinos) {
-          let score = 0;
+        // Para el portero: mantener lógica reactiva de bloqueo (rápida, fiable)
+        if (esPorteroIA) {
+          for (const dest of destinos) {
+            let score = 0;
+            const enAreaGrande = dest.fila >= 9 && dest.fila <= 13 && dest.col >= 2 && dest.col <= 10;
+            if (!enAreaGrande) { score -= 5000; }
+            else if (hayAmenazaGol) {
+              if (bloqueosPorAmenaza.some(b => b.fila === dest.fila && b.col === dest.col)) score += 50000;
+              const colMedia = Math.round(amenazasGolActuales.reduce((s, g) => s + g.col, 0) / amenazasGolActuales.length);
+              score -= Math.abs(dest.col - colMedia) * 80;
+              score -= Math.abs(dest.fila - 13) * 30;
+            } else {
+              score -= Math.abs(dest.col - balonC) * 30;
+              score -= Math.abs(dest.fila - 13) * 10;
+            }
+            candidatos.push({ piezaId: pieza.id, dest, score });
+          }
+          continue;
+        }
 
-          // Simular movimiento
+        // Para jugadores de campo: staged lookahead minimax
+        // Filtrar top-8 destinos más prometedores para controlar tiempo
+        const destsOrdenados = destinos.slice().sort((a, b) => {
+          const sa = (14 - a.fila) * 10 + iaColindantesSimulados(balonF, balonC, 'rojo');
+          const sb = (14 - b.fila) * 10 + iaColindantesSimulados(balonF, balonC, 'rojo');
+          return sb - sa;
+        }).slice(0, 8);
+
+        for (const dest of destsOrdenados) {
           estado.fichas[pieza.id].fila = dest.fila;
           estado.fichas[pieza.id].col  = dest.col;
-          const ganaPosesion  = equipoTienePosesion('rojo');
-          const quitaPosesion = rivalTienePosesion && !equipoTienePosesion('blanco');
+
+          // Score A: mejor secuencia de balón desde esta posición del jugador
+          const resPropio = iaBestBallSequence(balonF, balonC, 4, 'rojo', -Infinity, Infinity);
+
+          // Score B: mejor respuesta del rival (1-ply)
+          const scoreRival = iaSimularMejorTurnoBlanco();
+
+          // Score final: lo que gano con mi jugada menos lo que puede hacer el rival
+          const scoreTotal = resPropio.score - scoreRival * 0.6;
+
           estado.fichas[pieza.id].fila = pieza.fila;
           estado.fichas[pieza.id].col  = pieza.col;
 
-          // ── GANAR/QUITAR POSESIÓN ── siempre prioritario
-          if (ganaPosesion) {
-            score += 2500;
-            estado.fichas[pieza.id].fila = dest.fila;
-            estado.fichas[pieza.id].col  = dest.col;
-            score += iaLookaheadBalon(balonF, balonC, 2) * 0.5;
-            estado.fichas[pieza.id].fila = pieza.fila;
-            estado.fichas[pieza.id].col  = pieza.col;
-          }
-
-          if (quitaPosesion) score += 2000;
-
-          if (!ganaPosesion) {
-            // ── BLOQUEO DE GOL: siempre prioritario, independiente de posesión ──
-            if (esPorteroIA) {
-              const enAreaGrande = dest.fila >= 9 && dest.fila <= 13 && dest.col >= 2 && dest.col <= 10;
-              if (!enAreaGrande) {
-                score -= 5000;
-              } else if (hayAmenazaGol) {
-                // Posicionarse en trayectoria de disparo — prioridad absoluta
-                const estaEnBloqueo = bloqueosPorAmenaza.some(b => b.fila === dest.fila && b.col === dest.col);
-                if (estaEnBloqueo) score += 50000;
-                // Si no puede bloquear directamente, acercarse a col media de amenazas
-                const colMedia = Math.round(amenazasGolActuales.reduce((s, g) => s + g.col, 0) / amenazasGolActuales.length);
-                score -= Math.abs(dest.col - colMedia) * 80;
-                score -= Math.abs(dest.fila - 13) * 30;
-              } else {
-                // Sin amenaza: centrarse respecto al balón
-                score -= Math.abs(dest.col - balonC) * 30;
-                score -= Math.abs(dest.fila - 13) * 10;
-              }
-            } else if (rivalTienePosesion) {
-              // ── DEFENSA CON ROLES (solo cuando rival tiene posesión) ──
-              if (esPresionador) {
-                // Interponerse en trayectoria si hay amenaza
-                if (hayAmenazaGol) {
-                  const estaEnBloqueo = bloqueosPorAmenaza.some(b => b.fila === dest.fila && b.col === dest.col);
-                  if (estaEnBloqueo) score += 8000;
-                }
-                // Presionador: acercarse AL PORTADOR del balón
-                const distActual = iaDistancia(pieza.fila, pieza.col, balonF, balonC);
-                const distNueva  = iaDistancia(dest.fila, dest.col, balonF, balonC);
-                score += (distActual - distNueva) * 120;
-                if (dest.fila < balonF - 2) score -= 400;
-
-              } else {
-                // Resto: CORTAR LÍNEAS DE PASE — sombra de pase
-                // Cuántos pases corta desde esta posición
-                estado.fichas[pieza.id].fila = dest.fila;
-                estado.fichas[pieza.id].col  = dest.col;
-                const pasesQueCorta = iaPasesQueCorta(dest.fila, dest.col, balonF, balonC);
-                estado.fichas[pieza.id].fila = pieza.fila;
-                estado.fichas[pieza.id].col  = pieza.col;
-                score += pasesQueCorta * 600;
-
-                // Marcar al blanco más peligroso no cubierto
-                // (asignar cada rojo libre a un blanco peligroso distinto)
-                const idx = piezasIA.filter(p => !esPortero(p.id) && p.id !== presionadorId)
-                  .indexOf(pieza);
-                const objetivo = blancosPeligrosos[idx];
-                if (objetivo) {
-                  const distObj = iaDistancia(dest.fila, dest.col, objetivo.fila, objetivo.col);
-                  score += Math.max(0, 500 - distObj * 80);
-                  // Interponerse entre el blanco marcado y portería roja
-                  if (dest.fila > objetivo.fila && dest.fila <= 13) score += 200;
-                }
-
-                // Nunca subir más arriba del balón cuando defiende
-                if (dest.fila < balonF) score -= 500;
-              }
-
-            } else if (!esPorteroIA) {
-              // ── ATAQUE (jugadores de campo) ──
-              const distActual = iaDistancia(pieza.fila, pieza.col, balonF, balonC);
-              const distNueva  = iaDistancia(dest.fila, dest.col, balonF, balonC);
-
-              if (rivalTienePosesion) {
-                // Sin posesión: acercarse al balón para recuperar
-                score += (distActual - distNueva) * 45;
-                score += (14 - dest.fila) * 12;
-              } else {
-                // Con posesión propia: reposicionarse para recibir en posición ventajosa
-                // Bonus por quedar colindante al balón (puede recibir el pase)
-                const colindanteNuevo = Math.abs(dest.fila - balonF) <= 1 && Math.abs(dest.col - balonC) <= 1;
-                const colindanteActual = Math.abs(pieza.fila - balonF) <= 1 && Math.abs(pieza.col - balonC) <= 1;
-                if (colindanteNuevo) score += 300;
-                // Bonus por avanzar hacia portería rival
-                score += (14 - dest.fila) * 25;
-                // Bonus por abrirse en anchura en zona ofensiva (crear opciones de pase)
-                if (dest.fila <= 8) score += Math.abs(dest.col - 6) * 20;
-                // Bonus por quedar en posición desde la que el lookahead es mejor
-                estado.fichas[pieza.id].fila = dest.fila;
-                estado.fichas[pieza.id].col  = dest.col;
-                score += iaLookaheadBalon(balonF, balonC, 2) * 0.35;
-                estado.fichas[pieza.id].fila = pieza.fila;
-                estado.fichas[pieza.id].col  = pieza.col;
-                // Penalizar quedarse muy lejos del balón cuando ya está colocado
-                if (distNueva > 4 && colindanteActual) score -= 200;
-              }
-            }
-          }
-
-          // Penalizar zona vulnerable propia (solo jugadores de campo)
-          if (!esPorteroIA && dest.fila >= 12 && dest.col >= 4 && dest.col <= 8) score -= 400;
-
-          candidatos.push({ piezaId: pieza.id, dest, score });
+          candidatos.push({ piezaId: pieza.id, dest, score: scoreTotal });
         }
       }
 
@@ -2812,89 +2890,23 @@
     }
 
     function iaMoverBalon() {
-      let destinos = obtenerDestinosBalon(estado.fichas.balon.fila, estado.fichas.balon.col);
+      const balonF = estado.fichas.balon.fila;
+      const balonC = estado.fichas.balon.col;
+      const movRestantes = 4 - estado.movimientosBalon;
+
+      const destinos = obtenerDestinosBalon(balonF, balonC);
       if (destinos.length === 0) { pasarTurno(); return; }
 
-      const esUltimoMov = estado.movimientosBalon >= 3;
-      const oldBF = estado.fichas.balon.fila, oldBC = estado.fichas.balon.col;
+      // Usar la búsqueda recursiva para encontrar la mejor secuencia completa
+      const res = iaBestBallSequence(balonF, balonC, movRestantes, 'rojo', -Infinity, Infinity);
 
-      // Clasificar destinos por resultado de posesión — nunca regalar si hay alternativa
-      const conPosesion = [], neutros = [], sinPosesion = [];
-      for (const dest of destinos) {
-        if (dest.fila === 0 && dest.col >= 4 && dest.col <= 8) {
-          conPosesion.unshift({ dest, gol: true }); continue;
-        }
-        estado.fichas.balon.fila = dest.fila; estado.fichas.balon.col = dest.col;
-        const roja      = equipoTienePosesion('rojo');
-        const neutra    = esCasillaNeutra();
-        const rojosCol  = iaColindantesSimulados(dest.fila, dest.col, 'rojo');
-        const blancosCol = iaColindantesSimulados(dest.fila, dest.col, 'blanco');
-        estado.fichas.balon.fila = oldBF; estado.fichas.balon.col = oldBC;
-        const item = { dest, rojosCol, blancosCol };
-        if (roja)        conPosesion.push(item);
-        else if (neutra) neutros.push(item);
-        else             sinPosesion.push(item);
-      }
+      if (res.seq.length === 0) { pasarTurno(); return; }
 
-      // Usar el mejor grupo disponible
-      const grupo = conPosesion.length > 0 ? conPosesion
-                  : neutros.length > 0      ? neutros
-                  : sinPosesion;
-
-      let candidatos = [];
-      for (const item of grupo) {
-        if (item.gol) { candidatos.push({ dest: item.dest, score: 500000 }); continue; }
-        const { dest, rojosCol, blancosCol } = item;
-        let score = 0;
-
-        if (esCasillaEspecial(dest.fila, dest.col, 'rojo')) score += 8000;
-
-        if (grupo === conPosesion) {
-          // Tenemos posesión: optimizar avance y cadena
-          score += (14 - dest.fila) * 100;
-          if (dest.fila <= 6) score += (6 - Math.abs(dest.col - 6)) * 40;
-          score += rojosCol * 120;
-          if (!esUltimoMov) {
-            estado.fichas.balon.fila = dest.fila; estado.fichas.balon.col = dest.col;
-            const siguiente = iaLookaheadBalon(dest.fila, dest.col, 2);
-            estado.fichas.balon.fila = oldBF; estado.fichas.balon.col = oldBC;
-            score += siguiente * 0.6;
-          }
-        } else if (grupo === neutros) {
-          // Neutro: posición donde podamos recuperar el siguiente turno
-          score += (rojosCol - blancosCol) * 200; // superioridad de colindantes
-          score += (14 - dest.fila) * 20;         // algo de avance pero con cautela
-          score -= iaPeligroDefensivo(dest.fila, dest.col);
-        } else {
-          // Sin posesión inevitable: minimizar daño
-          score -= iaPeligroDefensivo(dest.fila, dest.col) * 3;
-          score -= blancosCol * 200;
-          score += rojosCol * 100; // rojos cerca = más fácil recuperar
-        }
-
-        candidatos.push({ dest, score });
-      }
-
-      // Opción de pasar turno (no mover balón) si ya tenemos posesión y no es el último movimiento
-      // Útil para reposicionar jugadores antes de atacar
-      if (!esUltimoMov && estado.movimientosBalon === 0 && equipoTienePosesion('rojo')) {
-        const posActual = iaEvaluarPosBalon(oldBF, oldBC);
-        const mejorPase = candidatos.length > 0 ? Math.max(...candidatos.map(c => c.score)) : -Infinity;
-        // Si la posición actual del balón ya es buena y el mejor pase no mejora mucho, conservar
-        if (posActual > 800 && mejorPase < posActual * 0.8) {
-          pasarTurno();
-          return;
-        }
-      }
-
-      const elegido = iaElegir(candidatos);
-      if (elegido) {
-        const exito = mover('balon', elegido.dest.fila, elegido.dest.col);
-        if (exito && estado.fase === 'MOVER_BALON' && estado.movimientosBalon < 4 && estado.modo === 'vsIA') {
-          ejecutarTurnoIA();
-        }
-      } else {
-        pasarTurno();
+      // Ejecutar solo el primer movimiento de la mejor secuencia
+      const primero = res.seq[0];
+      const exito = mover('balon', primero.fila, primero.col);
+      if (exito && estado.fase === 'MOVER_BALON' && estado.movimientosBalon < 4 && estado.modo === 'vsIA') {
+        ejecutarTurnoIA();
       }
     }
     
