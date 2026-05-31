@@ -2788,12 +2788,18 @@
 
         let resultado;
         if (sigueRojo && movRestantes > 1) {
-          // Continuar secuencia — la llamada recursiva recibe el balón ya en d
+          // Mantiene posesión: continuar secuencia
           resultado = iaBestBallSequence(d.fila, d.col, movRestantes - 1, alpha, beta);
           resultado = { score: resultado.score, seq: [d, ...resultado.seq] };
+        } else if (!sigueRojo && movRestantes > 1) {
+          // Pierde posesión en paso intermedio: explorar igualmente el siguiente movimiento
+          // porque el 4º movimiento no requiere posesión (puede terminar sin ella)
+          const subRes = iaBestBallSequence(d.fila, d.col, movRestantes - 1, alpha, beta);
+          // Penalizar perder posesión pero no cortar la búsqueda
+          resultado = { score: subRes.score - 800, seq: [d, ...subRes.seq] };
         } else {
-          const penal = (!sigueRojo && movRestantes > 1) ? -800 : 0;
-          resultado = { score: scoreAqui + penal, seq: [d] };
+          // Último movimiento (movRestantes === 1): evaluar estado final
+          resultado = { score: scoreAqui, seq: [d] };
         }
 
         // Restaurar balón a posición de este nivel (f,c)
@@ -2910,18 +2916,18 @@
           estado.fichas[pieza.id].col  = dest.col;
 
           let scoreTotal;
-          if (rojoTienePosesion) {
-            // Con posesión: evaluar secuencia de balón habilitada + respuesta rival
+          const ganaPosesionAhora = equipoTienePosesion('rojo');
+          if (rojoTienePosesion || ganaPosesionAhora) {
+            // Con posesión (propia o recién ganada): evaluar secuencia completa de balón
             const resPropio = iaBestBallSequence(balonF, balonC, 4, -Infinity, Infinity);
             const scoreRival = iaSimularMejorTurnoBlanco();
             scoreTotal = resPropio.score - scoreRival * 0.5;
+            if (ganaPosesionAhora && !rojoTienePosesion) scoreTotal += 500; // bonus por recuperar
           } else {
-            // Sin posesión: evaluar estado resultante + bonus por ganar posesión
-            const ganaPosesion = equipoTienePosesion('rojo');
+            // Sin posesión y sin ganarla: evaluar estado resultante
             const quitaPosesion = rivalTienePosesion && !equipoTienePosesion('blanco');
             scoreTotal = iaEvaluarEstado();
-            if (ganaPosesion)   scoreTotal += 2000;
-            if (quitaPosesion)  scoreTotal += 1500;
+            if (quitaPosesion) scoreTotal += 1500;
           }
 
           estado.fichas[pieza.id].fila = pieza.fila;
