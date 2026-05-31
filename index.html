@@ -2683,41 +2683,43 @@
       const rojoTiene = equipoTienePosesion('rojo');
       const blancoTiene = equipoTienePosesion('blanco');
 
-      // Posesión — factor dominante
-      if (rojoTiene)   v += 1500;
-      if (blancoTiene) v -= 1500;
+      // ── POSESIÓN: factor más importante ──
+      if (rojoTiene)   v += 3000;
+      if (blancoTiene) v -= 3000;
 
-      // Posición del balón
-      v += (14 - bf) * 80;
-      if (bf <= 6) v += (6 - Math.abs(bc - 6)) * 30;
+      // ── POSICIÓN DEL BALÓN: muy relevante ──
+      // Rojo ataca hacia fila 0: cuanto más bajo el balón, mejor para rojo
+      v += (14 - bf) * 200;
+      // Centralidad en zona ofensiva
+      if (bf <= 6) v += (6 - Math.abs(bc - 6)) * 80;
 
-      // Superioridad de colindantes al balón
+      // ── PELIGRO DEFENSIVO: cuando el balón está cerca de portería roja ──
+      // Debe dominar sobre cualquier otra consideración de jugadores
+      if (bf >= 9) {
+        const peligro = (bf - 8) * 400 + (6 - Math.abs(bc - 6)) * 100;
+        v -= peligro;
+      }
+
+      // ── SUPERIORIDAD DE COLINDANTES ──
       const rc = iaColindantesSimulados(bf, bc, 'rojo');
       const bc2 = iaColindantesSimulados(bf, bc, 'blanco');
-      v += (rc - bc2) * 120;
+      v += (rc - bc2) * 300;
 
-      // Posición de jugadores rojos de campo
+      // ── POSICIÓN DE JUGADORES (peso menor, solo desempata) ──
       for (const [id, d] of Object.entries(estado.fichas)) {
-        if (id === 'balon' || d.equipo !== 'rojo' || esPortero(id)) continue;
-        // Avanzar hacia portería rival
-        v += (14 - d.fila) * 25;
-        // Proximidad al balón — crucial para recuperar o mantener posesión
+        if (id === 'balon' || esPortero(id)) continue;
         const distBal = iaDistancia(d.fila, d.col, bf, bc);
-        v += Math.max(0, 80 - distBal * 20);
-        // Bonus por ser colindante al balón
-        if (Math.abs(d.fila - bf) <= 1 && Math.abs(d.col - bc) <= 1) v += 150;
+        const esColindante = Math.abs(d.fila - bf) <= 1 && Math.abs(d.col - bc) <= 1;
+        if (d.equipo === 'rojo') {
+          v += (14 - d.fila) * 10;          // avance ofensivo
+          v += Math.max(0, 60 - distBal * 15); // proximidad al balón
+          if (esColindante) v += 200;        // colindante = puede recibir
+        } else {
+          v -= d.fila * 10;                  // blanco avanzado = peligro
+          v -= Math.max(0, 60 - distBal * 15);
+          if (esColindante) v -= 200;
+        }
       }
-
-      // Posición de jugadores blancos de campo
-      for (const [id, d] of Object.entries(estado.fichas)) {
-        if (id === 'balon' || d.equipo !== 'blanco' || esPortero(id)) continue;
-        v -= d.fila * 20;
-        const distBal = iaDistancia(d.fila, d.col, bf, bc);
-        v -= Math.max(0, 80 - distBal * 20); // blanco cerca del balón = peligro
-      }
-
-      // Peligro defensivo
-      if (bf >= 9) v -= iaPeligroDefensivo(bf, bc) * 2;
 
       return v;
     }
