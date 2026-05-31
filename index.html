@@ -1935,16 +1935,16 @@
         if (f >= 10 && f <= 13 && c >= 2 && c <= 10) return false;
       }
       
-      // 3. Debe quedar en casilla neutra (igual numero de colindantes de ambos equipos)
-      // Para validar esto, simulamos el balon en esa posicion temporalmente
+      // 3. Debe quedar sin posesión de ningún equipo
+      // (la casilla neutra es un caso especial permitido, pero la condición es que nadie tenga posesión)
       const balonOriginal = { ...estado.fichas.balon };
       estado.fichas.balon.fila = f;
       estado.fichas.balon.col = c;
-      const neutra = esCasillaNeutra();
+      const nadaTienePosesion = !equipoTienePosesion('blanco') && !equipoTienePosesion('rojo');
       estado.fichas.balon.fila = balonOriginal.fila;
       estado.fichas.balon.col = balonOriginal.col;
-      
-      return neutra;
+
+      return nadaTienePosesion;
     }
     
     // ====== SELECCION ======
