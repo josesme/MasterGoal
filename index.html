@@ -2925,9 +2925,14 @@
             scoreTotal = resPropio.score - scoreRival * 0.8;
             if (ganaPosesionAhora && !rojoTienePosesion) scoreTotal += 500; // bonus por recuperar
           } else {
-            // Sin posesión y sin ganarla: evaluar estado resultante
+            // Sin posesión y sin ganarla: priorizar acercarse al balón
             const quitaPosesion = rivalTienePosesion && !equipoTienePosesion('blanco');
+            const distAntes = iaDistancia(pieza.fila, pieza.col, balonF, balonC);
+            const distDespues = iaDistancia(dest.fila, dest.col, balonF, balonC);
+            const esColindante = Math.abs(dest.fila - balonF) <= 1 && Math.abs(dest.col - balonC) <= 1;
             scoreTotal = iaEvaluarEstado();
+            scoreTotal += (distAntes - distDespues) * 400; // diferencia clara por acercarse
+            if (esColindante) scoreTotal += 1000;          // colindante = puede recuperar
             if (quitaPosesion) scoreTotal += 1500;
           }
 
