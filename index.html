@@ -2534,9 +2534,13 @@
     }
 
     function iaElegir(candidatos) {
-      // Elige aleatoriamente entre el top-3 (ponderado por score) para reducir predictibilidad
       if (candidatos.length === 0) return null;
       candidatos.sort((a, b) => b.score - a.score);
+      // Si el mejor supera al segundo por más del 20%, elegirlo siempre (no aleatorizar)
+      if (candidatos.length === 1 || candidatos[0].score > candidatos[1].score * 1.2) {
+        return candidatos[0];
+      }
+      // Si hay empate o diferencia pequeña, aleatorizar entre el top-3 para reducir predictibilidad
       const pool = candidatos.slice(0, Math.min(3, candidatos.length));
       const total = pool.reduce((s, c) => s + Math.max(c.score, 1), 0);
       let r = Math.random() * total;
