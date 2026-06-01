@@ -1358,9 +1358,9 @@
       <!-- ====== HUD MARCADOR (laterales portería superior) ====== -->
       <g id="hud" font-family="system-ui, sans-serif">
 
-        <!-- BLANCO — lateral izquierdo (x:-10 a 29, y:-20 a 0) -->
+        <!-- LOCAL — lateral izquierdo (x:-10 a 29, y:-20 a 0) -->
         <!-- Layout: [◀ INDICADOR] [● ICONO] [GOLES] [extra/crono] -->
-        <g id="hud-blanco">
+        <g id="hud-local">
           <rect x="-10" y="-20" width="39" height="20" fill="rgba(0,0,0,0.5)" rx="2"/>
           <!-- Indicador turno: exterior izquierdo, con pulso -->
           <text id="hud-turno-b" x="-7" y="-8" font-size="9" fill="#FFD700"
@@ -1379,8 +1379,8 @@
                 text-anchor="middle" visibility="hidden"></text>
         </g>
 
-        <!-- ROJO — lateral derecho (x:81 a 120, y:-20 a 0) — espejo de blanco -->
-        <g id="hud-rojo">
+        <!-- VISITANTE — lateral derecho (x:81 a 120, y:-20 a 0) — espejo de local -->
+        <g id="hud-visitante">
           <rect x="81" y="-20" width="39" height="20" fill="rgba(0,0,0,0.5)" rx="2"/>
           <!-- Extra (turnos) — interior izquierdo -->
           <text id="hud-extra-r" x="86" y="-12" font-size="4.5"
@@ -1416,40 +1416,40 @@
       </g>
 
       <!-- ====== FICHAS ====== -->
-      <!-- Equipo Blanco (defiende P1) -->
-      <g id="equipo-blanco">
+      <!-- Equipo Local (defiende P1) -->
+      <g id="equipo-local">
         <!-- Portero 2-6: grupo con cuerpo + brazos -->
-        <g id="b-portero" class="ficha portero" data-equipo="blanco">
-          <rect id="b-portero-brazo-izq" x="46.5" y="23.75" width="5" height="2.5" rx="1.25"
+        <g id="l-portero" class="ficha portero" data-equipo="local">
+          <rect id="l-portero-brazo-izq" x="46.5" y="23.75" width="5" height="2.5" rx="1.25"
                 fill="#ffffff" fill-opacity="0.6" stroke="#333" stroke-width="0.3"/>
-          <rect id="b-portero-brazo-der" x="58.5" y="23.75" width="5" height="2.5" rx="1.25"
+          <rect id="l-portero-brazo-der" x="58.5" y="23.75" width="5" height="2.5" rx="1.25"
                 fill="#ffffff" fill-opacity="0.6" stroke="#333" stroke-width="0.3"/>
-          <circle id="b-portero-cuerpo" cx="55" cy="25" r="3.5"
+          <circle id="l-portero-cuerpo" cx="55" cy="25" r="3.5"
                   fill="#ffffff" stroke="#333" stroke-width="0.3"/>
         </g>
         <!-- Jugadores -->
-        <circle id="b-j1" cx="35" cy="45" r="3.5" fill="#ffffff" stroke="#333" stroke-width="0.3" class="ficha"/>
-        <circle id="b-j2" cx="75" cy="45" r="3.5" fill="#ffffff" stroke="#333" stroke-width="0.3" class="ficha"/>
-        <circle id="b-j3" cx="25" cy="65" r="3.5" fill="#ffffff" stroke="#333" stroke-width="0.3" class="ficha"/>
-        <circle id="b-j4" cx="85" cy="65" r="3.5" fill="#ffffff" stroke="#333" stroke-width="0.3" class="ficha"/>
+        <circle id="l-j1" cx="35" cy="45" r="3.5" fill="#ffffff" stroke="#333" stroke-width="0.3" class="ficha"/>
+        <circle id="l-j2" cx="75" cy="45" r="3.5" fill="#ffffff" stroke="#333" stroke-width="0.3" class="ficha"/>
+        <circle id="l-j3" cx="25" cy="65" r="3.5" fill="#ffffff" stroke="#333" stroke-width="0.3" class="ficha"/>
+        <circle id="l-j4" cx="85" cy="65" r="3.5" fill="#ffffff" stroke="#333" stroke-width="0.3" class="ficha"/>
       </g>
 
-      <!-- Equipo Rojo (defiende P2) -->
-      <g id="equipo-rojo">
+      <!-- Equipo Visitante (defiende P2) -->
+      <g id="equipo-visitante">
         <!-- Portero 12-6: grupo con cuerpo + brazos -->
-        <g id="r-portero" class="ficha portero" data-equipo="rojo">
-          <rect id="r-portero-brazo-izq" x="46.5" y="123.75" width="5" height="2.5" rx="1.25"
+        <g id="v-portero" class="ficha portero" data-equipo="visitante">
+          <rect id="v-portero-brazo-izq" x="46.5" y="123.75" width="5" height="2.5" rx="1.25"
                 fill="#d32f2f" fill-opacity="0.6" stroke="#333" stroke-width="0.3"/>
-          <rect id="r-portero-brazo-der" x="58.5" y="123.75" width="5" height="2.5" rx="1.25"
+          <rect id="v-portero-brazo-der" x="58.5" y="123.75" width="5" height="2.5" rx="1.25"
                 fill="#d32f2f" fill-opacity="0.6" stroke="#333" stroke-width="0.3"/>
-          <circle id="r-portero-cuerpo" cx="55" cy="125" r="3.5"
+          <circle id="v-portero-cuerpo" cx="55" cy="125" r="3.5"
                   fill="#d32f2f" stroke="#333" stroke-width="0.3"/>
         </g>
         <!-- Jugadores -->
-        <circle id="r-j1" cx="25" cy="85" r="3.5" fill="#d32f2f" stroke="#333" stroke-width="0.3" class="ficha"/>
-        <circle id="r-j2" cx="85" cy="85" r="3.5" fill="#d32f2f" stroke="#333" stroke-width="0.3" class="ficha"/>
-        <circle id="r-j3" cx="35" cy="105" r="3.5" fill="#d32f2f" stroke="#333" stroke-width="0.3" class="ficha"/>
-        <circle id="r-j4" cx="75" cy="105" r="3.5" fill="#d32f2f" stroke="#333" stroke-width="0.3" class="ficha"/>
+        <circle id="v-j1" cx="25" cy="85" r="3.5" fill="#d32f2f" stroke="#333" stroke-width="0.3" class="ficha"/>
+        <circle id="v-j2" cx="85" cy="85" r="3.5" fill="#d32f2f" stroke="#333" stroke-width="0.3" class="ficha"/>
+        <circle id="v-j3" cx="35" cy="105" r="3.5" fill="#d32f2f" stroke="#333" stroke-width="0.3" class="ficha"/>
+        <circle id="v-j4" cx="75" cy="105" r="3.5" fill="#d32f2f" stroke="#333" stroke-width="0.3" class="ficha"/>
       </g>
       
       <!-- Balon 7-6 -->
@@ -1474,20 +1474,20 @@
     const estado = {
       // Posiciones actuales
       fichas: {
-        'b-portero': { fila: 2, col: 6, equipo: 'blanco' },
-        'b-j1':      { fila: 4, col: 4, equipo: 'blanco' },
-        'b-j2':      { fila: 4, col: 8, equipo: 'blanco' },
-        'b-j3':      { fila: 6, col: 3, equipo: 'blanco' },
-        'b-j4':      { fila: 6, col: 9, equipo: 'blanco' },
-        'r-portero': { fila: 12, col: 6, equipo: 'rojo' },
-        'r-j1':      { fila: 8, col: 3, equipo: 'rojo' },
-        'r-j2':      { fila: 8, col: 9, equipo: 'rojo' },
-        'r-j3':      { fila: 10, col: 4, equipo: 'rojo' },
-        'r-j4':      { fila: 10, col: 8, equipo: 'rojo' },
+        'l-portero': { fila: 2, col: 6, equipo: 'local' },
+        'l-j1':      { fila: 4, col: 4, equipo: 'local' },
+        'l-j2':      { fila: 4, col: 8, equipo: 'local' },
+        'l-j3':      { fila: 6, col: 3, equipo: 'local' },
+        'l-j4':      { fila: 6, col: 9, equipo: 'local' },
+        'v-portero': { fila: 12, col: 6, equipo: 'visitante' },
+        'v-j1':      { fila: 8, col: 3, equipo: 'visitante' },
+        'v-j2':      { fila: 8, col: 9, equipo: 'visitante' },
+        'v-j3':      { fila: 10, col: 4, equipo: 'visitante' },
+        'v-j4':      { fila: 10, col: 8, equipo: 'visitante' },
         'balon':     { fila: 7, col: 6 }
       },
       seleccionado: null,    // ID de ficha/balon seleccionado
-      turno: 'blanco',       // blanco o rojo
+      turno: 'local',        // local o visitante
       fase: 'MOVER_JUGADOR', // MOVER_JUGADOR o MOVER_BALON
       posesion: false,       // true si el equipo del turno tiene posesion
       movimientosBalon: 0,   // contador para cadena de pases (max 4)
@@ -1495,7 +1495,7 @@
     };
     
     const POSICIONES_INICIALES = JSON.parse(JSON.stringify(estado.fichas));
-    const MARCADOR = { blanco: 0, rojo: 0 };
+    const MARCADOR = { local: 0, visitante: 0 };
 
     // ====== PATRONES DE CAMISETA ======
     const PATRONES_EQUIPO = [
@@ -1548,11 +1548,11 @@
       let defsEl = svgEl.querySelector('defs');
       if (!defsEl) { defsEl = document.createElementNS('http://www.w3.org/2000/svg','defs'); svgEl.prepend(defsEl); }
 
-      const equipos = { blanco: localEq, rojo: rivalEq };
-      const defColor = { blanco: '#ffffff', rojo: '#d32f2f' };
+      const equipos = { local: localEq, visitante: rivalEq };
+      const defColor = { local: '#ffffff', visitante: '#d32f2f' };
 
       Object.entries(equipos).forEach(([lado, eq]) => {
-        const prefijo = lado === 'blanco' ? 'b' : 'r';
+        const prefijo = lado === 'local' ? 'l' : 'v';
         const ids = [prefijo+'-j1', prefijo+'-j2', prefijo+'-j3', prefijo+'-j4'];
         const porteroId = prefijo+'-portero';
 
@@ -1673,28 +1673,28 @@
     
     // Cuenta jugadores colindantes al balon por equipo
     function contarColindantes() {
-      let blanco = 0, rojo = 0;
+      let local = 0, visitante = 0;
       for (const [id, d] of Object.entries(estado.fichas)) {
         if (id === 'balon') continue;
         if (esColindanteAlBalon(d.fila, d.col)) {
-          if (d.equipo === 'blanco') blanco++;
-          else rojo++;
+          if (d.equipo === 'local') local++;
+          else visitante++;
         }
       }
-      return { blanco, rojo };
+      return { local, visitante };
     }
-    
+
     // Verifica si un equipo tiene MAYORIA en casillas colindantes (posesion)
     function equipoTienePosesion(equipo) {
       const c = contarColindantes();
-      if (equipo === 'blanco') return c.blanco > c.rojo;
-      return c.rojo > c.blanco;
+      if (equipo === 'local') return c.local > c.visitante;
+      return c.visitante > c.local;
     }
     
     // Verifica si la casilla del balon es neutra (igual numero de ambos equipos)
     function esCasillaNeutra() {
       const c = contarColindantes();
-      return c.blanco === c.rojo;
+      return c.local === c.visitante;
     }
     
     // Obtiene los IDs de los jugadores de un equipo colindantes al balon en una posicion dada
@@ -1756,7 +1756,7 @@
     // Segun regla 6: si un brazo esta fuera del area grande, solo el brazo dentro es valido
     function obtenerCasillasPortero(porteroId) {
       const portero = estado.fichas[porteroId];
-      const esBlanco = porteroId === 'b-portero';
+      const esBlanco = porteroId === 'l-portero';
       
       // Casilla del portero siempre
       const casillas = [{ fila: portero.fila, col: portero.col, tipo: 'portero' }];
@@ -1791,8 +1791,8 @@
     // EXCEPCION: El balon SI puede pasar por los brazos del PROPIO portero (pase interno)
     function saltaPorteroContrario(fOrigen, cOrigen, fDest, cDest) {
       const equipo = estado.turno;
-      const rival = equipo === 'blanco' ? 'rojo' : 'blanco';
-      const idPorteroRival = rival === 'blanco' ? 'b-portero' : 'r-portero';
+      const rival = equipo === 'local' ? 'visitante' : 'local';
+      const idPorteroRival = rival === 'local' ? 'l-portero' : 'v-portero';
       
       // Obtener casillas ocupadas por portero rival y sus brazos validos
       const casillasPortero = obtenerCasillasPortero(idPorteroRival);
@@ -1832,7 +1832,7 @@
         const enAreaChica = (cf >= 1 && cf <= 2 && cc >= 3 && cc <= 9) ||
                             (cf >= 12 && cf <= 13 && cc >= 3 && cc <= 9);
         if (enAreaChica) {
-          const equipoRival = estado.turno === 'blanco' ? 'rojo' : 'blanco';
+          const equipoRival = estado.turno === 'local' ? 'visitante' : 'local';
           for (const [id, d] of Object.entries(estado.fichas)) {
             if (id === 'balon') continue;
             if (d.equipo !== equipoRival) continue;
@@ -1849,18 +1849,18 @@
     // Regla: "Ningun Jugador puede colocarse en las casillas laterales del Portero"
     function esBrazoPorteroRival(f, c) {
       const equipo = estado.turno;
-      const rival = equipo === 'blanco' ? 'rojo' : 'blanco';
-      const idPorteroRival = rival === 'blanco' ? 'b-portero' : 'r-portero';
+      const rival = equipo === 'local' ? 'visitante' : 'local';
+      const idPorteroRival = rival === 'local' ? 'l-portero' : 'v-portero';
       const portero = estado.fichas[idPorteroRival];
-      
+
       // Verificar si es uno de los brazos del portero rival
       const esBrazoIzq = (f === portero.fila && c === portero.col - 1);
       const esBrazoDer = (f === portero.fila && c === portero.col + 1);
-      
+
       if (!esBrazoIzq && !esBrazoDer) return false;
-      
+
       // Verificar que el brazo este dentro del area grande (regla 6)
-      const esBlanco = rival === 'blanco';
+      const esBlanco = rival === 'local';
       const enAreaGrande = esBlanco
         ? (f >= 1 && f <= 4 && c >= 2 && c <= 10)
         : (f >= 10 && f <= 13 && c >= 2 && c <= 10);
@@ -1897,11 +1897,11 @@
       
       // Filtrar portería propia y córner propio (siempre prohibido)
       dest = dest.filter(d => {
-        if (estado.turno === 'blanco') {
+        if (estado.turno === 'local') {
           if (d.fila === 0) return false; // portería propia
           if (d.fila === 1 && (d.col === 1 || d.col === 11)) return false; // córner propio
         }
-        if (estado.turno === 'rojo') {
+        if (estado.turno === 'visitante') {
           if (d.fila === 14) return false; // portería propia
           if (d.fila === 13 && (d.col === 1 || d.col === 11)) return false; // córner propio
         }
@@ -1965,22 +1965,22 @@
       if (esPorteria(f, c)) return true; // Gol es siempre válido
 
       // 2. No puede ser el córner propio (prohibido enviar el balón al córner del equipo)
-      if (estado.turno === 'blanco' && ((f === 1 && c === 1) || (f === 1 && c === 11))) return false;
-      if (estado.turno === 'rojo'   && ((f === 13 && c === 1) || (f === 13 && c === 11))) return false;
+      if (estado.turno === 'local'    && ((f === 1 && c === 1) || (f === 1 && c === 11))) return false;
+      if (estado.turno === 'visitante' && ((f === 13 && c === 1) || (f === 13 && c === 11))) return false;
 
-      // 3. Fuera de area propia (area grande: filas 1-4 cols 2-10 para blanco, filas 10-13 cols 2-10 para rojo)
-      if (estado.turno === 'blanco') {
+      // 3. Fuera de area propia (area grande: filas 1-4 cols 2-10 para local, filas 10-13 cols 2-10 para visitante)
+      if (estado.turno === 'local') {
         if (f >= 1 && f <= 4 && c >= 2 && c <= 10) return false;
       } else {
         if (f >= 10 && f <= 13 && c >= 2 && c <= 10) return false;
       }
-      
+
       // 3. Debe quedar sin posesión de ningún equipo
       // (la casilla neutra es un caso especial permitido, pero la condición es que nadie tenga posesión)
       const balonOriginal = { ...estado.fichas.balon };
       estado.fichas.balon.fila = f;
       estado.fichas.balon.col = c;
-      const nadaTienePosesion = !equipoTienePosesion('blanco') && !equipoTienePosesion('rojo');
+      const nadaTienePosesion = !equipoTienePosesion('local') && !equipoTienePosesion('visitante');
       estado.fichas.balon.fila = balonOriginal.fila;
       estado.fichas.balon.col = balonOriginal.col;
 
@@ -2023,7 +2023,7 @@
         el.setAttribute('stroke', '#333');
         el.setAttribute('stroke-width', '0.3');
       });
-      ['b-portero', 'r-portero'].forEach(pid => {
+      ['l-portero', 'v-portero'].forEach(pid => {
         const cuerpo = document.getElementById(pid + '-cuerpo');
         if (cuerpo) { cuerpo.setAttribute('stroke', '#333'); cuerpo.setAttribute('stroke-width', '0.3'); }
         ['izq', 'der'].forEach(lado => {
@@ -2137,19 +2137,19 @@
     function verificarGol() {
       const b = estado.fichas.balon;
       if (b.fila === 0) {
-        MARCADOR.rojo++;
+        MARCADOR.visitante++;
         if (verificarVictoria()) return;
-        recolocar('rojo');
+        recolocar('visitante');
       } else if (b.fila === 14) {
-        MARCADOR.blanco++;
+        MARCADOR.local++;
         if (verificarVictoria()) return;
-        recolocar('blanco');
+        recolocar('local');
       }
     }
     
     // ====== CASILLAS ESPECIALES ======
     // Casillas amarillas: col 1, 4-8 y 11 de la linea de fondo contraria
-    // Blanco ataca fila 13, rojo ataca fila 1
+    // Local ataca fila 13, visitante ataca fila 1
     // Si un equipo coloca el balon en su casilla especial, gana un turno extra
     // Nota: Si un jugador/portero esta en la casilla, pierde su condicion de especial
     function esCasillaEspecial(f, c, equipo) {
@@ -2162,7 +2162,7 @@
         if (d.fila === f && d.col === c) return false; // Ocupada, no es especial
       }
 
-      if (equipo === 'blanco') {
+      if (equipo === 'local') {
         return f === 13;
       } else {
         return f === 1;
@@ -2198,18 +2198,18 @@
     
     // ====== ACTUALIZAR UI ======
     function actualizarUI() {
-      document.getElementById('goles-blanco').textContent = MARCADOR.blanco;
-      document.getElementById('goles-rojo').textContent = MARCADOR.rojo;
+      document.getElementById('goles-blanco').textContent = MARCADOR.local;
+      document.getElementById('goles-rojo').textContent = MARCADOR.visitante;
       actualizarHUD();
     }
 
     function actualizarHUD() {
       // Goles
-      document.getElementById('hud-goles-b').textContent = MARCADOR.blanco;
-      document.getElementById('hud-goles-r').textContent = MARCADOR.rojo;
+      document.getElementById('hud-goles-b').textContent = MARCADOR.local;
+      document.getElementById('hud-goles-r').textContent = MARCADOR.visitante;
 
       // Indicador de turno activo
-      const esB = estado.turno === 'blanco';
+      const esB = estado.turno === 'local';
       document.getElementById('hud-turno-b').setAttribute('opacity', esB ? '1' : '0');
       document.getElementById('hud-turno-r').setAttribute('opacity', esB ? '0' : '1');
 
@@ -2234,8 +2234,8 @@
         cronoR.setAttribute('visibility', 'hidden');
 
       } else if (enc === 'turnos') {
-        const tb = victoria.turnosRestantes.blanco;
-        const tr = victoria.turnosRestantes.rojo;
+        const tb = victoria.turnosRestantes.local;
+        const tr = victoria.turnosRestantes.visitante;
         const total = config.turnos;
         const turnoActualB = Math.min(total - tb + 1, total);
         const turnoActualR = Math.min(total - tr + 1, total);
@@ -2261,14 +2261,14 @@
       if (!g) return;
       const esVsIA = config.modo === 'vsIA';
       const visible = estado.fase === 'MOVER_BALON' &&
-        (config.modo === 'pvp' || (esVsIA && estado.turno === 'blanco'));
-      // En vsIA: mantener visible pero solo mostrar lado blanco
+        (config.modo === 'pvp' || (esVsIA && estado.turno === 'local'));
+      // En vsIA: mantener visible pero solo mostrar lado local
       if (config.modo !== 'pvp' && !esVsIA) { g.setAttribute('visibility', 'hidden'); return; }
       g.setAttribute('visibility', visible || esVsIA ? 'visible' : 'hidden');
       const mov = visible ? estado.movimientosBalon : 0;
       const equipo = estado.turno;
       ['b','r'].forEach(lado => {
-        // En vsIA nunca mostrar los del rojo (IA)
+        // En vsIA nunca mostrar los del visitante (IA)
         if (esVsIA && lado === 'r') {
           for (let i = 1; i <= 4; i++) {
             const el = document.getElementById(`hud-mov-r-${i}`);
@@ -2287,7 +2287,7 @@
     }
 
     function actualizarCronometrosHUD() {
-      ['blanco', 'rojo'].forEach(eq => {
+      ['local', 'visitante'].forEach(eq => {
         const el = document.getElementById('hud-crono-' + eq[0]);
         if (!el) return;
         const s = victoria.tiempoRestante[eq] || 0;
@@ -2351,14 +2351,14 @@
         actualizarUI();
         
         // Si es turno de la IA, ejecutarla
-        if (estado.turno === 'rojo' && estado.modo === 'vsIA') {
+        if (estado.turno === 'visitante' && estado.modo === 'vsIA') {
           ejecutarTurnoIA();
         }
         return;
       }
-      
+
       const equipoQueAcaba = estado.turno;
-      estado.turno = estado.turno === 'blanco' ? 'rojo' : 'blanco';
+      estado.turno = estado.turno === 'local' ? 'visitante' : 'local';
       estado.fase = 'MOVER_JUGADOR';
       estado.posesion = false;
       estado.movimientosBalon = 0;
@@ -2366,9 +2366,9 @@
       // Modo turnos: descontar turno al equipo que acaba de jugar
       if (config.encuentro === 'turnos' && !victoria.golDeOro) {
         victoria.turnosRestantes[equipoQueAcaba]--;
-        if (victoria.turnosRestantes.blanco <= 0 && victoria.turnosRestantes.rojo <= 0) {
-          if (MARCADOR.blanco > MARCADOR.rojo)      { finPartida('blanco', 'turnos'); return; }
-          else if (MARCADOR.rojo > MARCADOR.blanco) { finPartida('rojo',   'turnos'); return; }
+        if (victoria.turnosRestantes.local <= 0 && victoria.turnosRestantes.visitante <= 0) {
+          if (MARCADOR.local > MARCADOR.visitante)      { finPartida('local',     'turnos'); return; }
+          else if (MARCADOR.visitante > MARCADOR.local) { finPartida('visitante', 'turnos'); return; }
           else {
             // Empate: activar gol de oro
             victoria.golDeOro = true;
@@ -2377,7 +2377,7 @@
             setTimeout(() => {
               ov.style.display = 'none';
               actualizarUI();
-              if (estado.turno === 'rojo' && estado.modo === 'vsIA') ejecutarTurnoIA();
+              if (estado.turno === 'visitante' && estado.modo === 'vsIA') ejecutarTurnoIA();
             }, 2500);
             return;
           }
@@ -2393,18 +2393,18 @@
       console.log('Turno de:', estado.turno);
 
       // Si es turno de la IA, ejecutarla
-      if (estado.turno === 'rojo' && estado.modo === 'vsIA') {
+      if (estado.turno === 'visitante' && estado.modo === 'vsIA') {
         ejecutarTurnoIA();
       }
     }
-    
+
     // ====== HELPERS PORTERO ======
     function esPortero(id) {
-      return id === 'b-portero' || id === 'r-portero';
+      return id === 'l-portero' || id === 'v-portero';
     }
 
     function actualizarBrazosPortero(id, fila, col) {
-      const esBlanco = id === 'b-portero';
+      const esBlanco = id === 'l-portero';
       const enAreaGrande = (f, c) => esBlanco
         ? (f >= 1 && f <= 4 && c >= 2 && c <= 10)
         : (f >= 10 && f <= 13 && c >= 2 && c <= 10);
@@ -2431,8 +2431,8 @@
     }
 
     // Inicializar brazos en posición inicial
-    actualizarBrazosPortero('b-portero', estado.fichas['b-portero'].fila, estado.fichas['b-portero'].col);
-    actualizarBrazosPortero('r-portero', estado.fichas['r-portero'].fila, estado.fichas['r-portero'].col);
+    actualizarBrazosPortero('l-portero', estado.fichas['l-portero'].fila, estado.fichas['l-portero'].col);
+    actualizarBrazosPortero('v-portero', estado.fichas['v-portero'].fila, estado.fichas['v-portero'].col);
 
     // ====== EVENTOS ======
     document.querySelectorAll('.ficha').forEach(el => {
@@ -2505,11 +2505,11 @@
       if (tipo === 'DECISION_JUGADOR') {
         if (!decision) { pasarTurno(); return; }
         // Log top-5
-        const rojoPos = equipoTienePosesion('rojo');
-        const rivalPos = equipoTienePosesion('blanco');
+        const visitantePos = equipoTienePosesion('visitante');
+        const rivalPos = equipoTienePosesion('local');
         const balonF = estado.fichas.balon.fila, balonC = estado.fichas.balon.col;
-        const modoLabel = !rojoPos && !rivalPos ? 'LOOKAHEAD' : rojoPos ? 'POSESION' : 'RIVAL';
-        console.group(`%c🤖 IA MOVER JUGADOR | balón(${balonF},${balonC}) | posesión:${rojoPos?'ROJO':rivalPos?'BLANCO':'NADIE'} | modo:${modoLabel}`, 'color:#4fc3f7;font-weight:bold');
+        const modoLabel = !visitantePos && !rivalPos ? 'LOOKAHEAD' : visitantePos ? 'POSESION' : 'RIVAL';
+        console.group(`%c🤖 IA MOVER JUGADOR | balón(${balonF},${balonC}) | posesión:${visitantePos?'VISITANTE':rivalPos?'LOCAL':'NADIE'} | modo:${modoLabel}`, 'color:#4fc3f7;font-weight:bold');
         decision.top5.forEach((c, i) => {
           console.log(`  ${i===0?'✅':'  '} ${c.piezaId} → (${c.dest.fila},${c.dest.col}) score:${Math.round(c.score)}`);
         });
@@ -2524,7 +2524,7 @@
         if (!decision) { pasarTurno(); return; }
         const balonF = estado.fichas.balon.fila, balonC = estado.fichas.balon.col;
         const seqStr = decision.secuencia.map(d => `(${d.fila},${d.col})`).join(' → ');
-        console.log(`%c🤖 IA BALÓN mov${estado.movimientosBalon+1} | balón(${balonF},${balonC}) | posesión:${equipoTienePosesion('rojo')?'ROJO':'NADIE'}`, 'color:#ffcc80;font-weight:bold');
+        console.log(`%c🤖 IA BALÓN mov${estado.movimientosBalon+1} | balón(${balonF},${balonC}) | posesión:${equipoTienePosesion('visitante')?'VISITANTE':'NADIE'}`, 'color:#ffcc80;font-weight:bold');
         console.log(`   secuencia: ${seqStr || '(ninguna)'} | score:${Math.round(decision.score)}`);
         console.log(`   primer paso: (${decision.dest.fila},${decision.dest.col})`);
         const exito = mover('balon', decision.dest.fila, decision.dest.col);
@@ -2539,7 +2539,7 @@
     };
 
     function ejecutarTurnoIA() {
-      if (estado.turno !== 'rojo' || estado.modo !== 'vsIA') return;
+      if (estado.turno !== 'visitante' || estado.modo !== 'vsIA') return;
 
       setTimeout(() => {
         const estadoCopia = JSON.parse(JSON.stringify(estado));
@@ -2597,7 +2597,7 @@
       return pool[0];
     }
 
-    // Evalúa la calidad de una posición de balón para el equipo rojo (sin modificar estado)
+    // Evalúa la calidad de una posición de balón para el equipo visitante (sin modificar estado)
     function iaEvaluarPosBalon(bf, bc) {
       let v = 0;
       // Cercanía a portería rival
@@ -2605,8 +2605,8 @@
       // Centralidad en zona ofensiva
       if (bf <= 6) v += (6 - Math.abs(bc - 6)) * 40;
       // Superioridad de colindantes
-      const r = iaColindantesSimulados(bf, bc, 'rojo');
-      const b = iaColindantesSimulados(bf, bc, 'blanco');
+      const r = iaColindantesSimulados(bf, bc, 'visitante');
+      const b = iaColindantesSimulados(bf, bc, 'local');
       v += (r - b) * 200;
       // Peligro si lo tiene el rival cerca de portería propia
       if (bf >= 9) v -= iaPeligroDefensivo(bf, bc) * 2;
@@ -2625,16 +2625,16 @@
         // Simular balón en d
         const oldF = estado.fichas.balon.fila, oldC = estado.fichas.balon.col;
         estado.fichas.balon.fila = d.fila; estado.fichas.balon.col = d.col;
-        const sigueRojo = equipoTienePosesion('rojo');
+        const sigueVisitante = equipoTienePosesion('visitante');
         estado.fichas.balon.fila = oldF; estado.fichas.balon.col = oldC;
         let s = iaEvaluarPosBalon(d.fila, d.col);
-        if (sigueRojo && pasos > 1) s += iaLookaheadBalon(d.fila, d.col, pasos - 1) * 0.7;
+        if (sigueVisitante && pasos > 1) s += iaLookaheadBalon(d.fila, d.col, pasos - 1) * 0.7;
         if (s > mejor) mejor = s;
       }
       return mejor;
     }
 
-    // Mejor score de bloqueo: evalúa cuánto daño puede hacer el blanco desde pos balón actual
+    // Mejor score de bloqueo: evalúa cuánto daño puede hacer el local desde pos balón actual
     function iaAmenazaRival(balonF, balonC) {
       const destinos = obtenerDestinosBalon(balonF, balonC);
       if (destinos.length === 0) return 0;
@@ -2647,7 +2647,7 @@
       return peor;
     }
 
-    // Detecta si el balón puede llegar a portería roja (fila 14) en línea recta
+    // Detecta si el balón puede llegar a portería visitante (fila 14) en línea recta
     // Independiente del turno — proyecta las 8 direcciones sin filtros de posesión
     function iaDetectarAmenazaGol() {
       const balonF = estado.fichas.balon.fila;
@@ -2658,16 +2658,16 @@
         for (let dist = 1; dist <= 4; dist++) {
           const nf = balonF + df * dist;
           const nc = balonC + dc * dist;
-          // ¿Llega a portería roja?
+          // ¿Llega a portería visitante?
           if (nf === 14 && nc >= 4 && nc <= 8) {
             amenazas.push({ fila: nf, col: nc });
             break;
           }
           // ¿Casilla bloqueada por una ficha? El balón no puede pasar (en área chica por rival)
-          // Para la detección de amenaza simplificamos: parar si hay ficha roja en el camino
+          // Para la detección de amenaza simplificamos: parar si hay ficha visitante en el camino
           if (estaOcupada(nf, nc, 'balon')) {
             const ocupante = Object.values(estado.fichas).find(f => f.fila === nf && f.col === nc);
-            if (ocupante && ocupante.equipo === 'rojo') break; // rojo bloquea
+            if (ocupante && ocupante.equipo === 'visitante') break; // visitante bloquea
           }
           if (!esCasillaValida(nf, nc) && !esPorteria(nf, nc)) break;
         }
@@ -2689,28 +2689,28 @@
       return bloqueos;
     }
 
-    // Devuelve los jugadores blancos ordenados por peligrosidad (más cerca de portería roja = más peligrosos)
-    function iaJugadoresBlancosPorPeligro() {
+    // Devuelve los jugadores locales ordenados por peligrosidad (más cerca de portería visitante = más peligrosos)
+    function iaJugadoresLocalesPorPeligro() {
       return Object.entries(estado.fichas)
-        .filter(([id, d]) => d.equipo === 'blanco' && id !== 'balon')
+        .filter(([id, d]) => d.equipo === 'local' && id !== 'balon')
         .map(([id, d]) => ({ id, fila: d.fila, col: d.col }))
-        .sort((a, b) => b.fila - a.fila); // mayor fila = más cerca portería roja
+        .sort((a, b) => b.fila - a.fila); // mayor fila = más cerca portería visitante
     }
 
-    // Cuántas líneas de pase desde el balón quedan bloqueadas por rojos en (df, dc)
+    // Cuántas líneas de pase desde el balón quedan bloqueadas por visitantes en (df, dc)
     function iaPasesQueCorta(df, dc, balonF, balonC) {
-      // Un pase desde el balón hacia un blanco queda cortado si un rojo en (df,dc)
-      // se interpone — está en la misma línea y más cerca del balón que el blanco
-      const blancos = iaJugadoresBlancosPorPeligro();
+      // Un pase desde el balón hacia un local queda cortado si un visitante en (df,dc)
+      // se interpone — está en la misma línea y más cerca del balón que el local
+      const locales = iaJugadoresLocalesPorPeligro();
       let cortados = 0;
-      for (const b of blancos) {
-        // Distancia balón→blanco
+      for (const b of locales) {
+        // Distancia balón→local
         const distBB = iaDistancia(balonF, balonC, b.fila, b.col);
-        // Distancia balón→rojo candidato
+        // Distancia balón→visitante candidato
         const distBR = iaDistancia(balonF, balonC, df, dc);
-        // Distancia rojo→blanco
+        // Distancia visitante→local
         const distRB = iaDistancia(df, dc, b.fila, b.col);
-        // El rojo está en la línea entre balón y blanco si distBR + distRB ≈ distBB
+        // El visitante está en la línea entre balón y local si distBR + distRB ≈ distBB
         if (distBR < distBB && distBR + distRB <= distBB + 1) cortados++;
       }
       return cortados;
@@ -2720,28 +2720,28 @@
     // IA v2 — Staged Lookahead Minimax
     // ======================================================
 
-    // Evaluación estática del estado completo desde perspectiva del rojo.
+    // Evaluación estática del estado completo desde perspectiva del visitante.
     function iaEvaluarEstado() {
       const bf = estado.fichas.balon.fila;
       const bc = estado.fichas.balon.col;
       let v = 0;
 
-      const rojoTiene = equipoTienePosesion('rojo');
-      const blancoTiene = equipoTienePosesion('blanco');
+      const visitanteTiene = equipoTienePosesion('visitante');
+      const localTiene = equipoTienePosesion('local');
 
       // ── POSESIÓN: factor más importante ──
-      if (rojoTiene)   v += 3000;
-      if (blancoTiene) v -= 3000;
+      if (visitanteTiene) v += 3000;
+      if (localTiene)     v -= 3000;
 
       // ── POSICIÓN DEL BALÓN: muy relevante ──
-      // Rojo ataca hacia fila 0: cuanto más bajo el balón, mejor para rojo
+      // Visitante ataca hacia fila 0: cuanto más bajo el balón, mejor para visitante
       v += (14 - bf) * 200;
       // Centralidad en zona ofensiva
       if (bf <= 6) v += (6 - Math.abs(bc - 6)) * 80;
       // Bonus adicional por zona de remate (fila 1-3): cerca de portería rival
       if (bf <= 3) v += (4 - bf) * 200;
 
-      // ── PELIGRO DEFENSIVO: cuando el balón está cerca de portería roja ──
+      // ── PELIGRO DEFENSIVO: cuando el balón está cerca de portería visitante ──
       // Debe dominar sobre cualquier otra consideración de jugadores
       if (bf >= 9) {
         const peligro = (bf - 8) * 400 + (6 - Math.abs(bc - 6)) * 100;
@@ -2749,8 +2749,8 @@
       }
 
       // ── SUPERIORIDAD DE COLINDANTES ──
-      const rc = iaColindantesSimulados(bf, bc, 'rojo');
-      const bc2 = iaColindantesSimulados(bf, bc, 'blanco');
+      const rc = iaColindantesSimulados(bf, bc, 'visitante');
+      const bc2 = iaColindantesSimulados(bf, bc, 'local');
       v += (rc - bc2) * 300;
 
       // ── POSICIÓN DE JUGADORES ──
@@ -2761,7 +2761,7 @@
         if (id === 'balon' || esPortero(id)) continue;
         const distBal = iaDistancia(d.fila, d.col, bf, bc);
         const esColindante = Math.abs(d.fila - bf) <= 1 && Math.abs(d.col - bc) <= 1;
-        if (d.equipo === 'rojo') {
+        if (d.equipo === 'visitante') {
           if (enPeligro) {
             // En peligro: solo importa acercarse al balón para recuperar
             v += Math.max(0, 500 - distBal * 120);
@@ -2772,12 +2772,12 @@
             if (esColindante) v += 200;
           }
         } else {
-          // Blanco cerca del balón siempre es peligro
+          // Local cerca del balón siempre es peligro
           v -= Math.max(0, 100 - distBal * 25);
           if (esColindante) v -= 300;
-          // Posición avanzada del blanco: penalizar más cuanto más cerca de portería roja
+          // Posición avanzada del local: penalizar más cuanto más cerca de portería visitante
           v -= d.fila * 10;
-          // Penalizar blanco en el mismo corredor de columnas que el balón (amenaza de pase)
+          // Penalizar local en el mismo corredor de columnas que el balón (amenaza de pase)
           if (Math.abs(d.col - bc) <= 2 && d.fila > bf) v -= 150;
         }
       }
@@ -2785,9 +2785,9 @@
       return v;
     }
 
-    // Búsqueda recursiva de la mejor secuencia de balón para rojo con movRestantes movimientos.
-    // Asume que es el turno del rojo y busca maximizar iaEvaluarEstado().
-    // Usa estado.turno='rojo' para que obtenerDestinosBalon funcione correctamente.
+    // Búsqueda recursiva de la mejor secuencia de balón para visitante con movRestantes movimientos.
+    // Asume que es el turno del visitante y busca maximizar iaEvaluarEstado().
+    // Usa estado.turno='visitante' para que obtenerDestinosBalon funcione correctamente.
     function iaBestBallSequence(f, c, movRestantes, alpha, beta) {
       // El balón DEBE estar en (f,c) al entrar — el llamador lo posiciona
       // Guardamos solo para restaurar al salir
@@ -2795,7 +2795,7 @@
       const oldTurno = estado.turno, oldMovs = estado.movimientosBalon;
 
       estado.fichas.balon.fila = f; estado.fichas.balon.col = c;
-      estado.turno = 'rojo';
+      estado.turno = 'visitante';
       estado.movimientosBalon = 4 - movRestantes;
 
       if (movRestantes === 0) {
@@ -2836,26 +2836,26 @@
         }
 
         // balón ya está en d.fila, d.col — evaluar
-        const sigueRojo = equipoTienePosesion('rojo');
+        const sigueVisitante = equipoTienePosesion('visitante');
         const scoreAqui = iaEvaluarEstado();
 
-        const blancosColindantes = iaColindantesSimulados(d.fila, d.col, 'blanco');
-        const rojosColindantes = iaColindantesSimulados(d.fila, d.col, 'rojo');
-        const penalExposicion = (!sigueRojo && blancosColindantes > rojosColindantes) ? -600 : 0;
+        const localesColindantes = iaColindantesSimulados(d.fila, d.col, 'local');
+        const visitantesColindantes = iaColindantesSimulados(d.fila, d.col, 'visitante');
+        const penalExposicion = (!sigueVisitante && localesColindantes > visitantesColindantes) ? -600 : 0;
 
-        // Si mantiene posesión pero el margen es mínimo (exactamente 1 rojo más),
+        // Si mantiene posesión pero el margen es mínimo (exactamente 1 visitante más),
         // penalizar porque el rival puede romperla con 1 movimiento
-        const margenPosesion = rojosColindantes - blancosColindantes;
-        const penalMargenFino = (sigueRojo && margenPosesion === 1 && movRestantes > 1) ? -400 : 0;
+        const margenPosesion = visitantesColindantes - localesColindantes;
+        const penalMargenFino = (sigueVisitante && margenPosesion === 1 && movRestantes > 1) ? -400 : 0;
 
         let resultado;
-        if (sigueRojo && movRestantes > 1) {
+        if (sigueVisitante && movRestantes > 1) {
           const subRes = iaBestBallSequence(d.fila, d.col, movRestantes - 1, alpha, beta);
           // Descuento por profundidad: cada paso intermedio tiene riesgo de intervención rival
-          // Un gol en mov4 vale menos que uno en mov1 porque el blanco puede actuar entre medias
+          // Un gol en mov4 vale menos que uno en mov1 porque el local puede actuar entre medias
           const descuentoProfundidad = subRes.score >= 490000 ? (4 - movRestantes) * 1200 : 0;
           resultado = { score: subRes.score + penalMargenFino - descuentoProfundidad, seq: [d, ...subRes.seq] };
-        } else if (!sigueRojo && movRestantes > 1) {
+        } else if (!sigueVisitante && movRestantes > 1) {
           // Pierde posesión en paso intermedio: penalización proporcional a movimientos restantes
           const penalPerdidaPosesion = 800 + (movRestantes - 1) * 600;
           const subRes = iaBestBallSequence(d.fila, d.col, movRestantes - 1, alpha, beta);
@@ -2878,14 +2878,14 @@
       return { score: mejorScore, seq: mejorSeq };
     }
 
-    // Mejor secuencia de balón para blanco (minimiza score desde perspectiva rojo).
-    // Espejo de iaBestBallSequence pero para el equipo blanco.
-    function iaBestBallSequenceBlanco(f, c, movRestantes) {
+    // Mejor secuencia de balón para local (minimiza score desde perspectiva visitante).
+    // Espejo de iaBestBallSequence pero para el equipo local.
+    function iaBestBallSequenceLocal(f, c, movRestantes) {
       const oldF = estado.fichas.balon.fila, oldC = estado.fichas.balon.col;
       const oldTurno = estado.turno, oldMovs = estado.movimientosBalon;
 
       estado.fichas.balon.fila = f; estado.fichas.balon.col = c;
-      estado.turno = 'blanco';
+      estado.turno = 'local';
       estado.movimientosBalon = 4 - movRestantes;
 
       if (movRestantes === 0) {
@@ -2903,7 +2903,7 @@
         return s;
       }
 
-      // Ordenar destinos: blanco ataca hacia filas altas (portería roja fila 13)
+      // Ordenar destinos: local ataca hacia filas altas (portería visitante fila 14)
       // Priorizar destinos más avanzados para mejorar la poda
       const scored = destinos.map(d => {
         estado.fichas.balon.fila = d.fila; estado.fichas.balon.col = d.col;
@@ -2911,26 +2911,26 @@
         estado.fichas.balon.fila = f; estado.fichas.balon.col = c;
         return { d, s };
       });
-      scored.sort((a, b) => a.s - b.s); // menor score rojo primero (mejor para blanco)
+      scored.sort((a, b) => a.s - b.s); // menor score visitante primero (mejor para local)
 
-      // Gol del blanco: portería roja en fila 13, columnas 4-8 (ajustar según tu configuración)
+      // Gol del local: portería visitante en fila 14
       let mejorScore = Infinity;
 
       for (const { d } of scored) {
-        // Gol directo del blanco (portería roja en fila 14)
+        // Gol directo del local (portería visitante en fila 14)
         if (d.fila === 14) {
           estado.fichas.balon.fila = oldF; estado.fichas.balon.col = oldC;
           estado.turno = oldTurno; estado.movimientosBalon = oldMovs;
-          return -500000 + (4 - movRestantes) * 1200; // muy negativo para rojo
+          return -500000 + (4 - movRestantes) * 1200; // muy negativo para visitante
         }
 
         estado.fichas.balon.fila = d.fila; estado.fichas.balon.col = d.col;
-        const sigueBlanco = equipoTienePosesion('blanco');
+        const sigueLocal = equipoTienePosesion('local');
         estado.fichas.balon.fila = f; estado.fichas.balon.col = c;
 
         let resultado;
-        if (sigueBlanco && movRestantes > 1) {
-          resultado = iaBestBallSequenceBlanco(d.fila, d.col, movRestantes - 1);
+        if (sigueLocal && movRestantes > 1) {
+          resultado = iaBestBallSequenceLocal(d.fila, d.col, movRestantes - 1);
         } else {
           estado.fichas.balon.fila = d.fila; estado.fichas.balon.col = d.col;
           resultado = iaEvaluarEstado();
@@ -2945,17 +2945,17 @@
       return mejorScore;
     }
 
-    // Simula el mejor turno posible del blanco (1-ply: mover 1 jugador + mejor secuencia balón)
-    // Devuelve el score resultante desde perspectiva del rojo (negativo = peligroso para rojo)
-    function iaSimularMejorTurnoBlanco() {
-      const piezasBlanco = Object.entries(estado.fichas)
-        .filter(([id, d]) => d.equipo === 'blanco')
+    // Simula el mejor turno posible del local (1-ply: mover 1 jugador + mejor secuencia balón)
+    // Devuelve el score resultante desde perspectiva del visitante (negativo = peligroso para visitante)
+    function iaSimularMejorTurnoLocal() {
+      const piezasLocal = Object.entries(estado.fichas)
+        .filter(([id, d]) => d.equipo === 'local')
         .map(([id, d]) => ({ id, fila: d.fila, col: d.col }));
 
       const balonF = estado.fichas.balon.fila, balonC = estado.fichas.balon.col;
-      let peorParaRojo = Infinity; // blanco maximiza → rojo busca el peor caso
+      let peorParaVisitante = Infinity; // local maximiza → visitante busca el peor caso
 
-      for (const pieza of piezasBlanco) {
+      for (const pieza of piezasLocal) {
         const destinos = obtenerDestinosJugador(pieza.fila, pieza.col)
           .filter(d => !estaOcupada(d.fila, d.col, pieza.id));
 
@@ -2963,7 +2963,7 @@
         // Esto evita ignorar jugadores ya bien posicionados que quieren progresar
         const scored = destinos.map(d => {
           const distBal = iaDistancia(d.fila, d.col, balonF, balonC);
-          const avance = d.fila; // blanco ataca hacia filas altas (portería roja en fila 13)
+          const avance = d.fila; // local ataca hacia filas altas (portería visitante en fila 14)
           return { d, heuristica: -distBal * 2 + avance };
         });
         scored.sort((a, b) => b.heuristica - a.heuristica);
@@ -2974,29 +2974,29 @@
           estado.fichas[pieza.id].col  = dest.col;
 
           let scoreFinal;
-          if (equipoTienePosesion('blanco')) {
-            // Si blanco gana posesión, simular secuencia completa de balón (hasta 4 pasos)
-            scoreFinal = iaBestBallSequenceBlanco(balonF, balonC, 4) - 2000;
+          if (equipoTienePosesion('local')) {
+            // Si local gana posesión, simular secuencia completa de balón (hasta 4 pasos)
+            scoreFinal = iaBestBallSequenceLocal(balonF, balonC, 4) - 2000;
           } else {
             scoreFinal = iaEvaluarEstado();
           }
 
-          if (scoreFinal < peorParaRojo) peorParaRojo = scoreFinal;
+          if (scoreFinal < peorParaVisitante) peorParaVisitante = scoreFinal;
 
           estado.fichas[pieza.id].fila = pieza.fila;
           estado.fichas[pieza.id].col  = pieza.col;
         }
       }
 
-      return peorParaRojo === Infinity ? iaEvaluarEstado() : peorParaRojo;
+      return peorParaVisitante === Infinity ? iaEvaluarEstado() : peorParaVisitante;
     }
 
     function iaMoverJugador() {
       const balonF = estado.fichas.balon.fila;
       const balonC = estado.fichas.balon.col;
-      const rivalTienePosesion = equipoTienePosesion('blanco');
+      const rivalTienePosesion = equipoTienePosesion('local');
       const piezasIA = Object.entries(estado.fichas)
-        .filter(([id, d]) => d.equipo === 'rojo')
+        .filter(([id, d]) => d.equipo === 'visitante')
         .map(([id, d]) => ({ id, ...d }));
 
       // Amenaza de gol para portero (mantener esta lógica reactiva)
@@ -3022,7 +3022,7 @@
           const descentrado = Math.abs(porteroCol - 6); // 0=centrado, mayor=más descentrado
           const balonEnArea = balonF >= 9;
           const balonLejos = balonF <= 8;
-          const rojoTienePosesionAhora = equipoTienePosesion('rojo');
+          const visitanteTienePosesionAhora = equipoTienePosesion('visitante');
 
           for (const dest of destinos) {
             let score = 0;
@@ -3040,7 +3040,7 @@
 
               estado.fichas[pieza.id].fila = dest.fila;
               estado.fichas[pieza.id].col  = dest.col;
-              const ganaPosesionPortero = equipoTienePosesion('rojo');
+              const ganaPosesionPortero = equipoTienePosesion('visitante');
               estado.fichas[pieza.id].fila = pieza.fila;
               estado.fichas[pieza.id].col  = pieza.col;
 
@@ -3048,7 +3048,7 @@
                 estado.fichas[pieza.id].fila = dest.fila;
                 estado.fichas[pieza.id].col  = dest.col;
                 const resPropio = iaBestBallSequence(balonF, balonC, 4, -Infinity, Infinity);
-                const scoreRival = iaSimularMejorTurnoBlanco();
+                const scoreRival = iaSimularMejorTurnoLocal();
                 estado.fichas[pieza.id].fila = pieza.fila;
                 estado.fichas[pieza.id].col  = pieza.col;
                 score = resPropio.score - scoreRival * 0.8;
@@ -3079,9 +3079,9 @@
 
         // Para jugadores de campo: scored por estado resultante
         // Cuando no hay posesión, priorizar colindancia al balón sobre posición ofensiva
-        const rojoTienePosesion = equipoTienePosesion('rojo');
+        const visitanteTienePosesion = equipoTienePosesion('visitante');
         const destsOrdenados = destinos.slice().sort((a, b) => {
-          if (!rojoTienePosesion) {
+          if (!visitanteTienePosesion) {
             // Sin posesión: ordenar por proximidad final al balón (distancia Manhattan)
             const dA = iaDistancia(a.fila, a.col, balonF, balonC);
             const dB = iaDistancia(b.fila, b.col, balonF, balonC);
@@ -3098,48 +3098,48 @@
           estado.fichas[pieza.id].col  = dest.col;
 
           let scoreTotal;
-          const ganaPosesionAhora = equipoTienePosesion('rojo');
+          const ganaPosesionAhora = equipoTienePosesion('visitante');
           const distDestBalon = iaDistancia(dest.fila, dest.col, balonF, balonC);
           const distPiezaBalon = iaDistancia(pieza.fila, pieza.col, balonF, balonC);
           const esColindanteDest = Math.abs(dest.fila - balonF) <= 1 && Math.abs(dest.col - balonC) <= 1;
 
-          if (rojoTienePosesion || ganaPosesionAhora) {
+          if (visitanteTienePosesion || ganaPosesionAhora) {
             // Con posesión (propia o recién ganada): evaluar secuencia completa de balón
             const resPropio = iaBestBallSequence(balonF, balonC, 4, -Infinity, Infinity);
-            const scoreRival = iaSimularMejorTurnoBlanco();
+            const scoreRival = iaSimularMejorTurnoLocal();
             scoreTotal = resPropio.score - scoreRival * 0.8;
             // Bonus grande por recuperar posesión con este movimiento
-            if (ganaPosesionAhora && !rojoTienePosesion) scoreTotal += 2000;
+            if (ganaPosesionAhora && !visitanteTienePosesion) scoreTotal += 2000;
             // Bonus posicional: favorecer al jugador que queda más cerca del balón
             scoreTotal += Math.max(0, 500 - distDestBalon * 50);
             if (esColindanteDest) scoreTotal += 300;
           } else {
             // Sin posesión y sin ganarla: proximidad al balón es la prioridad absoluta
-            // El lookahead solo penaliza si este movimiento deja al blanco ganar posesión
+            // El lookahead solo penaliza si este movimiento deja al local ganar posesión
             scoreTotal = Math.max(0, 5000 - distDestBalon * 500);
             if (esColindanteDest) scoreTotal += 3000;
 
-            // Penalización lookahead: si desde este estado el blanco puede ganar posesión, penalizar
-            const scoreRival = iaSimularMejorTurnoBlanco();
+            // Penalización lookahead: si desde este estado el local puede ganar posesión, penalizar
+            const scoreRival = iaSimularMejorTurnoLocal();
             if (scoreRival < -1000) scoreTotal += scoreRival * 0.3; // solo penaliza en caso de peligro real
 
-            // Bonus por quitar posesión al blanco
-            const quitaPosesion = rivalTienePosesion && !equipoTienePosesion('blanco');
+            // Bonus por quitar posesión al local
+            const quitaPosesion = rivalTienePosesion && !equipoTienePosesion('local');
             if (quitaPosesion) scoreTotal += 4000;
 
-            // Casilla neutra (1 rojo + 1 blanco colindantes): decidir según distancias
-            const rojosColindantesActuales = piezasIA.filter(p =>
+            // Casilla neutra (1 visitante + 1 local colindantes): decidir según distancias
+            const visitantesColindantesActuales = piezasIA.filter(p =>
               p.id !== pieza.id &&
               Math.abs(p.fila - balonF) <= 1 && Math.abs(p.col - balonC) <= 1
             ).length;
-            const blancosColindantesActuales = Object.values(estado.fichas).filter(d =>
-              d.equipo === 'blanco' &&
+            const localesColindantesActuales = Object.values(estado.fichas).filter(d =>
+              d.equipo === 'local' &&
               Math.abs(d.fila - balonF) <= 1 && Math.abs(d.col - balonC) <= 1
             ).length;
-            if (rojosColindantesActuales >= 1 && blancosColindantesActuales >= 1) {
-              // Casilla neutra real: comparar distancia de este jugador vs blanco no colindante más cercano
-              const distBlancoCercano = Math.min(...Object.values(estado.fichas)
-                .filter(d => d.equipo === 'blanco' &&
+            if (visitantesColindantesActuales >= 1 && localesColindantesActuales >= 1) {
+              // Casilla neutra real: comparar distancia de este jugador vs local no colindante más cercano
+              const distLocalCercano = Math.min(...Object.values(estado.fichas)
+                .filter(d => d.equipo === 'local' &&
                   !(Math.abs(d.fila - balonF) <= 1 && Math.abs(d.col - balonC) <= 1))
                 .map(d => iaDistancia(d.fila, d.col, balonF, balonC))
                 .concat([99])
@@ -3147,15 +3147,15 @@
               if (esColindanteDest) {
                 // Este jugador ya llegaría colindante: siempre rompe el empate → bonus muy alto
                 scoreTotal += 10000;
-              } else if (distDestBalon < distBlancoCercano) {
-                // Llega antes que el siguiente blanco: bonus moderado por acercarse
+              } else if (distDestBalon < distLocalCercano) {
+                // Llega antes que el siguiente local: bonus moderado por acercarse
                 scoreTotal += 3000;
               } else {
                 // No llega antes: mejor cubrir líneas de pase (penalizar ir al balón)
                 scoreTotal -= 1000;
               }
-            } else if (rojosColindantesActuales >= 1 && esColindanteDest) {
-              // Hay un rojo colindante pero sin blanco disputando: refuerzo igualmente útil
+            } else if (visitantesColindantesActuales >= 1 && esColindanteDest) {
+              // Hay un visitante colindante pero sin local disputando: refuerzo igualmente útil
               scoreTotal += 8000;
             }
           }
@@ -3169,9 +3169,9 @@
 
       // Log top-5 candidatos
       candidatos.sort((a, b) => b.score - a.score);
-      const rojoPos = equipoTienePosesion('rojo');
-      const modoLookahead = !rojoPos && !rivalTienePosesion ? 'LOOKAHEAD' : rojoPos ? 'POSESION' : 'RIVAL';
-      console.group(`%c🤖 IA MOVER JUGADOR | balón(${balonF},${balonC}) | posesión:${rojoPos?'ROJO':rivalTienePosesion?'BLANCO':'NADIE'} | modo:${modoLookahead}`, 'color:#4fc3f7;font-weight:bold');
+      const visitantePos = equipoTienePosesion('visitante');
+      const modoLookahead = !visitantePos && !rivalTienePosesion ? 'LOOKAHEAD' : visitantePos ? 'POSESION' : 'RIVAL';
+      console.group(`%c🤖 IA MOVER JUGADOR | balón(${balonF},${balonC}) | posesión:${visitantePos?'VISITANTE':rivalTienePosesion?'LOCAL':'NADIE'} | modo:${modoLookahead}`, 'color:#4fc3f7;font-weight:bold');
       candidatos.slice(0, 5).forEach((c, i) => {
         console.log(`  ${i===0?'✅':'  '} ${c.piezaId} → (${c.dest.fila},${c.dest.col}) score:${Math.round(c.score)}`);
       });
@@ -3199,7 +3199,7 @@
 
       let primero, secuencia = [], scoreElegido = 0;
 
-      if (equipoTienePosesion('rojo')) {
+      if (equipoTienePosesion('visitante')) {
         const res = iaBestBallSequence(balonF, balonC, movRestantes, -Infinity, Infinity);
         primero = res.seq.length > 0 ? res.seq[0] : null;
         secuencia = res.seq;
@@ -3216,7 +3216,7 @@
       }
 
       const seqStr = secuencia.map(d => `(${d.fila},${d.col})`).join(' → ');
-      console.log(`%c🤖 IA BALÓN mov${estado.movimientosBalon+1} | balón(${balonF},${balonC}) | posesión:${equipoTienePosesion('rojo')?'ROJO':'NADIE'}`, 'color:#ffcc80;font-weight:bold');
+      console.log(`%c🤖 IA BALÓN mov${estado.movimientosBalon+1} | balón(${balonF},${balonC}) | posesión:${equipoTienePosesion('visitante')?'VISITANTE':'NADIE'}`, 'color:#ffcc80;font-weight:bold');
       console.log(`   secuencia: ${seqStr || '(ninguna)'} | score:${Math.round(scoreElegido)}`);
       console.log(`   primer paso: (${primero?.fila},${primero?.col})`);
 
@@ -3240,8 +3240,8 @@
 
     // ====== ESTADO DE VICTORIA ======
     const victoria = {
-      turnosRestantes: { blanco: 0, rojo: 0 },
-      tiempoRestante:  { blanco: 0, rojo: 0 }, // segundos
+      turnosRestantes: { local: 0, visitante: 0 },
+      tiempoRestante:  { local: 0, visitante: 0 }, // segundos
       intervalo: null,
       golDeOro: false
     };
@@ -3266,7 +3266,7 @@
     const db = getDatabase(firebaseApp);
 
     const red = {
-      miEquipo: null,   // 'blanco' (creador) | 'rojo' (unido)
+      miEquipo: null,   // 'local' (creador) | 'visitante' (unido)
       codigo: null,
       escucha: null     // unsubscribe de onValue
     };
@@ -3301,7 +3301,7 @@
 
       const codigo = String(Math.floor(1000 + Math.random() * 9000));
       red.codigo   = codigo;
-      red.miEquipo = 'blanco';
+      red.miEquipo = 'local';
 
       document.getElementById('sala-codigo').textContent = codigo;
       document.getElementById('sala-espera').innerHTML = '<span class="sala-spinner">⟳</span> Esperando rival...';
@@ -3318,7 +3318,7 @@
           document.getElementById('sala-espera').textContent = '✓ Rival conectado. Iniciando...';
           setTimeout(() => {
             // Enviar config al rival
-            enviarMensaje({ tipo: 'config', config: { ...config }, origen: 'blanco' });
+            enviarMensaje({ tipo: 'config', config: { ...config }, origen: 'local' });
             iniciarJuego();
           }, 800);
         }
@@ -3340,7 +3340,7 @@
       document.getElementById('codigo-input').disabled = true;
 
       red.codigo   = codigo;
-      red.miEquipo = 'rojo';
+      red.miEquipo = 'visitante';
 
       // Verificar que la sala existe
       onValue(salaRef(codigo), snap => {
@@ -3372,7 +3372,7 @@
 
       } else if (msg.tipo === 'moneda') {
         const { equipoQueSaca } = msg;
-        const resultado = equipoQueSaca === 'blanco' ? 'cara' : 'cruz';
+        const resultado = equipoQueSaca === 'local' ? 'cara' : 'cruz';
         const moneda = document.getElementById('moneda-3d');
         moneda.className = 'moneda-3d';
         void moneda.offsetWidth;
@@ -3381,7 +3381,7 @@
           const todosEqO = equiposGuardados();
           const eqLocalO = todosEqO.find(e => e.id === config.equipoLocal);
           const eqRivalO = todosEqO.find(e => e.id === config.equipoRival);
-          const nombre = equipoQueSaca === 'blanco'
+          const nombre = equipoQueSaca === 'local'
             ? (eqLocalO ? eqLocalO.nombre : 'Local')
             : (eqRivalO ? eqRivalO.nombre : 'Visitante');
           document.getElementById('moneda-ganador').textContent = 'Saca ' + nombre;
@@ -3488,8 +3488,8 @@
     function lanzarSorteo() {
       // Sorteo automático — ambos jugadores ven la animación simultáneamente
       const resultado = Math.random() < 0.5 ? 'cara' : 'cruz';
-      // Quien saca: cara = blanco, cruz = rojo (aleatorio efectivo)
-      const equipoQueSaca = resultado === 'cara' ? 'blanco' : 'rojo';
+      // Quien saca: cara = local, cruz = visitante (aleatorio efectivo)
+      const equipoQueSaca = resultado === 'cara' ? 'local' : 'visitante';
       sorteo.resultado    = resultado;
       sorteo.equipoQueSaca = equipoQueSaca;
 
@@ -3508,7 +3508,7 @@
         const todosEq = equiposGuardados();
         const eqLocal = todosEq.find(e => e.id === config.equipoLocal);
         const eqRival = todosEq.find(e => e.id === config.equipoRival);
-        const nombre = equipoQueSaca === 'blanco'
+        const nombre = equipoQueSaca === 'local'
           ? (eqLocal ? eqLocal.nombre : 'Local')
           : (eqRival ? eqRival.nombre : 'Visitante');
         document.getElementById('moneda-ganador').textContent = 'Saca ' + nombre;
@@ -3521,9 +3521,9 @@
           document.getElementById('moneda-overlay').classList.remove('visible');
           document.getElementById('moneda-resultado').classList.remove('visible');
 
-          // En modo online el creador (blanco) envía el resultado al rival
-          if (config.modo === 'online' && red.miEquipo === 'blanco') {
-            enviarMensaje({ tipo: 'moneda', equipoQueSaca, origen: 'blanco' });
+          // En modo online el creador (local) envía el resultado al rival
+          if (config.modo === 'online' && red.miEquipo === 'local') {
+            enviarMensaje({ tipo: 'moneda', equipoQueSaca, origen: 'local' });
           }
           arrancarPartida(equipoQueSaca);
         }, 2000);
@@ -3531,7 +3531,7 @@
     }
 
     function arrancarPartida(equipoQueSaca) {
-      MARCADOR.blanco = 0; MARCADOR.rojo = 0;
+      MARCADOR.local = 0; MARCADOR.visitante = 0;
       victoria.golDeOro = false;
       estado.modo = config.modo;
       recolocar(equipoQueSaca);
@@ -3540,12 +3540,12 @@
 
       // Inicializar condición de victoria
       if (config.encuentro === 'turnos') {
-        victoria.turnosRestantes.blanco = config.turnos;
-        victoria.turnosRestantes.rojo   = config.turnos;
+        victoria.turnosRestantes.local     = config.turnos;
+        victoria.turnosRestantes.visitante = config.turnos;
       } else if (config.encuentro === 'crono') {
         const segs = config.cronoTiempo * 60;
-        victoria.tiempoRestante.blanco = segs;
-        victoria.tiempoRestante.rojo   = segs;
+        victoria.tiempoRestante.local     = segs;
+        victoria.tiempoRestante.visitante = segs;
         document.getElementById('cronometros').style.display = 'flex';
         actualizarCronometrosUI();
         iniciarCronometro();
@@ -3553,7 +3553,7 @@
 
       aplicarEquiposAlHUD();
       actualizarUI();
-      if (estado.turno === 'rojo' && estado.modo === 'vsIA') ejecutarTurnoIA();
+      if (estado.turno === 'visitante' && estado.modo === 'vsIA') ejecutarTurnoIA();
     };
 
     // ====== CRONOMETRO ======
@@ -3566,7 +3566,7 @@
         if (victoria.tiempoRestante[equipo] <= 0) {
           clearInterval(victoria.intervalo);
           victoria.tiempoRestante[equipo] = 0;
-          finPartida(equipo === 'blanco' ? 'rojo' : 'blanco', 'tiempo');
+          finPartida(equipo === 'local' ? 'visitante' : 'local', 'tiempo');
         }
       }, 1000);
     }
@@ -3584,21 +3584,21 @@
       const enc = config.encuentro;
 
       if (enc === 'goles') {
-        if (MARCADOR.blanco >= config.goles) { finPartida('blanco', 'goles'); return true; }
-        if (MARCADOR.rojo   >= config.goles) { finPartida('rojo',   'goles'); return true; }
+        if (MARCADOR.local     >= config.goles) { finPartida('local',     'goles'); return true; }
+        if (MARCADOR.visitante >= config.goles) { finPartida('visitante', 'goles'); return true; }
       }
 
       if (enc === 'turnos' || victoria.golDeOro) {
         // Durante gol de oro, el primer gol cierra el partido
         if (victoria.golDeOro) {
-          if (MARCADOR.blanco > MARCADOR.rojo) { finPartida('blanco', 'goldeoro'); return true; }
-          if (MARCADOR.rojo > MARCADOR.blanco) { finPartida('rojo',   'goldeoro'); return true; }
+          if (MARCADOR.local > MARCADOR.visitante)      { finPartida('local',     'goldeoro'); return true; }
+          if (MARCADOR.visitante > MARCADOR.local)      { finPartida('visitante', 'goldeoro'); return true; }
         }
       }
 
       if (enc === 'crono') {
-        if (MARCADOR.blanco >= config.cronoGoles) { pausarCronometro(); finPartida('blanco', 'goles'); return true; }
-        if (MARCADOR.rojo   >= config.cronoGoles) { pausarCronometro(); finPartida('rojo',   'goles'); return true; }
+        if (MARCADOR.local     >= config.cronoGoles) { pausarCronometro(); finPartida('local',     'goles'); return true; }
+        if (MARCADOR.visitante >= config.cronoGoles) { pausarCronometro(); finPartida('visitante', 'goles'); return true; }
       }
 
       return false;
@@ -3612,17 +3612,17 @@
       const result  = document.getElementById('fin-resultado');
       const detalle = document.getElementById('fin-detalle');
 
-      result.textContent = MARCADOR.blanco + ' - ' + MARCADOR.rojo;
+      result.textContent = MARCADOR.local + ' - ' + MARCADOR.visitante;
 
       if (ganador === 'empate') {
         titulo.textContent = 'Empate';
         detalle.textContent = 'Se agotaron los turnos sin diferencia.';
       } else {
         const todosEqF = equiposGuardados();
-        const eqGanador = ganador === 'blanco'
+        const eqGanador = ganador === 'local'
           ? todosEqF.find(e => e.id === config.equipoLocal)
           : todosEqF.find(e => e.id === config.equipoRival);
-        const nombre = eqGanador ? eqGanador.nombre : (ganador === 'blanco' ? 'Local' : 'Visitante');
+        const nombre = eqGanador ? eqGanador.nombre : (ganador === 'local' ? 'Local' : 'Visitante');
         titulo.textContent = '¡Gana ' + nombre + '!';
         if (motivo === 'goles')    detalle.textContent = 'Alcanzó el objetivo de goles.';
         if (motivo === 'tiempo')   detalle.textContent = 'Al rival se le agotó el tiempo.';
@@ -3635,8 +3635,8 @@
         config._ligaPendiente = false;
         const p = config._ligaPartido;
         const soyLocal = p.local === ligaData.miEquipo;
-        p.golLocal     = soyLocal ? MARCADOR.blanco : MARCADOR.rojo;
-        p.golVisitante = soyLocal ? MARCADOR.rojo   : MARCADOR.blanco;
+        p.golLocal     = soyLocal ? MARCADOR.local : MARCADOR.visitante;
+        p.golVisitante = soyLocal ? MARCADOR.visitante : MARCADOR.local;
         p.jugado = true;
         ligaRecalcularTabla();
         ligaGuardar();
@@ -3663,8 +3663,8 @@
         config._torneoPendiente = false;
         const p = torneoData.rondas[config._torneoRonda][config._torneoPartido];
         const soyLocal = p.local === torneoData.miEquipo;
-        if (soyLocal) { p.golLocal = MARCADOR.blanco; p.golVisitante = MARCADOR.rojo; }
-        else           { p.golLocal = MARCADOR.rojo;   p.golVisitante = MARCADOR.blanco; }
+        if (soyLocal) { p.golLocal = MARCADOR.local; p.golVisitante = MARCADOR.visitante; }
+        else          { p.golLocal = MARCADOR.visitante; p.golVisitante = MARCADOR.local; }
         if (p.golLocal === p.golVisitante) { Math.random() < 0.5 ? p.golLocal++ : p.golVisitante++; }
         p.jugado = true;
         const btnRevancha = document.querySelector('.btn-revancha');
@@ -3691,15 +3691,15 @@
 
     window.revancha = function() {
       document.getElementById('fin-overlay').classList.remove('visible');
-      MARCADOR.blanco = 0; MARCADOR.rojo = 0;
-      recolocar('blanco');
+      MARCADOR.local = 0; MARCADOR.visitante = 0;
+      recolocar('local');
       if (config.encuentro === 'turnos') {
-        victoria.turnosRestantes.blanco = config.turnos;
-        victoria.turnosRestantes.rojo   = config.turnos;
+        victoria.turnosRestantes.local     = config.turnos;
+        victoria.turnosRestantes.visitante = config.turnos;
       } else if (config.encuentro === 'crono') {
         const segs = config.cronoTiempo * 60;
-        victoria.tiempoRestante.blanco = segs;
-        victoria.tiempoRestante.rojo   = segs;
+        victoria.tiempoRestante.local     = segs;
+        victoria.tiempoRestante.visitante = segs;
         actualizarCronometrosUI();
         iniciarCronometro();
       }
@@ -3714,8 +3714,8 @@
       document.getElementById('cronometros').style.display = 'none';
       document.getElementById('partido-overlay').classList.remove('visible');
       document.getElementById('menu-inicial').style.display = 'flex';
-      MARCADOR.blanco = 0; MARCADOR.rojo = 0;
-      recolocar('blanco');
+      MARCADOR.local = 0; MARCADOR.visitante = 0;
+      recolocar('local');
     };
 
     // ====== EQUIPOS ======
@@ -3763,7 +3763,7 @@
       pintarFichasTablero(localEq, rivalEq);
 
       // Actualizar iconos de equipo en el HUD SVG
-      [['hud-blanco', localEq, '#ffffff', '#bbb'], ['hud-rojo', rivalEq, '#d32f2f', '#b71c1c']].forEach(([hudId, eq, defFill, defStroke]) => {
+      [['hud-local', localEq, '#ffffff', '#bbb'], ['hud-visitante', rivalEq, '#d32f2f', '#b71c1c']].forEach(([hudId, eq, defFill, defStroke]) => {
         const circ = document.querySelector(`#${hudId} circle`);
         if (!circ) return;
         if (!eq) { circ.setAttribute('fill', defFill); circ.setAttribute('stroke', defStroke); return; }

@@ -27,25 +27,25 @@ function esColindanteAlBalon(f, c) {
 }
 
 function contarColindantes() {
-  let blanco = 0, rojo = 0;
+  let local = 0, visitante = 0;
   for (const [id, d] of Object.entries(estado.fichas)) {
     if (id === 'balon') continue;
     if (esColindanteAlBalon(d.fila, d.col)) {
-      if (d.equipo === 'blanco') blanco++;
-      else rojo++;
+      if (d.equipo === 'local') local++;
+      else visitante++;
     }
   }
-  return { blanco, rojo };
+  return { local, visitante };
 }
 
 function equipoTienePosesion(equipo) {
   const c = contarColindantes();
-  if (equipo === 'blanco') return c.blanco > c.rojo;
-  return c.rojo > c.blanco;
+  if (equipo === 'local') return c.local > c.visitante;
+  return c.visitante > c.local;
 }
 
 function esPortero(id) {
-  return id === 'b-portero' || id === 'r-portero';
+  return id === 'l-portero' || id === 'v-portero';
 }
 
 function obtenerColindantesEquipo(balonF, balonC, equipo) {
@@ -69,7 +69,7 @@ function esAutopase(filaDest, colDest) {
 
 function obtenerCasillasPortero(porteroId) {
   const portero = estado.fichas[porteroId];
-  const esBlanco = porteroId === 'b-portero';
+  const esBlanco = porteroId === 'l-portero';
   const casillas = [{ fila: portero.fila, col: portero.col, tipo: 'portero' }];
   const brazoIzq = { fila: portero.fila, col: portero.col - 1, tipo: 'brazo' };
   const brazoDer = { fila: portero.fila, col: portero.col + 1, tipo: 'brazo' };
@@ -84,8 +84,8 @@ function obtenerCasillasPortero(porteroId) {
 
 function saltaPorteroContrario(fOrigen, cOrigen, fDest, cDest) {
   const equipo = estado.turno;
-  const rival = equipo === 'blanco' ? 'rojo' : 'blanco';
-  const idPorteroRival = rival === 'blanco' ? 'b-portero' : 'r-portero';
+  const rival = equipo === 'local' ? 'visitante' : 'local';
+  const idPorteroRival = rival === 'local' ? 'l-portero' : 'v-portero';
   const casillasPortero = obtenerCasillasPortero(idPorteroRival);
   const df = Math.sign(fDest - fOrigen);
   const dc = Math.sign(cDest - cOrigen);
@@ -107,7 +107,7 @@ function saltaJugadorEnAreaChica(fOrigen, cOrigen, fDest, cDest) {
     const enAreaChica = (cf >= 1 && cf <= 2 && cc >= 3 && cc <= 9) ||
                         (cf >= 12 && cf <= 13 && cc >= 3 && cc <= 9);
     if (enAreaChica) {
-      const equipoRival = estado.turno === 'blanco' ? 'rojo' : 'blanco';
+      const equipoRival = estado.turno === 'local' ? 'visitante' : 'local';
       for (const [id, d] of Object.entries(estado.fichas)) {
         if (id === 'balon') continue;
         if (d.equipo !== equipoRival) continue;
@@ -121,13 +121,13 @@ function saltaJugadorEnAreaChica(fOrigen, cOrigen, fDest, cDest) {
 
 function esBrazoPorteroRival(f, c) {
   const equipo = estado.turno;
-  const rival = equipo === 'blanco' ? 'rojo' : 'blanco';
-  const idPorteroRival = rival === 'blanco' ? 'b-portero' : 'r-portero';
+  const rival = equipo === 'local' ? 'visitante' : 'local';
+  const idPorteroRival = rival === 'local' ? 'l-portero' : 'v-portero';
   const portero = estado.fichas[idPorteroRival];
   const esBrazoIzq = (f === portero.fila && c === portero.col - 1);
   const esBrazoDer = (f === portero.fila && c === portero.col + 1);
   if (!esBrazoIzq && !esBrazoDer) return false;
-  const esBlanco = rival === 'blanco';
+  const esBlanco = rival === 'local';
   const enAreaGrande = esBlanco
     ? (f >= 1 && f <= 4 && c >= 2 && c <= 10)
     : (f >= 10 && f <= 13 && c >= 2 && c <= 10);
@@ -152,9 +152,9 @@ function obtenerDestinosJugador(f, c) {
 
 function esDestinoValidoCuartoMovimiento(f, c) {
   if (esPorteria(f, c)) return true;
-  if (estado.turno === 'blanco' && ((f === 1 && c === 1) || (f === 1 && c === 11))) return false;
-  if (estado.turno === 'rojo'   && ((f === 13 && c === 1) || (f === 13 && c === 11))) return false;
-  if (estado.turno === 'blanco') {
+  if (estado.turno === 'local'    && ((f === 1 && c === 1) || (f === 1 && c === 11))) return false;
+  if (estado.turno === 'visitante' && ((f === 13 && c === 1) || (f === 13 && c === 11))) return false;
+  if (estado.turno === 'local') {
     if (f >= 1 && f <= 4 && c >= 2 && c <= 10) return false;
   } else {
     if (f >= 10 && f <= 13 && c >= 2 && c <= 10) return false;
@@ -162,7 +162,7 @@ function esDestinoValidoCuartoMovimiento(f, c) {
   const balonOriginal = { ...estado.fichas.balon };
   estado.fichas.balon.fila = f;
   estado.fichas.balon.col = c;
-  const nadaTienePosesion = !equipoTienePosesion('blanco') && !equipoTienePosesion('rojo');
+  const nadaTienePosesion = !equipoTienePosesion('local') && !equipoTienePosesion('visitante');
   estado.fichas.balon.fila = balonOriginal.fila;
   estado.fichas.balon.col = balonOriginal.col;
   return nadaTienePosesion;
@@ -186,11 +186,11 @@ function obtenerDestinosBalon(f, c) {
   dest = dest.filter(d => !saltaPorteroContrario(f, c, d.fila, d.col));
   dest = dest.filter(d => !saltaJugadorEnAreaChica(f, c, d.fila, d.col));
   dest = dest.filter(d => {
-    if (estado.turno === 'blanco') {
+    if (estado.turno === 'local') {
       if (d.fila === 0) return false;
       if (d.fila === 1 && (d.col === 1 || d.col === 11)) return false;
     }
-    if (estado.turno === 'rojo') {
+    if (estado.turno === 'visitante') {
       if (d.fila === 14) return false;
       if (d.fila === 13 && (d.col === 1 || d.col === 11)) return false;
     }
@@ -270,10 +270,10 @@ function iaEvaluarEstado() {
   const bf = estado.fichas.balon.fila;
   const bc = estado.fichas.balon.col;
   let v = 0;
-  const rojoTiene = equipoTienePosesion('rojo');
-  const blancoTiene = equipoTienePosesion('blanco');
-  if (rojoTiene)   v += 3000;
-  if (blancoTiene) v -= 3000;
+  const visitanteTiene = equipoTienePosesion('visitante');
+  const localTiene = equipoTienePosesion('local');
+  if (visitanteTiene) v += 3000;
+  if (localTiene)     v -= 3000;
   v += (14 - bf) * 200;
   if (bf <= 6) v += (6 - Math.abs(bc - 6)) * 80;
   if (bf <= 3) v += (4 - bf) * 200;
@@ -281,15 +281,15 @@ function iaEvaluarEstado() {
     const peligro = (bf - 8) * 400 + (6 - Math.abs(bc - 6)) * 100;
     v -= peligro;
   }
-  const rc = iaColindantesSimulados(bf, bc, 'rojo');
-  const bc2 = iaColindantesSimulados(bf, bc, 'blanco');
+  const rc = iaColindantesSimulados(bf, bc, 'visitante');
+  const bc2 = iaColindantesSimulados(bf, bc, 'local');
   v += (rc - bc2) * 300;
   const enPeligro = bf >= 8;
   for (const [id, d] of Object.entries(estado.fichas)) {
     if (id === 'balon' || esPortero(id)) continue;
     const distBal = iaDistancia(d.fila, d.col, bf, bc);
     const esColindante = Math.abs(d.fila - bf) <= 1 && Math.abs(d.col - bc) <= 1;
-    if (d.equipo === 'rojo') {
+    if (d.equipo === 'visitante') {
       if (enPeligro) {
         v += Math.max(0, 500 - distBal * 120);
         if (esColindante) v += 600;
@@ -312,7 +312,7 @@ function iaBestBallSequence(f, c, movRestantes, alpha, beta) {
   const oldF = estado.fichas.balon.fila, oldC = estado.fichas.balon.col;
   const oldTurno = estado.turno, oldMovs = estado.movimientosBalon;
   estado.fichas.balon.fila = f; estado.fichas.balon.col = c;
-  estado.turno = 'rojo';
+  estado.turno = 'visitante';
   estado.movimientosBalon = 4 - movRestantes;
   if (movRestantes === 0) {
     const s = iaEvaluarEstado();
@@ -343,19 +343,19 @@ function iaBestBallSequence(f, c, movRestantes, alpha, beta) {
       return { score: 500000 - descuentoGolDirecto, seq: [d] };
     }
     estado.fichas.balon.fila = d.fila; estado.fichas.balon.col = d.col;
-    const sigueRojo = equipoTienePosesion('rojo');
+    const sigueVisitante = equipoTienePosesion('visitante');
     const scoreAqui = iaEvaluarEstado();
-    const blancosColindantes = iaColindantesSimulados(d.fila, d.col, 'blanco');
-    const rojosColindantes = iaColindantesSimulados(d.fila, d.col, 'rojo');
-    const penalExposicion = (!sigueRojo && blancosColindantes > rojosColindantes) ? -600 : 0;
-    const margenPosesion = rojosColindantes - blancosColindantes;
-    const penalMargenFino = (sigueRojo && margenPosesion === 1 && movRestantes > 1) ? -400 : 0;
+    const localesColindantes = iaColindantesSimulados(d.fila, d.col, 'local');
+    const visitantesColindantes = iaColindantesSimulados(d.fila, d.col, 'visitante');
+    const penalExposicion = (!sigueVisitante && localesColindantes > visitantesColindantes) ? -600 : 0;
+    const margenPosesion = visitantesColindantes - localesColindantes;
+    const penalMargenFino = (sigueVisitante && margenPosesion === 1 && movRestantes > 1) ? -400 : 0;
     let resultado;
-    if (sigueRojo && movRestantes > 1) {
+    if (sigueVisitante && movRestantes > 1) {
       const subRes = iaBestBallSequence(d.fila, d.col, movRestantes - 1, alpha, beta);
       const descuentoProfundidad = subRes.score >= 490000 ? (4 - movRestantes) * 1200 : 0;
       resultado = { score: subRes.score + penalMargenFino - descuentoProfundidad, seq: [d, ...subRes.seq] };
-    } else if (!sigueRojo && movRestantes > 1) {
+    } else if (!sigueVisitante && movRestantes > 1) {
       const penalPerdidaPosesion = 800 + (movRestantes - 1) * 600;
       const subRes = iaBestBallSequence(d.fila, d.col, movRestantes - 1, alpha, beta);
       resultado = { score: subRes.score - penalPerdidaPosesion + penalExposicion, seq: [d, ...subRes.seq] };
@@ -372,11 +372,11 @@ function iaBestBallSequence(f, c, movRestantes, alpha, beta) {
   return { score: mejorScore, seq: mejorSeq };
 }
 
-function iaBestBallSequenceBlanco(f, c, movRestantes) {
+function iaBestBallSequenceLocal(f, c, movRestantes) {
   const oldF = estado.fichas.balon.fila, oldC = estado.fichas.balon.col;
   const oldTurno = estado.turno, oldMovs = estado.movimientosBalon;
   estado.fichas.balon.fila = f; estado.fichas.balon.col = c;
-  estado.turno = 'blanco';
+  estado.turno = 'local';
   estado.movimientosBalon = 4 - movRestantes;
   if (movRestantes === 0) {
     const s = iaEvaluarEstado();
@@ -406,11 +406,11 @@ function iaBestBallSequenceBlanco(f, c, movRestantes) {
       return -500000 + (4 - movRestantes) * 1200;
     }
     estado.fichas.balon.fila = d.fila; estado.fichas.balon.col = d.col;
-    const sigueBlanco = equipoTienePosesion('blanco');
+    const sigueLocal = equipoTienePosesion('local');
     estado.fichas.balon.fila = f; estado.fichas.balon.col = c;
     let resultado;
-    if (sigueBlanco && movRestantes > 1) {
-      resultado = iaBestBallSequenceBlanco(d.fila, d.col, movRestantes - 1);
+    if (sigueLocal && movRestantes > 1) {
+      resultado = iaBestBallSequenceLocal(d.fila, d.col, movRestantes - 1);
     } else {
       estado.fichas.balon.fila = d.fila; estado.fichas.balon.col = d.col;
       resultado = iaEvaluarEstado();
@@ -423,13 +423,13 @@ function iaBestBallSequenceBlanco(f, c, movRestantes) {
   return mejorScore;
 }
 
-function iaSimularMejorTurnoBlanco() {
-  const piezasBlanco = Object.entries(estado.fichas)
-    .filter(([id, d]) => d.equipo === 'blanco')
+function iaSimularMejorTurnoLocal() {
+  const piezasLocal = Object.entries(estado.fichas)
+    .filter(([id, d]) => d.equipo === 'local')
     .map(([id, d]) => ({ id, fila: d.fila, col: d.col }));
   const balonF = estado.fichas.balon.fila, balonC = estado.fichas.balon.col;
-  let peorParaRojo = Infinity;
-  for (const pieza of piezasBlanco) {
+  let peorParaVisitante = Infinity;
+  for (const pieza of piezasLocal) {
     const destinos = obtenerDestinosJugador(pieza.fila, pieza.col)
       .filter(d => !estaOcupada(d.fila, d.col, pieza.id));
     const scored = destinos.map(d => {
@@ -443,17 +443,17 @@ function iaSimularMejorTurnoBlanco() {
       estado.fichas[pieza.id].fila = dest.fila;
       estado.fichas[pieza.id].col  = dest.col;
       let scoreFinal;
-      if (equipoTienePosesion('blanco')) {
-        scoreFinal = iaBestBallSequenceBlanco(balonF, balonC, 4) - 2000;
+      if (equipoTienePosesion('local')) {
+        scoreFinal = iaBestBallSequenceLocal(balonF, balonC, 4) - 2000;
       } else {
         scoreFinal = iaEvaluarEstado();
       }
-      if (scoreFinal < peorParaRojo) peorParaRojo = scoreFinal;
+      if (scoreFinal < peorParaVisitante) peorParaVisitante = scoreFinal;
       estado.fichas[pieza.id].fila = pieza.fila;
       estado.fichas[pieza.id].col  = pieza.col;
     }
   }
-  return peorParaRojo === Infinity ? iaEvaluarEstado() : peorParaRojo;
+  return peorParaVisitante === Infinity ? iaEvaluarEstado() : peorParaVisitante;
 }
 
 function iaDetectarAmenazaGol() {
@@ -471,7 +471,7 @@ function iaDetectarAmenazaGol() {
       }
       if (estaOcupada(nf, nc, 'balon')) {
         const ocupante = Object.values(estado.fichas).find(f => f.fila === nf && f.col === nc);
-        if (ocupante && ocupante.equipo === 'rojo') break;
+        if (ocupante && ocupante.equipo === 'visitante') break;
       }
       if (!esCasillaValida(nf, nc) && !esPorteria(nf, nc)) break;
     }
@@ -491,9 +491,9 @@ function iaCasillasBloqueo(balonF, balonC, goF, goC) {
   return bloqueos;
 }
 
-function iaJugadoresBlancosPorPeligro() {
+function iaJugadoresLocalesPorPeligro() {
   return Object.entries(estado.fichas)
-    .filter(([id, d]) => d.equipo === 'blanco' && id !== 'balon')
+    .filter(([id, d]) => d.equipo === 'local' && id !== 'balon')
     .map(([id, d]) => ({ id, fila: d.fila, col: d.col }))
     .sort((a, b) => b.fila - a.fila);
 }
@@ -503,9 +503,9 @@ function iaJugadoresBlancosPorPeligro() {
 function calcularDecisionJugador() {
   const balonF = estado.fichas.balon.fila;
   const balonC = estado.fichas.balon.col;
-  const rivalTienePosesion = equipoTienePosesion('blanco');
+  const rivalTienePosesion = equipoTienePosesion('local');
   const piezasIA = Object.entries(estado.fichas)
-    .filter(([id, d]) => d.equipo === 'rojo')
+    .filter(([id, d]) => d.equipo === 'visitante')
     .map(([id, d]) => ({ id, ...d }));
 
   const amenazasGolActuales = iaDetectarAmenazaGol();
@@ -529,7 +529,7 @@ function calcularDecisionJugador() {
       const descentrado = Math.abs(porteroCol - 6);
       const balonEnArea = balonF >= 9;
       const balonLejos = balonF <= 8;
-      const rojoTienePosesionAhora = equipoTienePosesion('rojo');
+      const visitanteTienePosesionAhora = equipoTienePosesion('visitante');
 
       for (const dest of destinos) {
         let score = 0;
@@ -547,7 +547,7 @@ function calcularDecisionJugador() {
           // Simular portero en dest para saber si ganaría posesión
           estado.fichas[pieza.id].fila = dest.fila;
           estado.fichas[pieza.id].col  = dest.col;
-          const ganaPosesionPortero = equipoTienePosesion('rojo');
+          const ganaPosesionPortero = equipoTienePosesion('visitante');
           estado.fichas[pieza.id].fila = pieza.fila;
           estado.fichas[pieza.id].col  = pieza.col;
 
@@ -557,7 +557,7 @@ function calcularDecisionJugador() {
             estado.fichas[pieza.id].fila = dest.fila;
             estado.fichas[pieza.id].col  = dest.col;
             const resPropio = iaBestBallSequence(balonF, balonC, 4, -Infinity, Infinity);
-            const scoreRival = iaSimularMejorTurnoBlanco();
+            const scoreRival = iaSimularMejorTurnoLocal();
             estado.fichas[pieza.id].fila = pieza.fila;
             estado.fichas[pieza.id].col  = pieza.col;
             score = resPropio.score - scoreRival * 0.8;
@@ -585,9 +585,9 @@ function calcularDecisionJugador() {
       continue;
     }
 
-    const rojoTienePosesion = equipoTienePosesion('rojo');
+    const visitanteTienePosesion = equipoTienePosesion('visitante');
     const destsOrdenados = destinos.slice().sort((a, b) => {
-      if (!rojoTienePosesion) {
+      if (!visitanteTienePosesion) {
         return iaDistancia(a.fila, a.col, balonF, balonC) - iaDistancia(b.fila, b.col, balonF, balonC);
       }
       const colA = (Math.abs(a.fila - balonF) <= 1 && Math.abs(a.col - balonC) <= 1) ? 1 : 0;
@@ -600,47 +600,47 @@ function calcularDecisionJugador() {
       estado.fichas[pieza.id].col  = dest.col;
 
       let scoreTotal;
-      const ganaPosesionAhora = equipoTienePosesion('rojo');
+      const ganaPosesionAhora = equipoTienePosesion('visitante');
       const distDestBalon = iaDistancia(dest.fila, dest.col, balonF, balonC);
       const esColindanteDest = Math.abs(dest.fila - balonF) <= 1 && Math.abs(dest.col - balonC) <= 1;
 
-      if (rojoTienePosesion || ganaPosesionAhora) {
+      if (visitanteTienePosesion || ganaPosesionAhora) {
         const resPropio = iaBestBallSequence(balonF, balonC, 4, -Infinity, Infinity);
-        const scoreRival = iaSimularMejorTurnoBlanco();
+        const scoreRival = iaSimularMejorTurnoLocal();
         scoreTotal = resPropio.score - scoreRival * 0.8;
-        if (ganaPosesionAhora && !rojoTienePosesion) scoreTotal += 2000;
+        if (ganaPosesionAhora && !visitanteTienePosesion) scoreTotal += 2000;
         scoreTotal += Math.max(0, 500 - distDestBalon * 50);
         if (esColindanteDest) scoreTotal += 300;
       } else {
         scoreTotal = Math.max(0, 5000 - distDestBalon * 500);
         if (esColindanteDest) scoreTotal += 3000;
-        const scoreRival = iaSimularMejorTurnoBlanco();
+        const scoreRival = iaSimularMejorTurnoLocal();
         if (scoreRival < -1000) scoreTotal += scoreRival * 0.3;
-        const quitaPosesion = rivalTienePosesion && !equipoTienePosesion('blanco');
+        const quitaPosesion = rivalTienePosesion && !equipoTienePosesion('local');
         if (quitaPosesion) scoreTotal += 4000;
-        const rojosColindantesActuales = piezasIA.filter(p =>
+        const visitantesColindantesActuales = piezasIA.filter(p =>
           p.id !== pieza.id &&
           Math.abs(p.fila - balonF) <= 1 && Math.abs(p.col - balonC) <= 1
         ).length;
-        const blancosColindantesActuales = Object.values(estado.fichas).filter(d =>
-          d.equipo === 'blanco' &&
+        const localesColindantesActuales = Object.values(estado.fichas).filter(d =>
+          d.equipo === 'local' &&
           Math.abs(d.fila - balonF) <= 1 && Math.abs(d.col - balonC) <= 1
         ).length;
-        if (rojosColindantesActuales >= 1 && blancosColindantesActuales >= 1) {
-          const distBlancoCercano = Math.min(...Object.values(estado.fichas)
-            .filter(d => d.equipo === 'blanco' &&
+        if (visitantesColindantesActuales >= 1 && localesColindantesActuales >= 1) {
+          const distLocalCercano = Math.min(...Object.values(estado.fichas)
+            .filter(d => d.equipo === 'local' &&
               !(Math.abs(d.fila - balonF) <= 1 && Math.abs(d.col - balonC) <= 1))
             .map(d => iaDistancia(d.fila, d.col, balonF, balonC))
             .concat([99])
           );
           if (esColindanteDest) {
             scoreTotal += 10000;
-          } else if (distDestBalon < distBlancoCercano) {
+          } else if (distDestBalon < distLocalCercano) {
             scoreTotal += 3000;
           } else {
             scoreTotal -= 1000;
           }
-        } else if (rojosColindantesActuales >= 1 && esColindanteDest) {
+        } else if (visitantesColindantesActuales >= 1 && esColindanteDest) {
           scoreTotal += 8000;
         }
       }
@@ -666,7 +666,7 @@ function calcularDecisionBalon(movRestantes) {
 
   let primero, secuencia = [], scoreElegido = 0;
 
-  if (equipoTienePosesion('rojo')) {
+  if (equipoTienePosesion('visitante')) {
     const res = iaBestBallSequence(balonF, balonC, movRestantes, -Infinity, Infinity);
     primero = res.seq.length > 0 ? res.seq[0] : null;
     secuencia = res.seq;
