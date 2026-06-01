@@ -2536,11 +2536,14 @@
     function iaElegir(candidatos) {
       if (candidatos.length === 0) return null;
       candidatos.sort((a, b) => b.score - a.score);
-      // Si el mejor supera al segundo por más del 20%, elegirlo siempre (no aleatorizar)
-      if (candidatos.length === 1 || candidatos[0].score > candidatos[1].score * 1.2) {
+      if (candidatos.length === 1) return candidatos[0];
+      const mejor = candidatos[0].score;
+      const segundo = candidatos[1].score;
+      // Elegir el mejor sin aleatorizar si supera al segundo en ratio >10% O en >300 pts absolutos
+      if (mejor > segundo * 1.1 || mejor - segundo > 300) {
         return candidatos[0];
       }
-      // Si hay empate o diferencia pequeña, aleatorizar entre el top-3 para reducir predictibilidad
+      // Diferencia pequeña: aleatorizar entre el top-3 para reducir predictibilidad
       const pool = candidatos.slice(0, Math.min(3, candidatos.length));
       const total = pool.reduce((s, c) => s + Math.max(c.score, 1), 0);
       let r = Math.random() * total;
@@ -2788,19 +2791,21 @@
         const sigueRojo = equipoTienePosesion('rojo');
         const scoreAqui = iaEvaluarEstado();
 
-        // Penalizar si hay jugadores blancos colindantes al destino (pueden tomar posesión)
         const blancosColindantes = iaColindantesSimulados(d.fila, d.col, 'blanco');
         const rojosColindantes = iaColindantesSimulados(d.fila, d.col, 'rojo');
         const penalExposicion = (!sigueRojo && blancosColindantes > rojosColindantes) ? -600 : 0;
 
+        // Si mantiene posesión pero el margen es mínimo (exactamente 1 rojo más),
+        // penalizar porque el rival puede romperla con 1 movimiento
+        const margenPosesion = rojosColindantes - blancosColindantes;
+        const penalMargenFino = (sigueRojo && margenPosesion === 1 && movRestantes > 1) ? -400 : 0;
+
         let resultado;
         if (sigueRojo && movRestantes > 1) {
-          // Mantiene posesión: continuar secuencia
           resultado = iaBestBallSequence(d.fila, d.col, movRestantes - 1, alpha, beta);
-          resultado = { score: resultado.score, seq: [d, ...resultado.seq] };
+          resultado = { score: resultado.score + penalMargenFino, seq: [d, ...resultado.seq] };
         } else if (!sigueRojo && movRestantes > 1) {
           // Pierde posesión en paso intermedio: penalización proporcional a movimientos restantes
-          // (perder posesión con 3 movs restantes es mucho peor que con 1)
           const penalPerdidaPosesion = 800 + (movRestantes - 1) * 600;
           const subRes = iaBestBallSequence(d.fila, d.col, movRestantes - 1, alpha, beta);
           resultado = { score: subRes.score - penalPerdidaPosesion + penalExposicion, seq: [d, ...subRes.seq] };
@@ -2911,11 +2916,16 @@
         // Cuando no hay posesión, priorizar colindancia al balón sobre posición ofensiva
         const rojoTienePosesion = equipoTienePosesion('rojo');
         const destsOrdenados = destinos.slice().sort((a, b) => {
+          if (!rojoTienePosesion) {
+            // Sin posesión: ordenar por proximidad final al balón (distancia Manhattan)
+            const dA = iaDistancia(a.fila, a.col, balonF, balonC);
+            const dB = iaDistancia(b.fila, b.col, balonF, balonC);
+            return dA - dB; // menor distancia primero
+          }
+          // Con posesión: posición ofensiva + colindancia
           const colA = (Math.abs(a.fila - balonF) <= 1 && Math.abs(a.col - balonC) <= 1) ? 1 : 0;
           const colB = (Math.abs(b.fila - balonF) <= 1 && Math.abs(b.col - balonC) <= 1) ? 1 : 0;
-          // Sin posesión: la colindancia vale mucho más que la posición ofensiva
-          const pesoCol = rojoTienePosesion ? 100 : 500;
-          return (colB * pesoCol + (14 - b.fila)) - (colA * pesoCol + (14 - a.fila));
+          return (colB * 100 + (14 - b.fila)) - (colA * 100 + (14 - a.fila));
         }).slice(0, 10);
 
         for (const dest of destsOrdenados) {
@@ -2933,16 +2943,13 @@
           } else {
             // Sin posesión y sin ganarla: converger al balón para recuperarlo
             const quitaPosesion = rivalTienePosesion && !equipoTienePosesion('blanco');
-            const distAntes = iaDistancia(pieza.fila, pieza.col, balonF, balonC);
             const distDespues = iaDistancia(dest.fila, dest.col, balonF, balonC);
             const esColindante = Math.abs(dest.fila - balonF) <= 1 && Math.abs(dest.col - balonC) <= 1;
-            // Base fija para que el bonus de colindancia siempre sea el factor dominante
-            scoreTotal = 1000;
-            scoreTotal += (distAntes - distDespues) * 400; // acercarse suma
-            if (esColindante) scoreTotal += 2000;          // colindante es prioritario
+            // Valorar por distancia FINAL absoluta: quien queda más cerca del balón gana
+            // Un jugador en dist=3 vale mucho más que uno en dist=6, aunque ambos se acercaron 2
+            scoreTotal = Math.max(0, 3000 - distDespues * 300);
+            if (esColindante) scoreTotal += 2000;
             if (quitaPosesion) scoreTotal += 1500;
-            // Penalizar alejarse del balón (distDespues > distAntes)
-            if (distDespues > distAntes) scoreTotal -= (distDespues - distAntes) * 200;
           }
 
           estado.fichas[pieza.id].fila = pieza.fila;
