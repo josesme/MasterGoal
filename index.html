@@ -3034,18 +3034,26 @@
               const colMedia = Math.round(amenazasGolActuales.reduce((s, g) => s + g.col, 0) / amenazasGolActuales.length);
               score -= Math.abs(dest.col - colMedia) * 80;
               score -= Math.abs(dest.fila - 13) * 30;
-            } else if (balonEnArea && rojoTienePosesionAhora) {
-              // Portero puede recuperar el balón: bonus si además mejora su centrado
-              const mejoraCentrado = Math.abs(dest.col - 6) < descentrado;
-              const esColindanteBalon = Math.abs(dest.fila - balonF) <= 1 && Math.abs(dest.col - balonC) <= 1;
-              if (esColindanteBalon) score += 15000; // recuperar balón con portero es prioritario
-              if (mejoraCentrado) score += descentrado * 400; // bonus proporcional al descentrado que corrige
-              score -= Math.abs(dest.col - 6) * 50; // tender al centro
-              score -= Math.abs(dest.fila - 13) * 20;
             } else if (balonEnArea) {
-              // Balón en área sin posesión: portero debe intentar cogerlo
+              // Balón en área (con o sin posesión): evaluar si el portero puede ganar posesión
               const esColindanteBalon = Math.abs(dest.fila - balonF) <= 1 && Math.abs(dest.col - balonC) <= 1;
-              if (esColindanteBalon) {
+
+              estado.fichas[pieza.id].fila = dest.fila;
+              estado.fichas[pieza.id].col  = dest.col;
+              const ganaPosesionPortero = equipoTienePosesion('rojo');
+              estado.fichas[pieza.id].fila = pieza.fila;
+              estado.fichas[pieza.id].col  = pieza.col;
+
+              if (esColindanteBalon && ganaPosesionPortero) {
+                estado.fichas[pieza.id].fila = dest.fila;
+                estado.fichas[pieza.id].col  = dest.col;
+                const resPropio = iaBestBallSequence(balonF, balonC, 4, -Infinity, Infinity);
+                const scoreRival = iaSimularMejorTurnoBlanco();
+                estado.fichas[pieza.id].fila = pieza.fila;
+                estado.fichas[pieza.id].col  = pieza.col;
+                score = resPropio.score - scoreRival * 0.8;
+                score += 8000;
+              } else if (esColindanteBalon) {
                 score += 15000;
                 score -= Math.abs(dest.col - 6) * 80;
               } else {

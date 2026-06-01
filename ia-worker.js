@@ -540,25 +540,35 @@ function calcularDecisionJugador() {
           const colMedia = Math.round(amenazasGolActuales.reduce((s, g) => s + g.col, 0) / amenazasGolActuales.length);
           score -= Math.abs(dest.col - colMedia) * 80;
           score -= Math.abs(dest.fila - 13) * 30;
-        } else if (balonEnArea && rojoTienePosesionAhora) {
-          const mejoraCentrado = Math.abs(dest.col - 6) < descentrado;
-          const esColindanteBalon = Math.abs(dest.fila - balonF) <= 1 && Math.abs(dest.col - balonC) <= 1;
-          if (esColindanteBalon) score += 15000;
-          if (mejoraCentrado) score += descentrado * 400;
-          score -= Math.abs(dest.col - 6) * 50;
-          score -= Math.abs(dest.fila - 13) * 20;
         } else if (balonEnArea) {
-          // Balón en área sin posesión: portero debe intentar cogerlo
+          // Balón en área (con o sin posesión): evaluar si el portero puede ganar posesión
           const esColindanteBalon = Math.abs(dest.fila - balonF) <= 1 && Math.abs(dest.col - balonC) <= 1;
-          if (esColindanteBalon) {
+
+          // Simular portero en dest para saber si ganaría posesión
+          estado.fichas[pieza.id].fila = dest.fila;
+          estado.fichas[pieza.id].col  = dest.col;
+          const ganaPosesionPortero = equipoTienePosesion('rojo');
+          estado.fichas[pieza.id].fila = pieza.fila;
+          estado.fichas[pieza.id].col  = pieza.col;
+
+          if (esColindanteBalon && ganaPosesionPortero) {
+            // Portero gana posesión en su área: evaluar con lookahead completo
+            // igual que un jugador de campo, más bonus por ser el portero en casa
+            estado.fichas[pieza.id].fila = dest.fila;
+            estado.fichas[pieza.id].col  = dest.col;
+            const resPropio = iaBestBallSequence(balonF, balonC, 4, -Infinity, Infinity);
+            const scoreRival = iaSimularMejorTurnoBlanco();
+            estado.fichas[pieza.id].fila = pieza.fila;
+            estado.fichas[pieza.id].col  = pieza.col;
+            score = resPropio.score - scoreRival * 0.8;
+            score += 8000; // bonus por portero recuperando en su zona natural
+          } else if (esColindanteBalon) {
+            // Colindante pero no gana posesión: disputa, útil igualmente
             score += 15000;
-            // Si cogerlo lo descentra mucho, penalizar proporcionalmente para que prefiera
-            // posiciones colindantes que no lo alejen demasiado del centro
             score -= Math.abs(dest.col - 6) * 80;
           } else {
             score -= Math.abs(dest.col - balonC) * 30;
             score -= Math.abs(dest.fila - 13) * 10;
-            // Tendencia al centro si está descentrado y no puede coger el balón
             if (descentrado >= 3) score -= Math.abs(dest.col - 6) * 40;
           }
         } else if (balonLejos && descentrado >= 3) {
