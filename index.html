@@ -3043,9 +3043,16 @@
               score -= Math.abs(dest.col - 6) * 50; // tender al centro
               score -= Math.abs(dest.fila - 13) * 20;
             } else if (balonEnArea) {
-              // Balón en área sin posesión roja: posición defensiva normal
-              score -= Math.abs(dest.col - balonC) * 30;
-              score -= Math.abs(dest.fila - 13) * 10;
+              // Balón en área sin posesión: portero debe intentar cogerlo
+              const esColindanteBalon = Math.abs(dest.fila - balonF) <= 1 && Math.abs(dest.col - balonC) <= 1;
+              if (esColindanteBalon) {
+                score += 15000;
+                score -= Math.abs(dest.col - 6) * 80;
+              } else {
+                score -= Math.abs(dest.col - balonC) * 30;
+                score -= Math.abs(dest.fila - 13) * 10;
+                if (descentrado >= 3) score -= Math.abs(dest.col - 6) * 40;
+              }
             } else if (balonLejos && descentrado >= 3) {
               // Balón lejos y portero descentrado: recentrado progresivo
               score -= Math.abs(dest.col - 6) * 60;  // fuerte tendencia al centro

@@ -548,8 +548,19 @@ function calcularDecisionJugador() {
           score -= Math.abs(dest.col - 6) * 50;
           score -= Math.abs(dest.fila - 13) * 20;
         } else if (balonEnArea) {
-          score -= Math.abs(dest.col - balonC) * 30;
-          score -= Math.abs(dest.fila - 13) * 10;
+          // Balón en área sin posesión: portero debe intentar cogerlo
+          const esColindanteBalon = Math.abs(dest.fila - balonF) <= 1 && Math.abs(dest.col - balonC) <= 1;
+          if (esColindanteBalon) {
+            score += 15000;
+            // Si cogerlo lo descentra mucho, penalizar proporcionalmente para que prefiera
+            // posiciones colindantes que no lo alejen demasiado del centro
+            score -= Math.abs(dest.col - 6) * 80;
+          } else {
+            score -= Math.abs(dest.col - balonC) * 30;
+            score -= Math.abs(dest.fila - 13) * 10;
+            // Tendencia al centro si está descentrado y no puede coger el balón
+            if (descentrado >= 3) score -= Math.abs(dest.col - 6) * 40;
+          }
         } else if (balonLejos && descentrado >= 3) {
           score -= Math.abs(dest.col - 6) * 60;
           score -= Math.abs(dest.fila - 13) * 10;
