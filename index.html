@@ -2802,8 +2802,11 @@
 
         let resultado;
         if (sigueRojo && movRestantes > 1) {
-          resultado = iaBestBallSequence(d.fila, d.col, movRestantes - 1, alpha, beta);
-          resultado = { score: resultado.score + penalMargenFino, seq: [d, ...resultado.seq] };
+          const subRes = iaBestBallSequence(d.fila, d.col, movRestantes - 1, alpha, beta);
+          // Descuento por profundidad: cada paso intermedio tiene riesgo de intervención rival
+          // Un gol en mov4 vale menos que uno en mov1 porque el blanco puede actuar entre medias
+          const descuentoProfundidad = subRes.score >= 490000 ? (4 - movRestantes) * 1200 : 0;
+          resultado = { score: subRes.score + penalMargenFino - descuentoProfundidad, seq: [d, ...subRes.seq] };
         } else if (!sigueRojo && movRestantes > 1) {
           // Pierde posesión en paso intermedio: penalización proporcional a movimientos restantes
           const penalPerdidaPosesion = 800 + (movRestantes - 1) * 600;
@@ -2934,21 +2937,26 @@
 
           let scoreTotal;
           const ganaPosesionAhora = equipoTienePosesion('rojo');
+          const distDestBalon = iaDistancia(dest.fila, dest.col, balonF, balonC);
+          const distPiezaBalon = iaDistancia(pieza.fila, pieza.col, balonF, balonC);
+          const esColindanteDest = Math.abs(dest.fila - balonF) <= 1 && Math.abs(dest.col - balonC) <= 1;
+
           if (rojoTienePosesion || ganaPosesionAhora) {
             // Con posesión (propia o recién ganada): evaluar secuencia completa de balón
             const resPropio = iaBestBallSequence(balonF, balonC, 4, -Infinity, Infinity);
             const scoreRival = iaSimularMejorTurnoBlanco();
             scoreTotal = resPropio.score - scoreRival * 0.8;
-            if (ganaPosesionAhora && !rojoTienePosesion) scoreTotal += 500; // bonus por recuperar
+            // Bonus grande por recuperar posesión con este movimiento
+            if (ganaPosesionAhora && !rojoTienePosesion) scoreTotal += 2000;
+            // Bonus posicional: favorecer al jugador que queda más cerca del balón
+            // Esto discrimina entre candidatos que comparten el mismo iaBestBallSequence
+            scoreTotal += Math.max(0, 500 - distDestBalon * 50);
+            if (esColindanteDest) scoreTotal += 300;
           } else {
             // Sin posesión y sin ganarla: converger al balón para recuperarlo
             const quitaPosesion = rivalTienePosesion && !equipoTienePosesion('blanco');
-            const distDespues = iaDistancia(dest.fila, dest.col, balonF, balonC);
-            const esColindante = Math.abs(dest.fila - balonF) <= 1 && Math.abs(dest.col - balonC) <= 1;
-            // Valorar por distancia FINAL absoluta: quien queda más cerca del balón gana
-            // Un jugador en dist=3 vale mucho más que uno en dist=6, aunque ambos se acercaron 2
-            scoreTotal = Math.max(0, 3000 - distDespues * 300);
-            if (esColindante) scoreTotal += 2000;
+            scoreTotal = Math.max(0, 3000 - distDestBalon * 300);
+            if (esColindanteDest) scoreTotal += 2000;
             if (quitaPosesion) scoreTotal += 1500;
           }
 
