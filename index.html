@@ -2539,8 +2539,8 @@
       if (candidatos.length === 1) return candidatos[0];
       const mejor = candidatos[0].score;
       const segundo = candidatos[1].score;
-      // Elegir el mejor sin aleatorizar si supera al segundo en ratio >10% O en >300 pts absolutos
-      if (mejor > segundo * 1.1 || mejor - segundo > 300) {
+      // Elegir el mejor sin aleatorizar si supera al segundo en ratio >10% O en >100 pts absolutos
+      if (mejor > segundo * 1.1 || mejor - segundo > 100) {
         return candidatos[0];
       }
       // Diferencia pequeña: aleatorizar entre el top-3 para reducir predictibilidad
@@ -2732,7 +2732,10 @@
           // Blanco cerca del balón siempre es peligro
           v -= Math.max(0, 100 - distBal * 25);
           if (esColindante) v -= 300;
+          // Posición avanzada del blanco: penalizar más cuanto más cerca de portería roja
           v -= d.fila * 10;
+          // Penalizar blanco en el mismo corredor de columnas que el balón (amenaza de pase)
+          if (Math.abs(d.col - bc) <= 2 && d.fila > bf) v -= 150;
         }
       }
 
@@ -2780,11 +2783,13 @@
       let mejorScore = -Infinity, mejorSeq = [];
 
       for (const { d } of scored) {
-        // Gol: máximo absoluto
+        // Gol directo desde este nivel: aplicar descuento por profundidad
+        // (un gol en mov4 vale menos que en mov1 porque el rival puede actuar entre medias)
         if (d.fila === 0 && d.col >= 4 && d.col <= 8) {
+          const descuentoGolDirecto = (4 - movRestantes) * 1200;
           estado.fichas.balon.fila = oldF; estado.fichas.balon.col = oldC;
           estado.turno = oldTurno; estado.movimientosBalon = oldMovs;
-          return { score: 500000, seq: [d] };
+          return { score: 500000 - descuentoGolDirecto, seq: [d] };
         }
 
         // balón ya está en d.fila, d.col — evaluar
