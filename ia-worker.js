@@ -3,10 +3,36 @@
 
 let estado = null;
 
+// Caché de iaLineasAPorteria — válida solo dentro de un turno de IA.
+// Clave: "bf,bc,equipo". Se resetea al inicio de cada calcularDecision*.
+// Justificación: dentro del lookahead recursivo, iaLineasAPorteria se llama
+// decenas de veces con los mismos argumentos. El resultado solo depende de
+// la posición del balón, el equipo atacante y las posiciones de las fichas —
+// estas últimas NO cambian durante el lookahead de balón (solo mueve el balón),
+// así que el resultado es idéntico y cacheable sin pérdida de precisión.
+let _cacheLineas = null;
+
+function _resetCacheLineas() { _cacheLineas = new Map(); }
+
+function iaLineasAPorteriaCached(bf, bc, equipo) {
+  _cntLineas++;
+  const key = bf + ',' + bc + ',' + equipo;
+  if (_cacheLineas && _cacheLineas.has(key)) return _cacheLineas.get(key);
+  const resultado = iaLineasAPorteria(bf, bc, equipo);
+  if (_cacheLineas) _cacheLineas.set(key, resultado);
+  return resultado;
+}
+
 // ====== FUNCIONES DEL TABLERO (copia pura, sin DOM) ======
 
 function esCasillaValida(f, c) {
   return f >= 1 && f <= 13 && c >= 1 && c <= 11;
+}
+
+function esCornerPropio(f, c, equipo) {
+  if (equipo === 'local')     return (f === 1  && (c === 1 || c === 11));
+  if (equipo === 'visitante') return (f === 13 && (c === 1 || c === 11));
+  return false;
 }
 
 function esPorteria(f, c) {
@@ -62,8 +88,14 @@ function obtenerColindantesEquipo(balonF, balonC, equipo) {
 function esAutopase(filaDest, colDest) {
   const equipo = estado.turno;
   const actuales = obtenerColindantesEquipo(estado.fichas.balon.fila, estado.fichas.balon.col, equipo);
-  const destino = obtenerColindantesEquipo(filaDest, colDest, equipo);
+  const destino  = obtenerColindantesEquipo(filaDest, colDest, equipo);
+
+  // Caso clásico: mismo único colindante en origen y destino
   if (actuales.length === 1 && destino.length === 1 && actuales[0] === destino[0]) return true;
+
+  // Caso extendido: el último pasador no puede ser el único responsable del siguiente pase
+  if (estado.ultimoPasador && destino.length === 1 && destino[0] === estado.ultimoPasador) return true;
+
   return false;
 }
 
@@ -134,16 +166,16 @@ function esBrazoPorteroRival(f, c) {
   return enAreaGrande;
 }
 
-function obtenerDestinosJugador(f, c) {
+function obtenerDestinosJugador(f, c, equipo) {
   const dest = [];
   const dirs = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
   for (const [df, dc] of dirs) {
     let f1 = f + df, c1 = c + dc;
-    if (esCasillaValida(f1, c1) && !esBrazoPorteroRival(f1, c1)) {
+    if (esCasillaValida(f1, c1) && !esBrazoPorteroRival(f1, c1) && !esCornerPropio(f1, c1, equipo)) {
       dest.push({ fila: f1, col: c1 });
     }
     let f2 = f + df * 2, c2 = c + dc * 2;
-    if (esCasillaValida(f2, c2) && !estaOcupada(f1, c1, null) && !esBrazoPorteroRival(f2, c2)) {
+    if (esCasillaValida(f2, c2) && !estaOcupada(f1, c1, null) && !esBrazoPorteroRival(f2, c2) && !esCornerPropio(f2, c2, equipo)) {
       dest.push({ fila: f2, col: c2 });
     }
   }
@@ -201,14 +233,20 @@ function obtenerDestinosBalon(f, c) {
     return dest.filter(d => esDestinoValidoCuartoMovimiento(d.fila, d.col));
   }
   const balonOriginal2 = { ...estado.fichas.balon };
+  const pasadorOriginal = estado.ultimoPasador;
+  // Calcular el pasador de este movimiento (el único colindante actual, si lo hay)
+  const colindantesActuales = obtenerColindantesEquipo(f, c, estado.turno);
+  const pasadorEste = colindantesActuales.length === 1 ? colindantesActuales[0] : null;
   dest = dest.filter(d => {
     if (esPorteria(d.fila, d.col)) return true;
     estado.fichas.balon.fila = d.fila;
     estado.fichas.balon.col = d.col;
+    estado.ultimoPasador = pasadorEste;
     const siguePosesion = equipoTienePosesion(estado.turno);
     const valido = siguePosesion || esDestinoValidoCuartoMovimiento(d.fila, d.col);
     estado.fichas.balon.fila = balonOriginal2.fila;
     estado.fichas.balon.col = balonOriginal2.col;
+    estado.ultimoPasador = pasadorOriginal;
     return valido;
   });
   if (estado.movimientosBalon < 3) {
@@ -217,17 +255,21 @@ function obtenerDestinosBalon(f, c) {
       if (esPorteria(d.fila, d.col)) return true;
       estado.fichas.balon.fila = d.fila;
       estado.fichas.balon.col = d.col;
+      estado.ultimoPasador = pasadorEste;
       estado.movimientosBalon = movsActual + 1;
       const siguientes = obtenerDestinosBalon(d.fila, d.col);
       estado.fichas.balon.fila = balonOriginal2.fila;
       estado.fichas.balon.col = balonOriginal2.col;
       estado.movimientosBalon = movsActual;
+      estado.ultimoPasador = pasadorOriginal;
       if (siguientes.length > 0) return true;
       estado.fichas.balon.fila = d.fila;
       estado.fichas.balon.col = d.col;
+      estado.ultimoPasador = pasadorEste;
       const puedeTerminar = !equipoTienePosesion(estado.turno) && esDestinoValidoCuartoMovimiento(d.fila, d.col);
       estado.fichas.balon.fila = balonOriginal2.fila;
       estado.fichas.balon.col = balonOriginal2.col;
+      estado.ultimoPasador = pasadorOriginal;
       return puedeTerminar;
     });
   }
@@ -238,6 +280,122 @@ function obtenerDestinosBalon(f, c) {
 
 function iaDistancia(f1, c1, f2, c2) {
   return Math.abs(f1 - f2) + Math.abs(c1 - c2);
+}
+
+// Devuelve las líneas abiertas desde (bf,bc) hacia la portería de 'equipoAtacante'.
+// Cada línea es { df, dc, dist, colPorteria } donde dist es cuántas casillas hay libres
+// hasta la portería. Una línea "abierta" llega a portería sin bloquearse.
+// Una línea "parcialmente abierta" tiene porteroRival en medio (bloqueada por portero).
+function iaLineasAPorteria(bf, bc, equipoAtacante) {
+  const porteroRivalId = equipoAtacante === 'visitante' ? 'l-portero' : 'v-portero';
+  const porteroRival   = estado.fichas[porteroRivalId];
+  const casillasPorteroRival = obtenerCasillasPortero(porteroRivalId);
+  // Portería rival: fila 0 (cols 4-8) para visitante, fila 14 para local
+  const filaPorteria = equipoAtacante === 'visitante' ? 0 : 14;
+  const dirs = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+  const lineas = [];
+
+  for (const [df, dc] of dirs) {
+    let bloqueada = false;
+    let bloqueadaPorPortero = false;
+    for (let dist = 1; dist <= 14; dist++) {
+      const nf = bf + df * dist;
+      const nc = bc + dc * dist;
+      // ¿Llegamos a portería?
+      if (nf === filaPorteria && nc >= 4 && nc <= 8) {
+        lineas.push({ df, dc, dist, colPorteria: nc, bloqueadaPorPortero });
+        break;
+      }
+      // Fuera del tablero sin llegar a portería
+      if (!esCasillaValida(nf, nc) && nf !== filaPorteria) break;
+      // Bloqueada por jugador (no portero)
+      if (estaOcupada(nf, nc, 'balon')) {
+        const bloqueador = Object.entries(estado.fichas).find(([id, d]) => d.fila === nf && d.col === nc);
+        if (bloqueador) {
+          const [bid] = bloqueador;
+          if (bid === porteroRivalId) {
+            bloqueadaPorPortero = true; // el portero bloquea pero la línea sigue siendo relevante
+            continue;
+          }
+          // Brazos del portero rival también bloquean
+          if (casillasPorteroRival.some(c => c.fila === nf && c.col === nc)) {
+            bloqueadaPorPortero = true;
+            continue;
+          }
+          break; // jugador normal bloquea definitivamente
+        }
+      }
+    }
+  }
+  return lineas;
+}
+
+// Devuelve líneas abiertas que el rival (local) tiene hacia nuestra portería (fila 14).
+// Misma lógica pero desde la posición actual del balón mirando a portería visitante.
+function iaLineasRivalesAbiertas(bf, bc) {
+  return iaLineasAPorteriaCached(bf, bc, 'local');
+}
+
+// Dado un jugador en (jf,jc), ¿cuántas líneas de balón del rival corta si se mueve ahí?
+// Una casilla "corta" una línea si cae en la trayectoria entre el balón y la portería local.
+function iaLineasCortadasEnDest(jf, jc, lineasRivales, bf, bc) {
+  let cortadas = 0;
+  for (const linea of lineasRivales) {
+    for (let dist = 1; dist <= linea.dist; dist++) {
+      const nf = bf + linea.df * dist;
+      const nc = bc + linea.dc * dist;
+      if (nf === jf && nc === jc) { cortadas++; break; }
+    }
+  }
+  return cortadas;
+}
+
+// ¿Mover un jugador a (jf,jc) abre o ayuda una línea de tiro hacia portería rival?
+// Devuelve el número de líneas hacia portería local que el visitante tendría desde (bf,bc)
+// si ese jugador estuviera en (jf,jc) — lo usamos para bonus de amenaza.
+function iaLineasAbiertasTrasMovimiento(jf, jc, piezaId, bf, bc) {
+  const oldF = estado.fichas[piezaId].fila;
+  const oldC = estado.fichas[piezaId].col;
+  estado.fichas[piezaId].fila = jf;
+  estado.fichas[piezaId].col  = jc;
+  const lineas = iaLineasAPorteriaCached(bf, bc, 'visitante');
+  estado.fichas[piezaId].fila = oldF;
+  estado.fichas[piezaId].col  = oldC;
+  return lineas.filter(l => !l.bloqueadaPorPortero).length;
+}
+
+// Valora cuántas líneas directas a portería rival existen si el jugador (piezaId)
+// se mueve a (jf, jc) Y el balón estuviera en cada una de las casillas colindantes
+// a (jf, jc). Es decir: ¿desde qué posiciones colindantes al destino habría tiro?
+// Esto mide la "amenaza potencial": aunque no tenga el balón ahora, al posicionarse
+// aquí presiona al rival porque cualquier balón cercano se convierte en peligro.
+function iaAmenazaPotencialEnDest(jf, jc, piezaId) {
+  _cntAmenaza++;
+  const oldF = estado.fichas[piezaId].fila;
+  const oldC = estado.fichas[piezaId].col;
+  estado.fichas[piezaId].fila = jf;
+  estado.fichas[piezaId].col  = jc;
+
+  let amenazaTotal = 0;
+  const dirs = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+  for (const [df, dc] of dirs) {
+    const bf = jf + df, bc = jc + dc;
+    if (!esCasillaValida(bf, bc)) continue;
+    // Simular que el balón está ahí y ver qué líneas a portería hay
+    const balonOldF = estado.fichas.balon.fila, balonOldC = estado.fichas.balon.col;
+    estado.fichas.balon.fila = bf; estado.fichas.balon.col = bc;
+    const lineas = iaLineasAPorteriaCached(bf, bc, 'visitante').filter(l => !l.bloqueadaPorPortero);
+    // Solo cuenta si el jugador en (jf,jc) podría ser el que ejecuta (es colindante al balón simulado)
+    // y la línea tiene recorrido corto (tiro factible, dist <= 5)
+    for (const l of lineas) {
+      if (l.dist <= 5) amenazaTotal += Math.max(0, 300 - l.dist * 50);
+    }
+    estado.fichas.balon.fila = balonOldF; estado.fichas.balon.col = balonOldC;
+  }
+
+  estado.fichas[piezaId].fila = oldF;
+  estado.fichas[piezaId].col  = oldC;
+  return amenazaTotal;
 }
 
 function iaColindantesSimulados(bf, bc, equipo) {
@@ -267,57 +425,128 @@ function iaElegir(candidatos) {
 }
 
 function iaEvaluarEstado() {
+  _cntEvaluar++;
   const bf = estado.fichas.balon.fila;
   const bc = estado.fichas.balon.col;
   let v = 0;
+
+  // ── 1. POSESIÓN ──────────────────────────────────────────────────────────
   const visitanteTiene = equipoTienePosesion('visitante');
-  const localTiene = equipoTienePosesion('local');
+  const localTiene     = equipoTienePosesion('local');
   if (visitanteTiene) v += 3000;
   if (localTiene)     v -= 3000;
+
+  // ── 2. POSICIÓN DEL BALÓN (avance + centralidad) ──────────────────────────
+  // El balón cuanto más cerca de portería rival (fila 0) mejor para visitante
   v += (14 - bf) * 200;
-  if (bf <= 6) v += (6 - Math.abs(bc - 6)) * 80;
-  if (bf <= 3) v += (4 - bf) * 200;
+  // Centralidad en campo propio: balón en el centro amenaza más ángulos
+  if (bf <= 6) v += (5 - Math.abs(bc - 6)) * 90;
+  // Balón en zona de tiro (filas 1-3): bonus extra por centralidad y cercanía
+  if (bf <= 3) v += (4 - bf) * 220 + (5 - Math.abs(bc - 6)) * 60;
+  // Balón en zona de peligro propio (filas 8-13)
   if (bf >= 9) {
-    const peligro = (bf - 8) * 400 + (6 - Math.abs(bc - 6)) * 100;
+    const peligro = (bf - 8) * 400 + (5 - Math.abs(bc - 6)) * 120;
     v -= peligro;
   }
-  const rc = iaColindantesSimulados(bf, bc, 'visitante');
-  const bc2 = iaColindantesSimulados(bf, bc, 'local');
-  v += (rc - bc2) * 300;
+
+  // ── 3. SUPERIORIDAD NUMÉRICA EN CASILLAS COLINDANTES ─────────────────────
+  const rc  = iaColindantesSimulados(bf, bc, 'visitante');
+  const lc  = iaColindantesSimulados(bf, bc, 'local');
+  v += (rc - lc) * 320;
+  // Bonus adicional por tener mayoría clara (no solo +1): indica control sólido
+  if (rc - lc >= 2) v += 400;
+
+  // ── 4. LÍNEAS DE TIRO A PORTERÍA RIVAL (amenaza ofensiva) ────────────────
+  // Cada línea abierta sin portero en medio vale según cercanía a portería
+  const lineasOfensivas = iaLineasAPorteriaCached(bf, bc, 'visitante');
+  for (const linea of lineasOfensivas) {
+    if (!linea.bloqueadaPorPortero) {
+      // Línea totalmente libre: bonus inversamente proporcional a la distancia
+      const bonusLinea = Math.max(0, 600 - linea.dist * 80);
+      // Líneas centrales (col 5-7 de portería) valen más
+      const centralidad = 5 - Math.abs(linea.colPorteria - 6);
+      v += bonusLinea + centralidad * 40;
+    } else {
+      // Línea bloqueada solo por portero: vale menos pero sigue siendo amenaza
+      // (el portero puede moverse o ser superado)
+      const bonusLinea = Math.max(0, 250 - linea.dist * 40);
+      v += bonusLinea;
+    }
+  }
+
+  // ── 5. LÍNEAS DE PELIGRO RIVALES (presión defensiva) ─────────────────────
+  // Penalizar cada línea que el local tiene abierta hacia nuestra portería
+  const lineasDefensivas = iaLineasRivalesAbiertas(bf, bc);
+  for (const linea of lineasDefensivas) {
+    if (!linea.bloqueadaPorPortero) {
+      const penalLinea = Math.max(0, 500 - linea.dist * 70);
+      const centralidad = 5 - Math.abs(linea.colPorteria - 6);
+      v -= penalLinea + centralidad * 30;
+    } else {
+      v -= Math.max(0, 180 - linea.dist * 30);
+    }
+  }
+
+  // ── 6. CONTROL DEL CENTRO DEL CAMPO ──────────────────────────────────────
+  // Jugadores del visitante en la franja central (cols 4-8) de campo rival (filas 5-9)
+  // otorgan control estructural que facilita posesión y tiro
+  let controlCentroVisitante = 0, controlCentroLocal = 0;
+  for (const [id, d] of Object.entries(estado.fichas)) {
+    if (id === 'balon' || esPortero(id)) continue;
+    if (d.equipo === 'visitante' && d.fila >= 4 && d.fila <= 9 && Math.abs(d.col - 6) <= 2) controlCentroVisitante++;
+    if (d.equipo === 'local'     && d.fila >= 5 && d.fila <= 10 && Math.abs(d.col - 6) <= 2) controlCentroLocal++;
+  }
+  v += (controlCentroVisitante - controlCentroLocal) * 180;
+
+  // ── 7. POSICIONAMIENTO INDIVIDUAL ─────────────────────────────────────────
   const enPeligro = bf >= 8;
   for (const [id, d] of Object.entries(estado.fichas)) {
     if (id === 'balon' || esPortero(id)) continue;
-    const distBal = iaDistancia(d.fila, d.col, bf, bc);
+    const distBal    = iaDistancia(d.fila, d.col, bf, bc);
     const esColindante = Math.abs(d.fila - bf) <= 1 && Math.abs(d.col - bc) <= 1;
     if (d.equipo === 'visitante') {
       if (enPeligro) {
+        // En peligro: priorizar recuperar el balón
         v += Math.max(0, 500 - distBal * 120);
         if (esColindante) v += 600;
       } else {
-        v += (14 - d.fila) * 10;
+        // En ataque: valorar avance + proximidad al balón + control de columna central
+        v += (14 - d.fila) * 12;
         v += Math.max(0, 100 - distBal * 25);
         if (esColindante) v += 200;
+        // Bonus por posicionarse en columnas centrales en zona ofensiva
+        if (d.fila <= 7 && Math.abs(d.col - 6) <= 2) v += 80;
       }
     } else {
+      // Jugadores locales: penalizar su proximidad y avance
       v -= Math.max(0, 100 - distBal * 25);
       if (esColindante) v -= 300;
-      v -= d.fila * 10;
-      if (Math.abs(d.col - bc) <= 2 && d.fila > bf) v -= 150;
+      v -= d.fila * 12;
+      // Penalizar local bien posicionado en columna del balón por delante
+      if (Math.abs(d.col - bc) <= 2 && d.fila > bf) v -= 160;
     }
   }
+
   return v;
 }
 
 function iaBestBallSequence(f, c, movRestantes, alpha, beta) {
+  _cntBestBall++;
   const oldF = estado.fichas.balon.fila, oldC = estado.fichas.balon.col;
   const oldTurno = estado.turno, oldMovs = estado.movimientosBalon;
+  const oldPasador = estado.ultimoPasador;
   estado.fichas.balon.fila = f; estado.fichas.balon.col = c;
   estado.turno = 'visitante';
   estado.movimientosBalon = 4 - movRestantes;
+  // Calcular el pasador de este nivel (único colindante en f,c)
+  const colindantesNivel = obtenerColindantesEquipo(f, c, 'visitante');
+  const pasadorNivel = colindantesNivel.length === 1 ? colindantesNivel[0] : null;
+
   if (movRestantes === 0) {
     const s = iaEvaluarEstado();
     estado.fichas.balon.fila = oldF; estado.fichas.balon.col = oldC;
     estado.turno = oldTurno; estado.movimientosBalon = oldMovs;
+    estado.ultimoPasador = oldPasador;
     return { score: s, seq: [] };
   }
   const destinos = obtenerDestinosBalon(f, c);
@@ -325,6 +554,7 @@ function iaBestBallSequence(f, c, movRestantes, alpha, beta) {
     const s = iaEvaluarEstado();
     estado.fichas.balon.fila = oldF; estado.fichas.balon.col = oldC;
     estado.turno = oldTurno; estado.movimientosBalon = oldMovs;
+    estado.ultimoPasador = oldPasador;
     return { score: s, seq: [] };
   }
   const scored = destinos.map(d => {
@@ -340,39 +570,70 @@ function iaBestBallSequence(f, c, movRestantes, alpha, beta) {
       const descuentoGolDirecto = (4 - movRestantes) * 1200;
       estado.fichas.balon.fila = oldF; estado.fichas.balon.col = oldC;
       estado.turno = oldTurno; estado.movimientosBalon = oldMovs;
+      estado.ultimoPasador = oldPasador;
       return { score: 500000 - descuentoGolDirecto, seq: [d] };
     }
+    // Actualizar pasador para el siguiente nivel antes de la llamada recursiva
+    estado.ultimoPasador = pasadorNivel;
     estado.fichas.balon.fila = d.fila; estado.fichas.balon.col = d.col;
     const sigueVisitante = equipoTienePosesion('visitante');
     const scoreAqui = iaEvaluarEstado();
-    const localesColindantes = iaColindantesSimulados(d.fila, d.col, 'local');
+    const localesColindantes    = iaColindantesSimulados(d.fila, d.col, 'local');
     const visitantesColindantes = iaColindantesSimulados(d.fila, d.col, 'visitante');
-    const penalExposicion = (!sigueVisitante && localesColindantes > visitantesColindantes) ? -600 : 0;
-    const margenPosesion = visitantesColindantes - localesColindantes;
-    const penalMargenFino = (sigueVisitante && margenPosesion === 1 && movRestantes > 1) ? -400 : 0;
+    const margenColindantes     = visitantesColindantes - localesColindantes;
+
+    // Penalización de exposición: escala con cuántos rivales más que propios hay alrededor.
+    // Un margen de -1 (empate roto a favor del rival) es tolerable; -2 o más es peligroso.
+    const penalExposicion = !sigueVisitante
+      ? Math.min(0, margenColindantes) * 350   // negativo si locales > visitantes
+      : 0;
+
+    // Posesión frágil (margen justo de +1 con movimientos restantes): riesgo de perderla
+    // en el siguiente pase si el rival mueve un jugador. Penalizar sutilmente.
+    const penalMargenFino = (sigueVisitante && margenColindantes === 1 && movRestantes > 1)
+      ? -300
+      : 0;
+
+    // Bonus por posición post-pase con líneas de tiro abiertas desde el nuevo punto del balón
+    // Solo si seguimos con posesión (podemos aprovecharlo en el siguiente movimiento)
+    let bonusLineasPostPase = 0;
+    if (sigueVisitante) {
+      const lineasTras = iaLineasAPorteriaCached(d.fila, d.col, 'visitante');
+      const libresTras = lineasTras.filter(l => !l.bloqueadaPorPortero).length;
+      // Cada línea libre abierta vale más cuanto más cerca de portería está el balón
+      const cercania = Math.max(0, 8 - d.fila); // 0 en mitad campo, 8 justo bajo portería
+      bonusLineasPostPase = libresTras * (80 + cercania * 30);
+    }
+
     let resultado;
     if (sigueVisitante && movRestantes > 1) {
       const subRes = iaBestBallSequence(d.fila, d.col, movRestantes - 1, alpha, beta);
       const descuentoProfundidad = subRes.score >= 490000 ? (4 - movRestantes) * 1200 : 0;
-      resultado = { score: subRes.score + penalMargenFino - descuentoProfundidad, seq: [d, ...subRes.seq] };
+      resultado = { score: subRes.score + penalMargenFino + bonusLineasPostPase - descuentoProfundidad, seq: [d, ...subRes.seq] };
     } else if (!sigueVisitante && movRestantes > 1) {
-      const penalPerdidaPosesion = 800 + (movRestantes - 1) * 600;
+      // Perdemos posesión pero aún quedan movimientos: penalizar proporcionalmente a la
+      // superioridad rival que queda y a los movimientos restantes que perdemos
+      const penalPerdidaPosesion = 600 + (movRestantes - 1) * 500
+        + Math.max(0, -margenColindantes) * 200;
       const subRes = iaBestBallSequence(d.fila, d.col, movRestantes - 1, alpha, beta);
       resultado = { score: subRes.score - penalPerdidaPosesion + penalExposicion, seq: [d, ...subRes.seq] };
     } else {
-      resultado = { score: scoreAqui + penalExposicion, seq: [d] };
+      resultado = { score: scoreAqui + penalExposicion + bonusLineasPostPase, seq: [d] };
     }
     estado.fichas.balon.fila = f; estado.fichas.balon.col = c;
+    estado.ultimoPasador = oldPasador;
     if (resultado.score > mejorScore) { mejorScore = resultado.score; mejorSeq = resultado.seq; }
     alpha = Math.max(alpha, mejorScore);
     if (beta <= alpha) break;
   }
   estado.fichas.balon.fila = oldF; estado.fichas.balon.col = oldC;
   estado.turno = oldTurno; estado.movimientosBalon = oldMovs;
+  estado.ultimoPasador = oldPasador;
   return { score: mejorScore, seq: mejorSeq };
 }
 
 function iaBestBallSequenceLocal(f, c, movRestantes) {
+  _cntBestBallLocal++;
   const oldF = estado.fichas.balon.fila, oldC = estado.fichas.balon.col;
   const oldTurno = estado.turno, oldMovs = estado.movimientosBalon;
   estado.fichas.balon.fila = f; estado.fichas.balon.col = c;
@@ -430,7 +691,7 @@ function iaSimularMejorTurnoLocal() {
   const balonF = estado.fichas.balon.fila, balonC = estado.fichas.balon.col;
   let peorParaVisitante = Infinity;
   for (const pieza of piezasLocal) {
-    const destinos = obtenerDestinosJugador(pieza.fila, pieza.col)
+    const destinos = obtenerDestinosJugador(pieza.fila, pieza.col, 'local')
       .filter(d => !estaOcupada(d.fila, d.col, pieza.id));
     const scored = destinos.map(d => {
       const distBal = iaDistancia(d.fila, d.col, balonF, balonC);
@@ -501,13 +762,16 @@ function iaJugadoresLocalesPorPeligro() {
 // ====== DECISIÓN MOVER JUGADOR ======
 
 function calcularDecisionJugador() {
+  _resetCacheLineas();
   const balonF = estado.fichas.balon.fila;
   const balonC = estado.fichas.balon.col;
-  const rivalTienePosesion = equipoTienePosesion('local');
+  const rivalTienePosesion  = equipoTienePosesion('local');
+  const visitanteTienePosesion = equipoTienePosesion('visitante');
   const piezasIA = Object.entries(estado.fichas)
     .filter(([id, d]) => d.equipo === 'visitante')
     .map(([id, d]) => ({ id, ...d }));
 
+  // Detección de amenaza de gol local (hacia portería visitante fila 14)
   const amenazasGolActuales = iaDetectarAmenazaGol();
   const bloqueosPorAmenaza = [];
   for (const gol of amenazasGolActuales) {
@@ -517,34 +781,37 @@ function calcularDecisionJugador() {
   }
   const hayAmenazaGol = amenazasGolActuales.length > 0;
 
+  // Líneas de tiro rivales abiertas ANTES de cualquier movimiento
+  // Sirve para valorar cuántas cortamos con cada destino (estrategia bloqueo)
+  const lineasRivalesActuales = iaLineasRivalesAbiertas(balonF, balonC);
+
+  // Líneas de tiro propias abiertas antes de mover
+  // Sirve para valorar si un movimiento abre una nueva línea ofensiva
+  const lineasPropiasAntes = iaLineasAPorteriaCached(balonF, balonC, 'visitante')
+    .filter(l => !l.bloqueadaPorPortero).length;
+
   let candidatos = [];
 
   for (const pieza of piezasIA) {
     const esPorteroIA = esPortero(pieza.id);
-    const destinos = obtenerDestinosJugador(pieza.fila, pieza.col)
+    const destinos = obtenerDestinosJugador(pieza.fila, pieza.col, 'visitante')
       .filter(d => !estaOcupada(d.fila, d.col, pieza.id));
 
+    // ── PORTERO ──────────────────────────────────────────────────────────────
     if (esPorteroIA) {
-      const porteroCol = pieza.col;
+      const porteroCol  = pieza.col;
       const descentrado = Math.abs(porteroCol - 6);
       const balonEnArea = balonF >= 9;
-      const balonLejos = balonF <= 8;
-      const visitanteTienePosesionAhora = equipoTienePosesion('visitante');
+      const balonLejos  = balonF <= 8;
 
       for (const dest of destinos) {
         let score = 0;
         const enAreaGrande = dest.fila >= 9 && dest.fila <= 13 && dest.col >= 2 && dest.col <= 10;
         if (!enAreaGrande) { score -= 5000; }
         else if (hayAmenazaGol) {
-          if (bloqueosPorAmenaza.some(b => b.fila === dest.fila && b.col === dest.col)) score += 50000;
-          const colMedia = Math.round(amenazasGolActuales.reduce((s, g) => s + g.col, 0) / amenazasGolActuales.length);
-          score -= Math.abs(dest.col - colMedia) * 80;
-          score -= Math.abs(dest.fila - 13) * 30;
-        } else if (balonEnArea) {
-          // Balón en área (con o sin posesión): evaluar si el portero puede ganar posesión
+          // Antes de bloquear: comprobar si el portero puede ganar posesión.
+          // Recuperar el balón es siempre mejor que bloquear una línea.
           const esColindanteBalon = Math.abs(dest.fila - balonF) <= 1 && Math.abs(dest.col - balonC) <= 1;
-
-          // Simular portero en dest para saber si ganaría posesión
           estado.fichas[pieza.id].fila = dest.fila;
           estado.fichas[pieza.id].col  = dest.col;
           const ganaPosesionPortero = equipoTienePosesion('visitante');
@@ -552,18 +819,49 @@ function calcularDecisionJugador() {
           estado.fichas[pieza.id].col  = pieza.col;
 
           if (esColindanteBalon && ganaPosesionPortero) {
-            // Portero gana posesión en su área: evaluar con lookahead completo
-            // igual que un jugador de campo, más bonus por ser el portero en casa
+            // Portero recupera el balón: lookahead completo, tiene prioridad sobre bloqueo
             estado.fichas[pieza.id].fila = dest.fila;
             estado.fichas[pieza.id].col  = dest.col;
-            const resPropio = iaBestBallSequence(balonF, balonC, 4, -Infinity, Infinity);
+            const resPropio  = iaBestBallSequence(balonF, balonC, 4, -Infinity, Infinity);
             const scoreRival = iaSimularMejorTurnoLocal();
             estado.fichas[pieza.id].fila = pieza.fila;
             estado.fichas[pieza.id].col  = pieza.col;
-            score = resPropio.score - scoreRival * 0.8;
-            score += 8000; // bonus por portero recuperando en su zona natural
+            score = resPropio.score - scoreRival * 0.8 + 8000;
+          } else {
+            // No puede recuperar: valorar cuántas líneas de amenaza bloquea desde este destino.
+            // Simular el portero en dest y redetectar amenazas: las que desaparezcan = bloqueadas.
+            // Esto premia naturalmente acercarse al balón (achicar ángulo) porque una casilla
+            // próxima intersecta más trayectorias simultáneamente que una pegada a la línea de gol.
+            estado.fichas[pieza.id].fila = dest.fila;
+            estado.fichas[pieza.id].col  = dest.col;
+            const amenazasTras = iaDetectarAmenazaGol();
+            estado.fichas[pieza.id].fila = pieza.fila;
+            estado.fichas[pieza.id].col  = pieza.col;
+            const lineasCortadas = amenazasGolActuales.length - amenazasTras.length;
+            // Cada línea cortada vale mucho; bonus adicional por acercarse al balón
+            const distDestBalon = iaDistancia(dest.fila, dest.col, balonF, balonC);
+            score += lineasCortadas * 18000;
+            score += Math.max(0, 3000 - distDestBalon * 600); // bonus por achique de ángulo
+            // Pequeña penalización si no corta ninguna línea y se aleja del balón
+            if (lineasCortadas === 0) score -= distDestBalon * 200;
+          }
+        } else if (balonEnArea) {
+          const esColindanteBalon = Math.abs(dest.fila - balonF) <= 1 && Math.abs(dest.col - balonC) <= 1;
+          estado.fichas[pieza.id].fila = dest.fila;
+          estado.fichas[pieza.id].col  = dest.col;
+          const ganaPosesionPortero = equipoTienePosesion('visitante');
+          estado.fichas[pieza.id].fila = pieza.fila;
+          estado.fichas[pieza.id].col  = pieza.col;
+
+          if (esColindanteBalon && ganaPosesionPortero) {
+            estado.fichas[pieza.id].fila = dest.fila;
+            estado.fichas[pieza.id].col  = dest.col;
+            const resPropio  = iaBestBallSequence(balonF, balonC, 4, -Infinity, Infinity);
+            const scoreRival = iaSimularMejorTurnoLocal();
+            estado.fichas[pieza.id].fila = pieza.fila;
+            estado.fichas[pieza.id].col  = pieza.col;
+            score = resPropio.score - scoreRival * 0.8 + 8000;
           } else if (esColindanteBalon) {
-            // Colindante pero no gana posesión: disputa, útil igualmente
             score += 15000;
             score -= Math.abs(dest.col - 6) * 80;
           } else {
@@ -580,12 +878,20 @@ function calcularDecisionJugador() {
           score -= Math.abs(dest.col - 6) * 40;
           score -= Math.abs(dest.fila - 13) * 10;
         }
+
+        // Bloqueo de líneas rivales también aplica al portero
+        const lineasCortadas = iaLineasCortadasEnDest(dest.fila, dest.col, lineasRivalesActuales, balonF, balonC);
+        score += lineasCortadas * 600;
+
         candidatos.push({ piezaId: pieza.id, dest, score });
       }
       continue;
     }
 
-    const visitanteTienePosesion = equipoTienePosesion('visitante');
+    // ── JUGADORES DE CAMPO ────────────────────────────────────────────────────
+
+    // Preordenar destinos: si no hay posesión, priorizar los más cercanos al balón;
+    // si hay posesión, priorizar los que ya son colindantes o que más avanzan.
     const destsOrdenados = destinos.slice().sort((a, b) => {
       if (!visitanteTienePosesion) {
         return iaDistancia(a.fila, a.col, balonF, balonC) - iaDistancia(b.fila, b.col, balonF, balonC);
@@ -593,31 +899,62 @@ function calcularDecisionJugador() {
       const colA = (Math.abs(a.fila - balonF) <= 1 && Math.abs(a.col - balonC) <= 1) ? 1 : 0;
       const colB = (Math.abs(b.fila - balonF) <= 1 && Math.abs(b.col - balonC) <= 1) ? 1 : 0;
       return (colB * 100 + (14 - b.fila)) - (colA * 100 + (14 - a.fila));
-    }).slice(0, 10);
+    }).slice(0, 12);
 
     for (const dest of destsOrdenados) {
       estado.fichas[pieza.id].fila = dest.fila;
       estado.fichas[pieza.id].col  = dest.col;
 
-      let scoreTotal;
-      const ganaPosesionAhora = equipoTienePosesion('visitante');
-      const distDestBalon = iaDistancia(dest.fila, dest.col, balonF, balonC);
-      const esColindanteDest = Math.abs(dest.fila - balonF) <= 1 && Math.abs(dest.col - balonC) <= 1;
+      const ganaPosesionAhora  = equipoTienePosesion('visitante');
+      const distDestBalon      = iaDistancia(dest.fila, dest.col, balonF, balonC);
+      const esColindanteDest   = Math.abs(dest.fila - balonF) <= 1 && Math.abs(dest.col - balonC) <= 1;
 
-      if (visitanteTienePosesion || ganaPosesionAhora) {
-        const resPropio = iaBestBallSequence(balonF, balonC, 4, -Infinity, Infinity);
+      let scoreTotal = 0;
+
+      // ── ESTRATEGIA 1: MAYORÍA PRIMERO ──────────────────────────────────────
+      // Si el visitante no tenía posesión pero con este movimiento la consigue,
+      // es la jugada más valiosa de todas: abre el turno de balón completo.
+      // Distinguimos tres niveles: recuperar posesión, empatar (neutro→posesión),
+      // y simplemente acercarse.
+      if (!visitanteTienePosesion && ganaPosesionAhora) {
+        // Recién conseguida la posesión: lookahead completo del balón
+        const resPropio  = iaBestBallSequence(balonF, balonC, 4, -Infinity, Infinity);
         const scoreRival = iaSimularMejorTurnoLocal();
         scoreTotal = resPropio.score - scoreRival * 0.8;
-        if (ganaPosesionAhora && !visitanteTienePosesion) scoreTotal += 2000;
+        // Bonus por haber conseguido la posesión con este movimiento
+        // (cuánto más cerca del balón queda el jugador, más sólida la posesión)
+        scoreTotal += 3500 + Math.max(0, 400 - distDestBalon * 60);
+        if (esColindanteDest) scoreTotal += 600;
+
+      } else if (visitanteTienePosesion) {
+        // Ya teníamos posesión: evaluar si este movimiento mejora la posición
+        // antes de mover el balón (abre líneas de tiro, mejora ángulo)
+        const resPropio  = iaBestBallSequence(balonF, balonC, 4, -Infinity, Infinity);
+        const scoreRival = iaSimularMejorTurnoLocal();
+        scoreTotal = resPropio.score - scoreRival * 0.8;
         scoreTotal += Math.max(0, 500 - distDestBalon * 50);
         if (esColindanteDest) scoreTotal += 300;
+
+        // ── ESTRATEGIA 2 (dentro de posesión): ABRIR LÍNEAS DE TIRO ──────────
+        // Si al moverse este jugador (por ejemplo salir de la trayectoria) se abren
+        // más líneas hacia portería rival, bonus significativo
+        const lineasDespues = iaLineasAbiertasTrasMovimiento(dest.fila, dest.col, pieza.id, balonF, balonC);
+        const lineasNuevas  = lineasDespues - lineasPropiasAntes;
+        if (lineasNuevas > 0) scoreTotal += lineasNuevas * 700;
+
       } else {
+        // Sin posesión, sin conseguirla: valorar bloqueo, proximidad y quitarle posesión al rival
         scoreTotal = Math.max(0, 5000 - distDestBalon * 500);
         if (esColindanteDest) scoreTotal += 3000;
+
+        // Quitar posesión al rival es muy valioso aunque no la ganemos nosotros
+        const quitaPosesion = rivalTienePosesion && !equipoTienePosesion('local');
+        if (quitaPosesion) scoreTotal += 4500;
+
         const scoreRival = iaSimularMejorTurnoLocal();
         if (scoreRival < -1000) scoreTotal += scoreRival * 0.3;
-        const quitaPosesion = rivalTienePosesion && !equipoTienePosesion('local');
-        if (quitaPosesion) scoreTotal += 4000;
+
+        // Si hay varios visitantes ya colindantes, el siguiente que llegue da mayoría
         const visitantesColindantesActuales = piezasIA.filter(p =>
           p.id !== pieza.id &&
           Math.abs(p.fila - balonF) <= 1 && Math.abs(p.col - balonC) <= 1
@@ -633,15 +970,37 @@ function calcularDecisionJugador() {
             .map(d => iaDistancia(d.fila, d.col, balonF, balonC))
             .concat([99])
           );
-          if (esColindanteDest) {
-            scoreTotal += 10000;
-          } else if (distDestBalon < distLocalCercano) {
-            scoreTotal += 3000;
-          } else {
-            scoreTotal -= 1000;
-          }
+          if (esColindanteDest) scoreTotal += 10000;
+          else if (distDestBalon < distLocalCercano) scoreTotal += 3000;
+          else scoreTotal -= 1000;
         } else if (visitantesColindantesActuales >= 1 && esColindanteDest) {
           scoreTotal += 8000;
+        }
+
+        // PRESIÓN CON AMENAZA POTENCIAL: aunque no tengamos el balón ahora,
+        // posicionarse en casillas desde las que cualquier balón cercano sería tiro
+        // a portería obliga al rival a defender y es tácticamente valioso.
+        // Solo se activa en campo rival (balonF <= 9) para no desperdiciar
+        // movimientos defensivos que lo computan también.
+        if (balonF <= 9) {
+          const amenaza = iaAmenazaPotencialEnDest(dest.fila, dest.col, pieza.id);
+          // Escalar por lo ofensiva que es la posición del balón: más cerca, más urgente amenazar
+          const factorOfensivo = Math.max(0.3, (10 - balonF) / 10);
+          scoreTotal += amenaza * factorOfensivo;
+        }
+      }
+
+      // ── ESTRATEGIA 3: BLOQUEO DE LÍNEAS RIVALES ────────────────────────────
+      // Independientemente del contexto: si al moverse aquí se cortan líneas
+      // de tiro del rival, es un bonus táctico importante.
+      // Solo aplica cuando el balón está en zona de peligro (campo propio fila 7+)
+      // o cuando hay amenaza de gol activa, para no penalizar avances ofensivos.
+      if (balonF >= 7 || hayAmenazaGol) {
+        const lineasCortadas = iaLineasCortadasEnDest(dest.fila, dest.col, lineasRivalesActuales, balonF, balonC);
+        if (lineasCortadas > 0) {
+          // El valor de cortar una línea crece si el balón está más cerca de nuestra portería
+          const urgencia = Math.max(1, balonF - 6);
+          scoreTotal += lineasCortadas * 500 * (urgencia / 7);
         }
       }
 
@@ -659,6 +1018,7 @@ function calcularDecisionJugador() {
 // ====== DECISIÓN MOVER BALÓN ======
 
 function calcularDecisionBalon(movRestantes) {
+  _resetCacheLineas();
   const balonF = estado.fichas.balon.fila;
   const balonC = estado.fichas.balon.col;
   const destinos = obtenerDestinosBalon(balonF, balonC);
@@ -687,15 +1047,38 @@ function calcularDecisionBalon(movRestantes) {
 
 // ====== ENTRADA DEL WORKER ======
 
+// ====== INSTRUMENTACIÓN DE RENDIMIENTO ======
+// Contadores globales para las funciones internas
+let _cntEvaluar = 0, _cntLineas = 0, _cntBestBall = 0, _cntBestBallLocal = 0, _cntAmenaza = 0;
+
 self.onmessage = function(e) {
   const { tipo, estadoJuego, movRestantes } = e.data;
-  estado = estadoJuego; // estado recibido como copia serializada
+  estado = estadoJuego;
+
+  _cntEvaluar = 0; _cntLineas = 0; _cntBestBall = 0; _cntBestBallLocal = 0; _cntAmenaza = 0;
+  const _t0 = Date.now();
 
   if (tipo === 'MOVER_JUGADOR') {
     const decision = calcularDecisionJugador();
+    const ms = Date.now() - _t0;
+    console.log(
+      '⏱ PERF [JUGADOR] ' + ms + 'ms |' +
+      ' evaluar:' + _cntEvaluar +
+      ' lineas:' + _cntLineas +
+      ' bestBall:' + _cntBestBall +
+      ' bestBallLocal:' + _cntBestBallLocal +
+      ' amenaza:' + _cntAmenaza
+    );
     self.postMessage({ tipo: 'DECISION_JUGADOR', decision });
   } else if (tipo === 'MOVER_BALON') {
     const decision = calcularDecisionBalon(movRestantes);
+    const ms = Date.now() - _t0;
+    console.log(
+      '⏱ PERF [BALON] ' + ms + 'ms |' +
+      ' evaluar:' + _cntEvaluar +
+      ' lineas:' + _cntLineas +
+      ' bestBall:' + _cntBestBall
+    );
     self.postMessage({ tipo: 'DECISION_BALON', decision });
   }
 };

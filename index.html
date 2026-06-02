@@ -1469,7 +1469,10 @@
     </svg>
   </div>
   
-  <script type="module">
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script>
+
     // ====== ESTADO DEL JUEGO ======
     const estado = {
       // Posiciones actuales
@@ -1491,7 +1494,8 @@
       fase: 'MOVER_JUGADOR', // MOVER_JUGADOR o MOVER_BALON
       posesion: false,       // true si el equipo del turno tiene posesion
       movimientosBalon: 0,   // contador para cadena de pases (max 4)
-      turnoExtra: false      // true si se gano un turno extra por casilla especial
+      turnoExtra: false,     // true si se gano un turno extra por casilla especial
+      ultimoPasador: null    // ID del jugador que ejecutó el último pase (no puede repetir)
     };
     
     const POSICIONES_INICIALES = JSON.parse(JSON.stringify(estado.fichas));
@@ -1651,6 +1655,13 @@
     function esCasillaValida(f, c) {
       return f >= 1 && f <= 13 && c >= 1 && c <= 11;
     }
+
+    // Los corners propios son (1,1) y (1,11) para local; (13,1) y (13,11) para visitante
+    function esCornerPropio(f, c, equipo) {
+      if (equipo === 'local')     return (f === 1  && (c === 1 || c === 11));
+      if (equipo === 'visitante') return (f === 13 && (c === 1 || c === 11));
+      return false;
+    }
     
     function esPorteria(f, c) {
       // P1: fila 0, cols 4-8  |  P2: fila 14, cols 4-8
@@ -1673,19 +1684,45 @@
     
     // Cuenta jugadores colindantes al balon por equipo
     function contarColindantes() {
+      const b = estado.fichas.balon;
       let local = 0, visitante = 0;
       for (const [id, d] of Object.entries(estado.fichas)) {
         if (id === 'balon') continue;
-        if (esColindanteAlBalon(d.fila, d.col)) {
-          if (d.equipo === 'local') local++;
-          else visitante++;
+        if (!esColindanteAlBalon(d.fila, d.col)) continue;
+        // Los brazos del portero no cuentan para posesion.
+        // Si el jugador ES un portero y el balon esta exactamente en la casilla de uno de sus brazos
+        // (misma fila, columna adyacente al portero), ese portero no cuenta.
+        if (id === 'l-portero' || id === 'v-portero') {
+          const esBalonEnBrazo = b.fila === d.fila && Math.abs(b.col - d.col) === 1;
+          if (esBalonEnBrazo) continue;
         }
+        if (d.equipo === 'local') local++;
+        else visitante++;
       }
       return { local, visitante };
     }
 
+    // Devuelve el equipo cuyo portero tiene el balon en su brazo, o null si no aplica
+    function equipoConBalonEnBrazo() {
+      const b = estado.fichas.balon;
+      for (const id of ['l-portero', 'v-portero']) {
+        const p = estado.fichas[id];
+        if (b.fila === p.fila && Math.abs(b.col - p.col) === 1) {
+          // Verificar que esa casilla de brazo es válida (dentro del area grande)
+          const casillas = obtenerCasillasPortero(id);
+          if (casillas.some(c => c.tipo === 'brazo' && c.fila === b.fila && c.col === b.col)) {
+            return id === 'l-portero' ? 'local' : 'visitante';
+          }
+        }
+      }
+      return null;
+    }
+
     // Verifica si un equipo tiene MAYORIA en casillas colindantes (posesion)
     function equipoTienePosesion(equipo) {
+      // Regla: si el balon está en un brazo del portero, ese equipo tiene posesion automatica
+      const equipoBrazo = equipoConBalonEnBrazo();
+      if (equipoBrazo !== null) return equipo === equipoBrazo;
       const c = contarColindantes();
       if (equipo === 'local') return c.local > c.visitante;
       return c.visitante > c.local;
@@ -1693,6 +1730,8 @@
     
     // Verifica si la casilla del balon es neutra (igual numero de ambos equipos)
     function esCasillaNeutra() {
+      // Un brazo de portero nunca es neutra: siempre tiene posesion del portero
+      if (equipoConBalonEnBrazo() !== null) return false;
       const c = contarColindantes();
       return c.local === c.visitante;
     }
@@ -1715,37 +1754,38 @@
     // a la suya" (es decir, el mismo jugador sigue siendo el unico colindante)
     function esAutopase(filaDest, colDest) {
       const equipo = estado.turno;
-      // Jugadores colindantes en posicion ACTUAL
       const actuales = obtenerColindantesEquipo(estado.fichas.balon.fila, estado.fichas.balon.col, equipo);
-      
-      // Jugadores colindantes en posicion DESTINO
-      const destino = obtenerColindantesEquipo(filaDest, colDest, equipo);
-      
-      // Autopase: el mismo unico jugador es colindante tanto en origen como en destino
-      if (actuales.length === 1 && destino.length === 1 && actuales[0] === destino[0]) {
-        return true;
-      }
+      const destino  = obtenerColindantesEquipo(filaDest, colDest, equipo);
+
+      // Caso clásico: mismo único jugador colindante en origen y destino
+      if (actuales.length === 1 && destino.length === 1 && actuales[0] === destino[0]) return true;
+
+      // Caso extendido: el último pasador (único responsable del pase anterior)
+      // no puede ser el único colindante en el destino del siguiente pase
+      if (estado.ultimoPasador && destino.length === 1 && destino[0] === estado.ultimoPasador) return true;
+
       return false;
     }
     
     // ====== DESTINOS JUGADOR (1-2 casillas, 8 dirs, NO salta) ======
     // Regla: Ningun Jugador puede colocarse en las casillas laterales del Portero (brazos)
     // Pero SI pueden pasar por ellas
-    function obtenerDestinosJugador(f, c) {
+    // Regla: ningun jugador puede ocupar su propio corner
+    function obtenerDestinosJugador(f, c, equipo) {
       const dest = [];
       const dirs = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
       for (const [df, dc] of dirs) {
         // Distancia 1
         let f1 = f + df, c1 = c + dc;
-        if (esCasillaValida(f1, c1) && !esBrazoPorteroRival(f1, c1)) {
+        if (esCasillaValida(f1, c1) && !esBrazoPorteroRival(f1, c1) && !esCornerPropio(f1, c1, equipo)) {
           dest.push({fila: f1, col: c1});
         }
-        
+
         // Distancia 2
         let f2 = f + df*2, c2 = c + dc*2;
         // La casilla intermedia (f1,c1) puede ser brazo del portero (se puede pasar)
         // pero la casilla final (f2,c2) NO puede ser brazo del portero (no se puede colocar)
-        if (esCasillaValida(f2, c2) && !estaOcupada(f1, c1, null) && !esBrazoPorteroRival(f2, c2)) {
+        if (esCasillaValida(f2, c2) && !estaOcupada(f1, c1, null) && !esBrazoPorteroRival(f2, c2) && !esCornerPropio(f2, c2, equipo)) {
           dest.push({fila: f2, col: c2});
         }
       }
@@ -2010,7 +2050,7 @@
       if (id === 'balon') {
         destinos = obtenerDestinosBalon(d.fila, d.col);
       } else {
-        destinos = obtenerDestinosJugador(d.fila, d.col);
+        destinos = obtenerDestinosJugador(d.fila, d.col, d.equipo);
         destinos = destinos.filter(x => !estaOcupada(x.fila, x.col, id));
       }
       
@@ -2079,11 +2119,17 @@
         actualizarPatternFicha(id, coords.cx, coords.cy);
       }
 
+      // Capturar pasador ANTES de mover el balón
+      if (id === 'balon') {
+        const colindantesOrigen = obtenerColindantesEquipo(estado.fichas.balon.fila, estado.fichas.balon.col, estado.turno);
+        estado.ultimoPasador = colindantesOrigen.length === 1 ? colindantesOrigen[0] : null;
+      }
+
       estado.fichas[id].fila = fDest;
       estado.fichas[id].col = cDest;
-      
+
       limpiarSeleccion();
-      
+
       if (id === 'balon') {
         estado.movimientosBalon++;
         verificarGol();
@@ -2308,7 +2354,9 @@
       estado.fase = 'MOVER_JUGADOR';
       estado.posesion = false;
       estado.movimientosBalon = 0;
+      estado.ultimoPasador = null;
       estado.turnoExtra = false;
+      estado.ultimoPasador = null;
       
       // Actualizar visual
       for (const [id, d] of Object.entries(estado.fichas)) {
@@ -2362,6 +2410,7 @@
       estado.fase = 'MOVER_JUGADOR';
       estado.posesion = false;
       estado.movimientosBalon = 0;
+      estado.ultimoPasador = null;
 
       // Modo turnos: descontar turno al equipo que acaba de jugar
       if (config.encuentro === 'turnos' && !victoria.golDeOro) {
@@ -2503,8 +2552,7 @@
       const { tipo, decision } = e.data;
 
       if (tipo === 'DECISION_JUGADOR') {
-        if (!decision) { pasarTurno(); return; }
-        // Log top-5
+        if (!decision) { iaCalculando = false; pasarTurno(); return; }
         const visitantePos = equipoTienePosesion('visitante');
         const rivalPos = equipoTienePosesion('local');
         const balonF = estado.fichas.balon.fila, balonC = estado.fichas.balon.col;
@@ -2517,11 +2565,13 @@
         console.log(`%c🤖 ELEGIDO: ${decision.piezaId} → (${decision.dest.fila},${decision.dest.col})`, 'color:#a5d6a7;font-weight:bold');
         const exito = mover(decision.piezaId, decision.dest.fila, decision.dest.col);
         if (exito && estado.fase === 'MOVER_BALON' && estado.modo === 'vsIA') {
-          ejecutarTurnoIA();
+          ejecutarTurnoIA(); // iaCalculando sigue true, la IA continúa con el balón
+        } else {
+          iaCalculando = false; // turno pasó al local
         }
 
       } else if (tipo === 'DECISION_BALON') {
-        if (!decision) { pasarTurno(); return; }
+        if (!decision) { iaCalculando = false; pasarTurno(); return; }
         const balonF = estado.fichas.balon.fila, balonC = estado.fichas.balon.col;
         const seqStr = decision.secuencia.map(d => `(${d.fila},${d.col})`).join(' → ');
         console.log(`%c🤖 IA BALÓN mov${estado.movimientosBalon+1} | balón(${balonF},${balonC}) | posesión:${equipoTienePosesion('visitante')?'VISITANTE':'NADIE'}`, 'color:#ffcc80;font-weight:bold');
@@ -2529,18 +2579,21 @@
         console.log(`   primer paso: (${decision.dest.fila},${decision.dest.col})`);
         const exito = mover('balon', decision.dest.fila, decision.dest.col);
         if (exito && estado.fase === 'MOVER_BALON' && estado.movimientosBalon < 4 && estado.modo === 'vsIA') {
-          ejecutarTurnoIA();
+          ejecutarTurnoIA(); // iaCalculando sigue true, continúa moviendo el balón
+        } else {
+          iaCalculando = false; // turno pasó al local
         }
       }
     };
 
     iaWorker.onerror = function(err) {
       console.error('Error en IA worker:', err);
+      iaCalculando = false;
     };
 
     function ejecutarTurnoIA() {
       if (estado.turno !== 'visitante' || estado.modo !== 'vsIA') return;
-
+      iaCalculando = true;
       setTimeout(() => {
         const estadoCopia = JSON.parse(JSON.stringify(estado));
         if (estado.fase === 'MOVER_JUGADOR') {
@@ -2956,7 +3009,7 @@
       let peorParaVisitante = Infinity; // local maximiza → visitante busca el peor caso
 
       for (const pieza of piezasLocal) {
-        const destinos = obtenerDestinosJugador(pieza.fila, pieza.col)
+        const destinos = obtenerDestinosJugador(pieza.fila, pieza.col, 'local')
           .filter(d => !estaOcupada(d.fila, d.col, pieza.id));
 
         // Evaluar candidatos con criterio mixto: proximidad al balón + posición ofensiva (avanzar)
@@ -3013,7 +3066,7 @@
 
       for (const pieza of piezasIA) {
         const esPorteroIA = esPortero(pieza.id);
-        const destinos = obtenerDestinosJugador(pieza.fila, pieza.col)
+        const destinos = obtenerDestinosJugador(pieza.fila, pieza.col, 'visitante')
           .filter(d => !estaOcupada(d.fila, d.col, pieza.id));
 
         // Para el portero: lógica por zonas con recentrado progresivo
@@ -3247,10 +3300,7 @@
     };
 
     // ====== MENU: SELECCION ======
-    // ====== ONLINE / PEERJS ======
-    // ====== FIREBASE ONLINE ======
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
-    import { getDatabase, ref, set, onValue, remove, onDisconnect } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js';
+    // ====== ONLINE / FIREBASE ======
 
     const firebaseConfig = {
       apiKey: 'AIzaSyB2D0nfl42iTDQaudCvN7FexAZmBtEghnk',
@@ -3262,8 +3312,8 @@
       appId: '1:868610957654:web:6e76b59b96b2e3adb9b6f7'
     };
 
-    const firebaseApp = initializeApp(firebaseConfig);
-    const db = getDatabase(firebaseApp);
+    const firebaseApp = firebase.initializeApp(firebaseConfig);
+    const db = firebaseApp.database();
 
     const red = {
       miEquipo: null,   // 'local' (creador) | 'visitante' (unido)
@@ -3271,8 +3321,8 @@
       escucha: null     // unsubscribe de onValue
     };
 
-    function salaRef(codigo)    { return ref(db, 'salas/' + codigo); }
-    function mensajeRef(codigo) { return ref(db, 'salas/' + codigo + '/mensaje'); }
+    function salaRef(codigo)    { return db.ref('salas/' + codigo); }
+    function mensajeRef(codigo) { return db.ref('salas/' + codigo + '/mensaje'); }
 
     function mostrarErrorOnline(msg) {
       document.getElementById('online-error').textContent = msg;
@@ -3280,11 +3330,11 @@
 
     function enviarMensaje(msg) {
       if (!red.codigo) return;
-      set(mensajeRef(red.codigo), { ...msg, ts: Date.now() });
+      mensajeRef(red.codigo).set({ ...msg, ts: Date.now() });
     }
 
     function escucharMensajes() {
-      red.escucha = onValue(mensajeRef(red.codigo), snap => {
+      red.escucha = mensajeRef(red.codigo).on('value', snap => {
         const msg = snap.val();
         if (!msg) return;
         // Ignorar mensajes propios
@@ -3308,12 +3358,12 @@
       document.getElementById('online-sala').classList.add('visible');
 
       // Crear sala en Firebase y escuchar
-      set(salaRef(codigo), { estado: 'esperando', ts: Date.now() });
-      onDisconnect(salaRef(codigo)).remove();
+      salaRef(codigo).set({ estado: 'esperando', ts: Date.now() });
+      salaRef(codigo).onDisconnect().remove();
 
       escucharMensajes();
       // Escuchar cuando el rival se une
-      onValue(ref(db, 'salas/' + codigo + '/rival'), snap => {
+      db.ref('salas/' + codigo + '/rival').on('value', snap => {
         if (snap.val() === 'listo') {
           document.getElementById('sala-espera').textContent = '✓ Rival conectado. Iniciando...';
           setTimeout(() => {
@@ -3343,17 +3393,17 @@
       red.miEquipo = 'visitante';
 
       // Verificar que la sala existe
-      onValue(salaRef(codigo), snap => {
+      salaRef(codigo).once('value', snap => {
         if (!snap.val()) {
           mostrarErrorOnline('Código incorrecto o partida no encontrada.');
           document.getElementById('codigo-input').disabled = false;
           return;
         }
         // Notificar al creador que el rival está listo
-        set(ref(db, 'salas/' + codigo + '/rival'), 'listo');
+        db.ref('salas/' + codigo + '/rival').set('listo');
         escucharMensajes();
         mostrarErrorOnline('✓ Conectado. Esperando inicio...');
-      }, { onlyOnce: true });
+      });
     };
 
     function recibirMensaje(msg) {
@@ -3437,9 +3487,16 @@
       }
     }
 
+    let iaCalculando = false;
+
     function esMiTurno() {
-      if (config.modo !== 'online') return true;
-      return estado.turno === red.miEquipo;
+      if (config.modo === 'vsIA') {
+        // En vsIA: bloquear interacción si la IA está calculando o si es turno del visitante
+        if (iaCalculando) return false;
+        return estado.turno === 'local';
+      }
+      if (config.modo === 'online') return estado.turno === red.miEquipo;
+      return true; // pvp: siempre es turno de alguien humano
     }
 
     window.seleccionarModo = function(modo) {
@@ -3533,6 +3590,7 @@
     function arrancarPartida(equipoQueSaca) {
       MARCADOR.local = 0; MARCADOR.visitante = 0;
       victoria.golDeOro = false;
+      iaCalculando = false;
       estado.modo = config.modo;
       recolocar(equipoQueSaca);
       document.getElementById('game-container').style.display = 'block';
@@ -3733,7 +3791,7 @@
       { id: 'pre_juve',       nombre: 'Juventus',        colorPrincipal: '#ffffff', colorSecundario: '#212121', colorPantalon: '#212121', patron: 'v8',      pj:0,pg:0,pp:0,gf:0,gc:0 },
       { id: 'pre_dortmund',   nombre: 'Dortmund',        colorPrincipal: '#f9a825', colorSecundario: '#212121', colorPantalon: '#212121', patron: 'hombros', pj:0,pg:0,pp:0,gf:0,gc:0 },
       { id: 'pre_bayern',     nombre: 'Bayern Munich',   colorPrincipal: '#c62828', colorSecundario: '#ffffff', colorPantalon: '#c62828', patron: 'hombros', pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_psg',        nombre: 'PSG',             colorPrincipal: '#1565c0', colorSecundario: '#e53935', colorPantalon: '#1565c0', patron: 'banda_v', pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_psg',        nombre: 'PSG',             colorPrincipal: '#1565c0', colorSecundario: '#e53935', colorPantalon: '#ffffff', patron: 'banda_v', pj:0,pg:0,pp:0,gf:0,gc:0 },
       { id: 'pre_ajax',       nombre: 'Ajax',            colorPrincipal: '#ffffff', colorSecundario: '#e53935', colorPantalon: '#ffffff', patron: 'banda_v', pj:0,pg:0,pp:0,gf:0,gc:0 },
       { id: 'pre_psv',        nombre: 'PSV',             colorPrincipal: '#ffffff', colorSecundario: '#e53935', colorPantalon: '#212121', patron: 'v8',      pj:0,pg:0,pp:0,gf:0,gc:0 },
       { id: 'pre_feyenoord',  nombre: 'Feyenoord',       colorPrincipal: '#e53935', colorSecundario: '#ffffff', colorPantalon: '#212121', patron: 'v2',      pj:0,pg:0,pp:0,gf:0,gc:0 },
