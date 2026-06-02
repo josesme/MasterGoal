@@ -705,7 +705,7 @@ function iaSimularMejorTurnoLocal() {
       estado.fichas[pieza.id].col  = dest.col;
       let scoreFinal;
       if (equipoTienePosesion('local')) {
-        scoreFinal = iaBestBallSequenceLocal(balonF, balonC, 4) - 2000;
+        scoreFinal = iaBestBallSequenceLocal(balonF, balonC, 2) - 2000;
       } else {
         scoreFinal = iaEvaluarEstado();
       }
@@ -950,9 +950,6 @@ function calcularDecisionJugador() {
         // Quitar posesión al rival es muy valioso aunque no la ganemos nosotros
         const quitaPosesion = rivalTienePosesion && !equipoTienePosesion('local');
         if (quitaPosesion) scoreTotal += 4500;
-
-        const scoreRival = iaSimularMejorTurnoLocal();
-        if (scoreRival < -1000) scoreTotal += scoreRival * 0.3;
 
         // Si hay varios visitantes ya colindantes, el siguiente que llegue da mayoría
         const visitantesColindantesActuales = piezasIA.filter(p =>
