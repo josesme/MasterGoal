@@ -943,8 +943,9 @@ function calcularDecisionJugador() {
         if (lineasNuevas > 0) scoreTotal += lineasNuevas * 700;
 
       } else {
-        // Sin posesión, sin conseguirla: valorar bloqueo, proximidad y quitarle posesión al rival
-        scoreTotal = Math.max(0, 5000 - distDestBalon * 500);
+        // Sin posesión, sin conseguirla: evaluación completa del estado + heurísticas
+        scoreTotal = iaEvaluarEstado();
+        scoreTotal += Math.max(0, 2000 - distDestBalon * 200);
         if (esColindanteDest) scoreTotal += 3000;
 
         // Quitar posesión al rival es muy valioso aunque no la ganemos nosotros
