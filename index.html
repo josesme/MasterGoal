@@ -591,6 +591,24 @@
       background: transparent; color: rgba(255,255,255,0.6); font-size: 15px; font-weight: 500; cursor: pointer; margin-top: 8px;
     }
     .btn-torneo-simular:hover { background: rgba(255,255,255,0.06); }
+    .torneo-jugadores-btns { display: flex; gap: 8px; margin-bottom: 14px; }
+    .torneo-jugadores-btns .torneo-tamano-btn { flex: 1; }
+    .torneo-jugador-slot { margin-bottom: 10px; }
+    .torneo-jugador-slot label { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; opacity: 0.55; display: block; margin-bottom: 4px; }
+    .pasa-dispositivo-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.97);
+      z-index: 250; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; color: white; padding: 30px; gap: 20px;
+    }
+    .pasa-dispositivo-overlay.visible { display: flex; }
+    .pasa-dispositivo-icono { font-size: 56px; }
+    .pasa-dispositivo-titulo { font-size: 13px; letter-spacing: 3px; text-transform: uppercase; opacity: 0.5; }
+    .pasa-dispositivo-equipos { display: flex; align-items: center; gap: 16px; margin: 8px 0; }
+    .pasa-dispositivo-equipo { display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 16px; font-weight: 700; }
+    .pasa-dispositivo-vs { font-size: 13px; opacity: 0.4; }
+    .pasa-dispositivo-dot { width: 36px; height: 36px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); }
+    .pasa-dispositivo-jugador { font-size: 12px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
+    .btn-pasa-iniciar { padding: 16px 40px; border-radius: 12px; border: none; background: #43a047; color: white; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 8px; }
     .campeon-overlay {
       display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.96);
       z-index: 300; flex-direction: column; align-items: center; justify-content: center;
@@ -875,14 +893,18 @@
         </div>
       </div>
       <div class="torneo-seccion">
-        <h3>Tu equipo</h3>
-        <select class="torneo-equipo-select" id="torneo-mi-equipo" onchange="torneoActualizarRivales()">
-          <option value="">-- Selecciona tu equipo --</option>
-        </select>
+        <h3>Jugadores humanos</h3>
+        <div class="torneo-jugadores-btns">
+          <button class="torneo-tamano-btn activo" id="btn-j1" onclick="torneoSetJugadores(1)">1 jugador</button>
+          <button class="torneo-tamano-btn" id="btn-j2" onclick="torneoSetJugadores(2)">2 jugadores</button>
+          <button class="torneo-tamano-btn" id="btn-j3" onclick="torneoSetJugadores(3)">3 jugadores</button>
+          <button class="torneo-tamano-btn" id="btn-j4" onclick="torneoSetJugadores(4)">4 jugadores</button>
+        </div>
+        <div id="torneo-jugadores-slots"></div>
       </div>
       <div class="torneo-seccion">
-        <h3>Rivales</h3>
-        <div class="torneo-rivales-contador" id="torneo-rivales-contador">Selecciona 7 rivales</div>
+        <h3>Equipos restantes (IA)</h3>
+        <div class="torneo-rivales-contador" id="torneo-rivales-contador"></div>
         <div class="torneo-rivales-grid" id="torneo-rivales-grid"></div>
       </div>
       <div class="torneo-seccion">
@@ -938,6 +960,26 @@
       <button class="btn-torneo-simular" id="btn-simular-ia" onclick="torneoSimularSiguienteIA()">Simular partido IA</button>
       <button class="btn-torneo-cerrar" style="margin-top:8px;" onclick="torneoAbandonar()">Abandonar torneo</button>
     </div>
+  </div>
+
+  <!-- Pantalla "pasa el dispositivo" para partidos HvH -->
+  <div id="pasa-dispositivo-overlay" class="pasa-dispositivo-overlay">
+    <div class="pasa-dispositivo-icono">📱</div>
+    <div class="pasa-dispositivo-titulo">Siguiente partido</div>
+    <div class="pasa-dispositivo-equipos">
+      <div class="pasa-dispositivo-equipo">
+        <div class="pasa-dispositivo-dot" id="pasa-dot-local"></div>
+        <span id="pasa-nombre-local"></span>
+        <span class="pasa-dispositivo-jugador" id="pasa-jugador-local"></span>
+      </div>
+      <div class="pasa-dispositivo-vs">vs</div>
+      <div class="pasa-dispositivo-equipo">
+        <div class="pasa-dispositivo-dot" id="pasa-dot-visitante"></div>
+        <span id="pasa-nombre-visitante"></span>
+        <span class="pasa-dispositivo-jugador" id="pasa-jugador-visitante"></span>
+      </div>
+    </div>
+    <button class="btn-pasa-iniciar" id="pasa-btn-iniciar">Comenzar partido</button>
   </div>
 
   <!-- Pantalla campeón -->
@@ -3765,9 +3807,10 @@
       if (config._torneoPendiente) {
         config._torneoPendiente = false;
         const p = torneoData.rondas[config._torneoRonda][config._torneoPartido];
-        const soyLocal = p.local === torneoData.miEquipo;
-        if (soyLocal) { p.golLocal = MARCADOR.local; p.golVisitante = MARCADOR.visitante; }
-        else          { p.golLocal = MARCADOR.visitante; p.golVisitante = MARCADOR.local; }
+        // config.equipoLocal siempre es p.local para HvIA, y p.local para HvH (sin swap)
+        const localFueLocal = config.equipoLocal === p.local;
+        if (localFueLocal) { p.golLocal = MARCADOR.local; p.golVisitante = MARCADOR.visitante; }
+        else               { p.golLocal = MARCADOR.visitante; p.golVisitante = MARCADOR.local; }
         if (p.golLocal === p.golVisitante) { Math.random() < 0.5 ? p.golLocal++ : p.golVisitante++; }
         p.jugado = true;
         const btnRevancha = document.querySelector('.btn-revancha');
@@ -3961,6 +4004,7 @@
     // ====== TORNEO ======
     let torneoData = null;
     const torneoConfig = { encuentro: 'goles', goles: 2, turnos: 20, cronoTiempo: 5, cronoGoles: 2 };
+    let _torneoNumJugadores = 1; // cuántos slots humanos hay en la config actual
 
     window.torneoSelEncuentro = function(tipo) {
       torneoConfig.encuentro = tipo;
@@ -4000,6 +4044,17 @@
       return 'Ronda ' + ronda;
     }
 
+    // Devuelve el número de jugador humano (1-4) que controla ese equipo, o null si es IA
+    function torneoJugadorDeEquipo(equipoId) {
+      if (!torneoData || !torneoData.jugadores) return null;
+      const idx = torneoData.jugadores.indexOf(equipoId);
+      return idx >= 0 ? idx + 1 : null;
+    }
+
+    function torneoEsHumano(equipoId) {
+      return torneoJugadorDeEquipo(equipoId) !== null;
+    }
+
     window.abrirTorneo = function() {
       const saved = torneoCargar();
       if (saved) {
@@ -4008,15 +4063,8 @@
         mostrarBracket();
         return;
       }
-      const equipos = equiposGuardados();
-      const sel = document.getElementById('torneo-mi-equipo');
-      sel.innerHTML = '<option value="">-- Selecciona tu equipo --</option>';
-      equipos.forEach(e => {
-        const o = document.createElement('option');
-        o.value = e.id; o.textContent = e.nombre;
-        sel.appendChild(o);
-      });
       torneoSetTamano(8);
+      torneoSetJugadores(1);
       document.getElementById('torneo-overlay').classList.add('visible');
       document.getElementById('menu-inicial').style.display = 'none';
     };
@@ -4033,11 +4081,43 @@
       torneoActualizarRivales();
     };
 
+    window.torneoSetJugadores = function(n) {
+      _torneoNumJugadores = n;
+      [1,2,3,4].forEach(i => document.getElementById('btn-j'+i).classList.toggle('activo', i === n));
+      const equipos = equiposGuardados();
+      const slots = document.getElementById('torneo-jugadores-slots');
+      slots.innerHTML = '';
+      for (let i = 1; i <= n; i++) {
+        const wrap = document.createElement('div');
+        wrap.className = 'torneo-jugador-slot';
+        const label = document.createElement('label');
+        label.textContent = n === 1 ? 'Tu equipo' : `Jugador ${i}`;
+        const sel = document.createElement('select');
+        sel.className = 'torneo-equipo-select';
+        sel.id = `torneo-jugador-${i}`;
+        sel.innerHTML = '<option value="">-- Selecciona equipo --</option>';
+        equipos.forEach(e => {
+          const o = document.createElement('option');
+          o.value = e.id; o.textContent = e.nombre;
+          sel.appendChild(o);
+        });
+        sel.onchange = torneoActualizarRivales;
+        wrap.appendChild(label);
+        wrap.appendChild(sel);
+        slots.appendChild(wrap);
+      }
+      torneoActualizarRivales();
+    };
+
     window.torneoActualizarRivales = function() {
-      const miId = document.getElementById('torneo-mi-equipo').value;
       const tamano = parseInt(document.getElementById('torneo-overlay').dataset.tamano || '8');
-      const necesarios = tamano - 1;
-      const equipos = equiposGuardados().filter(e => e.id !== miId);
+      const jugadorIds = new Set();
+      for (let i = 1; i <= _torneoNumJugadores; i++) {
+        const v = document.getElementById(`torneo-jugador-${i}`)?.value;
+        if (v) jugadorIds.add(v);
+      }
+      const necesarios = tamano - jugadorIds.size;
+      const equipos = equiposGuardados().filter(e => !jugadorIds.has(e.id));
       const grid = document.getElementById('torneo-rivales-grid');
       const seleccionados = new Set([...grid.querySelectorAll('.torneo-rival-item.seleccionado')].map(el => el.dataset.id));
       grid.innerHTML = '';
@@ -4064,18 +4144,27 @@
 
     function torneoActualizarContador() {
       const tamano = parseInt(document.getElementById('torneo-overlay').dataset.tamano || '8');
-      const necesarios = tamano - 1;
+      const jugadorIds = new Set();
+      for (let i = 1; i <= _torneoNumJugadores; i++) {
+        const v = document.getElementById(`torneo-jugador-${i}`)?.value;
+        if (v) jugadorIds.add(v);
+      }
+      const todosJugadoresElegidos = jugadorIds.size === _torneoNumJugadores;
+      const necesarios = tamano - jugadorIds.size;
       const activos = document.querySelectorAll('#torneo-rivales-grid .torneo-rival-item.seleccionado').length;
-      const miId = document.getElementById('torneo-mi-equipo').value;
-      document.getElementById('torneo-rivales-contador').textContent = `Seleccionados: ${activos} / ${necesarios}`;
-      document.getElementById('btn-torneo-iniciar').disabled = (!miId || activos !== necesarios);
+      document.getElementById('torneo-rivales-contador').textContent =
+        necesarios > 0 ? `Equipos IA: ${activos} / ${necesarios}` : 'Todos los equipos son humanos';
+      document.getElementById('btn-torneo-iniciar').disabled = (!todosJugadoresElegidos || activos !== necesarios);
     }
 
     window.torneoIniciar = function() {
       const tamano = parseInt(document.getElementById('torneo-overlay').dataset.tamano || '8');
-      const miId = document.getElementById('torneo-mi-equipo').value;
-      const rivalIds = [...document.querySelectorAll('#torneo-rivales-grid .torneo-rival-item.seleccionado')].map(el => el.dataset.id);
-      const todos = [miId, ...rivalIds];
+      const jugadores = [];
+      for (let i = 1; i <= _torneoNumJugadores; i++) {
+        jugadores.push(document.getElementById(`torneo-jugador-${i}`).value);
+      }
+      const iaIds = [...document.querySelectorAll('#torneo-rivales-grid .torneo-rival-item.seleccionado')].map(el => el.dataset.id);
+      const todos = [...jugadores, ...iaIds];
       for (let i = todos.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [todos[i], todos[j]] = [todos[j], todos[i]];
@@ -4090,14 +4179,14 @@
         rondas.push(partidos);
         actuales = new Array(actuales.length / 2).fill(null);
       }
-      torneoData = { miEquipo: miId, tamano, rondas, rondaActual: 0, config: { ...torneoConfig } };
+      torneoData = { jugadores, tamano, rondas, rondaActual: 0, config: { ...torneoConfig } };
       torneoGuardar();
       document.getElementById('torneo-overlay').classList.remove('visible');
       mostrarBracket();
     };
 
     function mostrarBracket() {
-      const { rondas, rondaActual, miEquipo, tamano } = torneoData;
+      const { rondas, rondaActual, jugadores, tamano } = torneoData;
       const equipos = equiposGuardados();
       const eq = id => equipos.find(e => e.id === id);
       const container = document.getElementById('bracket-rondas');
@@ -4117,14 +4206,16 @@
           card.className = 'bracket-partido';
           const localEq = p.local ? eq(p.local) : null;
           const visitEq = p.visitante ? eq(p.visitante) : null;
+          const localEsHumano = torneoEsHumano(p.local);
+          const visitEsHumano = torneoEsHumano(p.visitante);
           const esJugable = ri === rondaActual && !p.jugado && p.local && p.visitante &&
-            (p.local === miEquipo || p.visitante === miEquipo);
+            (localEsHumano || visitEsHumano);
           if (esJugable) {
             card.classList.add('jugable');
             card.onclick = () => torneoJugarPartido(ri, pi);
           }
-          [{ eqObj: localEq, gol: p.golLocal, rival: p.golVisitante },
-           { eqObj: visitEq, gol: p.golVisitante, rival: p.golLocal }].forEach(({ eqObj, gol, rival }) => {
+          [{ eqObj: localEq, esH: localEsHumano, gol: p.golLocal, rival: p.golVisitante },
+           { eqObj: visitEq, esH: visitEsHumano, gol: p.golVisitante, rival: p.golLocal }].forEach(({ eqObj, esH, gol, rival }) => {
             const row = document.createElement('div');
             row.className = 'bracket-equipo';
             if (p.jugado) row.classList.add(gol > rival ? 'ganador' : 'perdedor');
@@ -4135,7 +4226,7 @@
               row.appendChild(dot);
               const nombre = document.createElement('span');
               nombre.textContent = eqObj.nombre;
-              if (eqObj.id === miEquipo) nombre.style.color = '#81d4fa';
+              if (esH) nombre.style.color = '#81d4fa';
               row.appendChild(nombre);
             } else {
               const span = document.createElement('span');
@@ -4156,14 +4247,14 @@
         container.appendChild(col);
       });
       const hayIAPendiente = rondaActual < rondas.length &&
-        rondas[rondaActual].some(p => !p.jugado && p.local && p.visitante && p.local !== miEquipo && p.visitante !== miEquipo);
+        rondas[rondaActual].some(p => !p.jugado && p.local && p.visitante && !torneoEsHumano(p.local) && !torneoEsHumano(p.visitante));
       document.getElementById('btn-simular-ia').style.display = hayIAPendiente ? 'block' : 'none';
       document.getElementById('bracket-overlay').classList.add('visible');
       document.getElementById('menu-inicial').style.display = 'none';
     }
 
     function torneoAvanzarRonda() {
-      const { rondas, rondaActual, miEquipo } = torneoData;
+      const { rondas, rondaActual } = torneoData;
       const partidos = rondas[rondaActual];
       if (partidos.some(p => !p.jugado)) { torneoGuardar(); mostrarBracket(); return; }
       const ganadores = partidos.map(p => p.golLocal > p.golVisitante ? p.local : p.visitante);
@@ -4209,8 +4300,8 @@
     };
 
     window.torneoSimularSiguienteIA = function() {
-      const { rondas, rondaActual, miEquipo } = torneoData;
-      const pendientes = rondas[rondaActual].filter(p => !p.jugado && p.local && p.visitante && p.local !== miEquipo && p.visitante !== miEquipo);
+      const { rondas, rondaActual } = torneoData;
+      const pendientes = rondas[rondaActual].filter(p => !p.jugado && p.local && p.visitante && !torneoEsHumano(p.local) && !torneoEsHumano(p.visitante));
       if (!pendientes.length) return;
       pendientes.forEach(p => {
         let gl = simularGoles(), gv = simularGoles();
@@ -4222,28 +4313,49 @@
 
     function torneoJugarPartido(ronda, partido) {
       const p = torneoData.rondas[ronda][partido];
-      const { miEquipo } = torneoData;
-      document.getElementById('bracket-overlay').classList.remove('visible');
-      const soyLocal = p.local === miEquipo;
-      config.equipoLocal = soyLocal ? p.local : p.visitante;
-      config.equipoRival = soyLocal ? p.visitante : p.local;
-      config.modo = 'vsIA';
-      config.encuentro = torneoConfig.encuentro;
-      config.goles = torneoConfig.goles;
-      config.turnos = torneoConfig.turnos;
-      config.cronoTiempo = torneoConfig.cronoTiempo;
-      config.cronoGoles = torneoConfig.cronoGoles;
+      const localEsHumano = torneoEsHumano(p.local);
+      const visitEsHumano = torneoEsHumano(p.visitante);
+      const esHvH = localEsHumano && visitEsHumano;
+      const esHvIA = localEsHumano && !visitEsHumano;
+      // Si es HvIA el humano siempre juega como local
+      config.equipoLocal = localEsHumano ? p.local : p.visitante;
+      config.equipoRival = localEsHumano ? p.visitante : p.local;
+      config.modo = esHvH ? 'pvp' : 'vsIA';
+      config.encuentro = torneoData.config.encuentro;
+      config.goles = torneoData.config.goles;
+      config.turnos = torneoData.config.turnos;
+      config.cronoTiempo = torneoData.config.cronoTiempo;
+      config.cronoGoles = torneoData.config.cronoGoles;
       config._torneoRonda = ronda;
       config._torneoPartido = partido;
       config._torneoPendiente = true;
       actualizarSelectoresEquipo();
-      const selLocal = document.getElementById('sel-equipo-local');
-      const selRival = document.getElementById('sel-equipo-rival');
-      selLocal.value = config.equipoLocal || '';
-      selRival.value = config.equipoRival || '';
+      document.getElementById('sel-equipo-local').value = config.equipoLocal || '';
+      document.getElementById('sel-equipo-rival').value = config.equipoRival || '';
       actualizarDotEquipo('local');
       actualizarDotEquipo('rival');
-      iniciarJuego();
+      const equipos = equiposGuardados();
+      const eqLocal = equipos.find(e => e.id === p.local);
+      const eqVisit = equipos.find(e => e.id === p.visitante);
+      const jLocal = torneoJugadorDeEquipo(p.local);
+      const jVisit = torneoJugadorDeEquipo(p.visitante);
+      mostrarPasaDispositivo(eqLocal, eqVisit, jLocal, jVisit, () => {
+        document.getElementById('bracket-overlay').classList.remove('visible');
+        iniciarJuego();
+      });
+    }
+
+    function mostrarPasaDispositivo(eqLocal, eqVisit, jLocal, jVisit, callback) {
+      const overlay = document.getElementById('pasa-dispositivo-overlay');
+      aplicarMiniJersey(document.getElementById('pasa-dot-local'), eqLocal, 36);
+      aplicarMiniJersey(document.getElementById('pasa-dot-visitante'), eqVisit, 36);
+      document.getElementById('pasa-nombre-local').textContent = eqLocal?.nombre || '?';
+      document.getElementById('pasa-nombre-visitante').textContent = eqVisit?.nombre || '?';
+      document.getElementById('pasa-jugador-local').textContent = jLocal ? `Jugador ${jLocal}` : 'IA';
+      document.getElementById('pasa-jugador-visitante').textContent = jVisit ? `Jugador ${jVisit}` : 'IA';
+      const btn = document.getElementById('pasa-btn-iniciar');
+      btn.onclick = () => { overlay.classList.remove('visible'); callback(); };
+      overlay.classList.add('visible');
     }
 
     // ====== LIGA ======
