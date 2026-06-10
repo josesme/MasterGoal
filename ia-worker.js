@@ -52,11 +52,31 @@ function esColindanteAlBalon(f, c) {
   return Math.abs(f - b.fila) <= 1 && Math.abs(c - b.col) <= 1 && !(f === b.fila && c === b.col);
 }
 
+function equipoConBalonEnBrazo() {
+  const b = estado.fichas.balon;
+  for (const id of ['l-portero', 'v-portero']) {
+    const p = estado.fichas[id];
+    if (b.fila === p.fila && Math.abs(b.col - p.col) === 1) {
+      const casillas = obtenerCasillasPortero(id);
+      if (casillas.some(c => c.tipo === 'brazo' && c.fila === b.fila && c.col === b.col)) {
+        return id === 'l-portero' ? 'local' : 'visitante';
+      }
+    }
+  }
+  return null;
+}
+
 function contarColindantes() {
+  const b = estado.fichas.balon;
   let local = 0, visitante = 0;
   for (const [id, d] of Object.entries(estado.fichas)) {
     if (id === 'balon') continue;
     if (esColindanteAlBalon(d.fila, d.col)) {
+      if (id === 'l-portero' || id === 'v-portero') {
+        const casillasPortero = obtenerCasillasPortero(id);
+        const esBalonEnBrazoReal = casillasPortero.some(c => c.tipo === 'brazo' && c.fila === b.fila && c.col === b.col);
+        if (esBalonEnBrazoReal) continue;
+      }
       if (d.equipo === 'local') local++;
       else visitante++;
     }
@@ -65,6 +85,8 @@ function contarColindantes() {
 }
 
 function equipoTienePosesion(equipo) {
+  const equipoBrazo = equipoConBalonEnBrazo();
+  if (equipoBrazo !== null) return equipo === equipoBrazo;
   const c = contarColindantes();
   if (equipo === 'local') return c.local > c.visitante;
   return c.visitante > c.local;

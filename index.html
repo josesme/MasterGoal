@@ -1712,8 +1712,11 @@
         // Si el jugador ES un portero y el balon esta exactamente en la casilla de uno de sus brazos
         // (misma fila, columna adyacente al portero), ese portero no cuenta.
         if (id === 'l-portero' || id === 'v-portero') {
-          const esBalonEnBrazo = b.fila === d.fila && Math.abs(b.col - d.col) === 1;
-          if (esBalonEnBrazo) continue;
+          // El portero no cuenta cuando el balón está en una casilla de brazo real (dentro del área grande).
+          // Solo verificar geometría no basta: si el portero está fuera de su área no tiene brazos.
+          const casillasPortero = obtenerCasillasPortero(id);
+          const esBalonEnBrazoReal = casillasPortero.some(c => c.tipo === 'brazo' && c.fila === b.fila && c.col === b.col);
+          if (esBalonEnBrazoReal) continue;
         }
         if (d.equipo === 'local') local++;
         else visitante++;
