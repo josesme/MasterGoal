@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>MasterGoal - Tablero</title>
   <style>
     * {
@@ -20,6 +20,7 @@
       padding: 0;
       margin: 0;
       overflow: hidden;
+      touch-action: manipulation;
     }
     
     /* UI Panel */
@@ -42,6 +43,7 @@
       max-height: 100vh;
       max-width: 100vw;
       display: block;
+      touch-action: none;
     }
 
     /* Ocultar barra superior antigua */
@@ -1549,6 +1551,20 @@
     const svg = document.querySelector('svg');
     const destinosGroup = document.getElementById('destinos');
 
+    // En móvil, click tiene 300ms de delay. Usamos pointerdown para respuesta inmediata.
+    // El flag _pointerHandled evita que el click posterior dispare el mismo handler dos veces.
+    function addFastListener(el, handler) {
+      let _pointerHandled = false;
+      el.addEventListener('pointerdown', (e) => {
+        _pointerHandled = true;
+        handler(e);
+      });
+      el.addEventListener('click', (e) => {
+        if (_pointerHandled) { _pointerHandled = false; return; }
+        handler(e);
+      });
+    }
+
     // ====== PINTAR FICHAS TABLERO ======
     function pintarFichasTablero(localEq, rivalEq) {
       const svgEl = document.querySelector('svg');
@@ -2089,7 +2105,7 @@
         circ.setAttribute('fill', estado.seleccionado === 'balon' ? '#ff9800' : '#00bcd4');
         circ.setAttribute('opacity', '0.5');
         circ.setAttribute('cursor', 'pointer');
-        circ.addEventListener('click', (e) => {
+        addFastListener(circ, (e) => {
           e.stopPropagation();
           mover(estado.seleccionado, d.fila, d.col);
         });
@@ -2488,7 +2504,7 @@
 
     // ====== EVENTOS ======
     document.querySelectorAll('.ficha').forEach(el => {
-      el.addEventListener('click', (e) => {
+      addFastListener(el, (e) => {
         e.stopPropagation();
         // Para porteros (grupos <g>), subir hasta el elemento con id de ficha
         let target = e.target;
@@ -2498,7 +2514,7 @@
         if (!target) return;
         const id = target.id;
         const equipo = estado.fichas[id].equipo;
-        
+
         // En fase MOVER_JUGADOR solo fichas del equipo del turno
         if (estado.fase === 'MOVER_JUGADOR') {
           if (equipo !== estado.turno) { return; }
@@ -2508,8 +2524,8 @@
         }
       });
     });
-    
-    document.getElementById('balon').addEventListener('click', (e) => {
+
+    addFastListener(document.getElementById('balon'), (e) => {
       e.stopPropagation();
       if (!esMiTurno()) return;
       if (estado.fase === 'MOVER_BALON' && estado.posesion) {
@@ -2535,16 +2551,28 @@
       }
     });
 
-    // Doble click en tablero = pasar turno (cuando no hay seleccion)
-    svg.addEventListener('dblclick', () => {
+    // Doble click/tap en tablero = pasar turno (cuando no hay selección)
+    // En móvil, dblclick no existe con 300ms; lo emulamos con doble-tap manual.
+    let _svgLastTap = 0;
+    function _svgPasarTurnoSiProcede() {
       if (!estado.seleccionado && estado.fase === 'MOVER_BALON') {
         if (!puedePasarTurnoConBalon()) return;
         pasarTurno();
       }
-    });
-    
-    svg.addEventListener('click', () => {
-      if (estado.seleccionado) limpiarSeleccion();
+    }
+    svg.addEventListener('dblclick', _svgPasarTurnoSiProcede);
+    svg.addEventListener('pointerdown', (e) => {
+      // Solo si el tap fue sobre el fondo del SVG (no sobre una ficha/destino)
+      if (e.target !== svg && !e.target.classList.contains('casilla-clara') && !e.target.classList.contains('casilla-oscura')) return;
+      const now = Date.now();
+      if (now - _svgLastTap < 300) {
+        _svgPasarTurnoSiProcede();
+        _svgLastTap = 0;
+      } else {
+        _svgLastTap = now;
+        // Tap simple sobre fondo: deseleccionar
+        if (estado.seleccionado) limpiarSeleccion();
+      }
     });
     
     // ====== IA (Juega como Rojo) ======
