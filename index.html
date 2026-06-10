@@ -586,6 +586,7 @@
     .bracket-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.25); }
     .bracket-gol { margin-left: auto; font-weight: 700; font-size: 13px; }
     .bracket-pendiente { opacity: 0.35; font-style: italic; }
+    .bracket-badge { font-size: 9px; opacity: 0.4; margin-left: 4px; flex-shrink: 0; }
     .btn-torneo-simular {
       width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);
       background: transparent; color: rgba(255,255,255,0.6); font-size: 15px; font-weight: 500; cursor: pointer; margin-top: 8px;
@@ -4214,20 +4215,25 @@
             card.classList.add('jugable');
             card.onclick = () => torneoJugarPartido(ri, pi);
           }
-          [{ eqObj: localEq, esH: localEsHumano, gol: p.golLocal, rival: p.golVisitante },
-           { eqObj: visitEq, esH: visitEsHumano, gol: p.golVisitante, rival: p.golLocal }].forEach(({ eqObj, esH, gol, rival }) => {
+          [{ eqObj: localEq, gol: p.golLocal, rival: p.golVisitante },
+           { eqObj: visitEq, gol: p.golVisitante, rival: p.golLocal }].forEach(({ eqObj, gol, rival }) => {
             const row = document.createElement('div');
             row.className = 'bracket-equipo';
             if (p.jugado) row.classList.add(gol > rival ? 'ganador' : 'perdedor');
             if (eqObj) {
+              const numJugador = torneoJugadorDeEquipo(eqObj.id);
               const dot = document.createElement('div');
               dot.className = 'bracket-dot';
               aplicarMiniJersey(dot, eqObj, 12);
               row.appendChild(dot);
               const nombre = document.createElement('span');
               nombre.textContent = eqObj.nombre;
-              if (esH) nombre.style.color = '#81d4fa';
+              if (numJugador !== null) nombre.style.color = '#81d4fa';
               row.appendChild(nombre);
+              const badge = document.createElement('span');
+              badge.className = 'bracket-badge';
+              badge.textContent = numJugador !== null ? `${numJugador}P` : 'IA';
+              row.appendChild(badge);
             } else {
               const span = document.createElement('span');
               span.className = 'bracket-pendiente';
