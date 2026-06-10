@@ -1114,13 +1114,13 @@
 
       <div class="torneo-seccion">
         <h3>Local</h3>
-        <select class="torneo-equipo-select" id="sel-equipo-local" onchange="actualizarDotEquipo('local')">
+        <select class="torneo-equipo-select" id="sel-equipo-local" onchange="actualizarDotEquipo('local');validarBtnJugar()">
           <option value="">-- Sin equipo --</option>
         </select>
       </div>
       <div class="torneo-seccion">
         <h3>Visitante</h3>
-        <select class="torneo-equipo-select" id="sel-equipo-rival" onchange="actualizarDotEquipo('rival')">
+        <select class="torneo-equipo-select" id="sel-equipo-rival" onchange="actualizarDotEquipo('rival');validarBtnJugar()">
           <option value="">-- Sin equipo --</option>
         </select>
       </div>
@@ -1167,7 +1167,7 @@
         </div>
       </div>
 
-      <button class="btn-torneo-iniciar" onclick="iniciarJuego()">Jugar</button>
+      <button class="btn-torneo-iniciar" id="btn-jugar" onclick="iniciarJuego()" disabled>Jugar</button>
       <button class="btn-torneo-cerrar" onclick="cerrarPartidoUnico()">Volver</button>
     </div>
   </div>
@@ -3992,8 +3992,15 @@
     };
 
     // ====== PARTIDO ÚNICO ======
+    function validarBtnJugar() {
+      const local = document.getElementById('sel-equipo-local').value;
+      const rival = document.getElementById('sel-equipo-rival').value;
+      document.getElementById('btn-jugar').disabled = !local || !rival;
+    }
+
     window.abrirPartidoUnico = function() {
       actualizarSelectoresEquipo();
+      validarBtnJugar();
       document.getElementById('partido-overlay').classList.add('visible');
       document.getElementById('menu-inicial').style.display = 'none';
     };
