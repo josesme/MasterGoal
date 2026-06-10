@@ -2234,6 +2234,8 @@
         // Seguir moviendo balon hasta max 4 o que el usuario pase turno
         if (estado.movimientosBalon >= 4) {
           pasarTurno();
+        } else if (esMiTurno()) {
+          seleccionar('balon');
         }
       } else {
         // Movio jugador - verificar posesion (requiere MAYORIA en casillas colindantes)
@@ -2242,6 +2244,7 @@
           estado.fase = 'MOVER_BALON';
           actualizarUI();
           console.log('POSESION! Mayoria conseguida. Debes mover el balon.');
+          if (esMiTurno()) seleccionar('balon');
         } else {
           console.log('Sin posesion (casilla neutra o minoria). Fin del turno.');
           pasarTurno();
