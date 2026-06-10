@@ -2354,7 +2354,8 @@
         for (let i = 1; i <= 4; i++) {
           const el = document.getElementById(`hud-mov-${lado}-${i}`);
           if (!el) return;
-          const esActivo = lado[0] === equipo[0] && i <= mov;
+          const esEquipoLocal = lado === 'b' ? equipo === 'local' : equipo === 'visitante';
+          const esActivo = esEquipoLocal && i <= mov;
           el.setAttribute('fill', esActivo ? 'white' : 'none');
           el.setAttribute('stroke', esActivo ? 'white' : 'rgba(255,255,255,0.4)');
         }
