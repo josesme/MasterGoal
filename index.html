@@ -2342,6 +2342,7 @@
       g.setAttribute('visibility', visible || esVsIA ? 'visible' : 'hidden');
       const mov = visible ? estado.movimientosBalon : 0;
       const equipo = estado.turno;
+      console.log(`[HUD] fase:${estado.fase} turno:${equipo} mov:${mov} visible:${visible} esVsIA:${esVsIA}`);
       ['b','r'].forEach(lado => {
         // En vsIA nunca mostrar los del visitante (IA)
         if (esVsIA && lado === 'r') {
