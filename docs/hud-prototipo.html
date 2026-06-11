@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MasterGoal — Propuestas HUD</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #1a1a1a;
+    color: white;
+    font-family: system-ui, sans-serif;
+    padding: 24px 16px 60px;
+  }
+  h1 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .intro { font-size: 13px; opacity: 0.5; margin-bottom: 32px; }
+
+  /* ─── Sección de propuesta ─── */
+  .propuesta { margin-bottom: 52px; }
+  .propuesta-titulo {
+    font-size: 13px; letter-spacing: 2px; text-transform: uppercase;
+    opacity: 0.4; margin-bottom: 6px;
+  }
+  .propuesta-desc {
+    font-size: 13px; opacity: 0.65; margin-bottom: 16px; line-height: 1.5;
+    max-width: 560px;
+  }
+
+  /* ─── Canvas de simulación (tablero simplificado) ─── */
+  .canvas {
+    background: #2a5e2a;
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+    aspect-ratio: 110 / 170;
+  }
+  .campo {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    opacity: 0.25;
+    font-size: 11px;
+    color: white;
+    letter-spacing: 2px;
+  }
+  .campo-linea { width: 80%; height: 1px; background: rgba(255,255,255,0.4); }
+  .campo-centro { width: 30%; height: 30%; border: 1px solid rgba(255,255,255,0.4); border-radius: 50%; }
+
+  /* ══════════════════════════════════════════════════
+     PROPUESTA A — Barra central flotante (encima del campo)
+  ══════════════════════════════════════════════════ */
+  .hud-a {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 52px;
+    display: flex;
+    align-items: stretch;
+    overflow: hidden;
+    border-radius: 10px 10px 0 0;
+  }
+  .hud-a-equipo {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+    background: rgba(0,0,0,0.72);
+    backdrop-filter: blur(6px);
+  }
+  .hud-a-equipo.visitante { flex-direction: row-reverse; }
+  .hud-a-dot {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 2px solid rgba(255,255,255,0.25);
+  }
+  .hud-a-nombre {
+    font-size: 11px; font-weight: 600;
+    opacity: 0.8;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .hud-a-goles {
+    font-size: 26px; font-weight: 800;
+    line-height: 1;
+  }
+  .hud-a-centro {
+    width: 56px;
+    background: rgba(0,0,0,0.88);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+  .hud-a-separador {
+    font-size: 18px; font-weight: 300; opacity: 0.3; line-height: 1;
+  }
+  .hud-a-modo {
+    font-size: 8px; letter-spacing: 1.5px; text-transform: uppercase;
+    opacity: 0.4;
+  }
+  .hud-a-turno {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+    background: rgba(255,255,255,0.08);
+  }
+  .hud-a-turno-bar {
+    height: 100%;
+    background: #FFD700;
+    transition: width 0.3s;
+  }
+  .hud-a-equipo.activo .hud-a-goles { color: white; }
+  .hud-a-equipo:not(.activo) .hud-a-goles { color: rgba(255,255,255,0.35); }
+  .hud-a-equipo.activo .hud-a-nombre { opacity: 1; }
+  .hud-a-equipo:not(.activo) .hud-a-nombre { opacity: 0.35; }
+  .hud-a-equipo.activo .hud-a-dot { border-color: rgba(255,215,0,0.6); }
+
+  /* ══════════════════════════════════════════════════
+     PROPUESTA B — Chips laterales (fuera del campo, a los lados)
+  ══════════════════════════════════════════════════ */
+  .canvas-b-wrap {
+    display: flex;
+    gap: 0;
+    align-items: stretch;
+    width: 100%;
+    max-width: 520px;
+  }
+  .hud-b-lateral {
+    width: 64px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 6px;
+    background: rgba(0,0,0,0.55);
+    border-radius: 10px 0 0 10px;
+  }
+  .hud-b-lateral.derecho { border-radius: 0 10px 10px 0; }
+  .hud-b-dot {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.2);
+  }
+  .hud-b-goles {
+    font-size: 32px; font-weight: 800; line-height: 1;
+  }
+  .hud-b-label {
+    font-size: 9px; letter-spacing: 1px; text-transform: uppercase;
+    opacity: 0.35; text-align: center;
+  }
+  .hud-b-extra {
+    font-size: 10px; opacity: 0.55; font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+  .hud-b-turno-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #FFD700;
+    opacity: 0;
+  }
+  .hud-b-lateral.activo .hud-b-turno-dot { opacity: 1; }
+  .hud-b-lateral.activo .hud-b-goles { color: white; }
+  .hud-b-lateral:not(.activo) .hud-b-goles { color: rgba(255,255,255,0.3); }
+  .hud-b-lateral.activo { background: rgba(0,0,0,0.75); }
+  .hud-b-lateral.activo .hud-b-dot { border-color: rgba(255,215,0,0.5); }
+
+  /* ══════════════════════════════════════════════════
+     PROPUESTA C — Marcador compacto integrado en esquinas del tablero
+  ══════════════════════════════════════════════════ */
+  .hud-c-esquina {
+    position: absolute;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    gap: 4px;
+  }
+  .hud-c-esquina.izq { left: 0; align-items: flex-start; }
+  .hud-c-esquina.der { right: 0; align-items: flex-end; }
+  .hud-c-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(8px);
+    padding: 5px 8px;
+    border-radius: 20px;
+  }
+  .hud-c-esquina.der .hud-c-badge { flex-direction: row-reverse; }
+  .hud-c-dot {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 1.5px solid rgba(255,255,255,0.2);
+  }
+  .hud-c-nombre {
+    font-size: 10px; font-weight: 600;
+    white-space: nowrap;
+    opacity: 0.75;
+  }
+  .hud-c-goles {
+    font-size: 18px; font-weight: 800;
+    line-height: 1;
+    padding: 0 2px;
+    margin-top: 2px;
+    align-self: center;
+  }
+  .hud-c-extra {
+    font-size: 9px; opacity: 0.45;
+    padding-left: 8px;
+  }
+  .hud-c-esquina.der .hud-c-extra { padding-left: 0; padding-right: 8px; }
+  .hud-c-turno-line {
+    height: 2px; width: 40px;
+    background: #FFD700;
+    border-radius: 1px;
+    opacity: 0;
+    margin-left: 8px;
+  }
+  .hud-c-esquina.der .hud-c-turno-line { margin-left: 0; margin-right: 8px; }
+  .hud-c-esquina.activo .hud-c-turno-line { opacity: 1; }
+  .hud-c-esquina.activo .hud-c-nombre { opacity: 1; }
+  .hud-c-esquina.activo .hud-c-goles { color: white; }
+  .hud-c-esquina:not(.activo) .hud-c-goles { color: rgba(255,255,255,0.3); }
+  .hud-c-esquina.activo .hud-c-dot { border-color: rgba(255,215,0,0.6); }
+
+  /* ══════════════════════════════════════════════════
+     PROPUESTA D — Barra horizontal exterior (debajo del tablero)
+  ══════════════════════════════════════════════════ */
+  .canvas-d-wrap {
+    width: 100%;
+    max-width: 420px;
+  }
+  .hud-d {
+    display: flex;
+    align-items: center;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+    border-radius: 0 0 10px 10px;
+    padding: 10px 14px;
+    gap: 0;
+  }
+  .hud-d-equipo {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .hud-d-equipo.visitante { flex-direction: row-reverse; }
+  .hud-d-dot {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 2px solid rgba(255,255,255,0.2);
+  }
+  .hud-d-info { display: flex; flex-direction: column; gap: 1px; }
+  .hud-d-nombre { font-size: 10px; font-weight: 600; opacity: 0.7; }
+  .hud-d-extra { font-size: 9px; opacity: 0.4; }
+  .hud-d-goles { font-size: 24px; font-weight: 800; }
+  .hud-d-centro {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 16px;
+    gap: 2px;
+  }
+  .hud-d-vs { font-size: 11px; opacity: 0.25; font-weight: 300; }
+  .hud-d-modo { font-size: 8px; letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.35; }
+  .hud-d-equipo.activo .hud-d-goles { color: white; }
+  .hud-d-equipo:not(.activo) .hud-d-goles { color: rgba(255,255,255,0.3); }
+  .hud-d-equipo.activo .hud-d-dot { border-color: rgba(255,215,0,0.5); }
+  .hud-d-equipo.activo .hud-d-nombre { opacity: 1; color: rgba(255,255,255,0.9); }
+  .hud-d-nombre-wrap { position: relative; }
+  .hud-d-turno-underline {
+    position: absolute;
+    bottom: -2px; left: 0; right: 0;
+    height: 2px;
+    background: #FFD700;
+    border-radius: 1px;
+    opacity: 0;
+  }
+  .hud-d-equipo.activo .hud-d-turno-underline { opacity: 1; }
+
+  /* ══════════════════════════════════════════════════
+     PROPUESTA E — Scoreboard estilo TV (superpuesto, parte baja)
+  ══════════════════════════════════════════════════ */
+  .hud-e {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: rgba(0,0,0,0.82);
+    backdrop-filter: blur(10px);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+    white-space: nowrap;
+  }
+  .hud-e-equipo {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 12px;
+  }
+  .hud-e-equipo.visitante { flex-direction: row-reverse; }
+  .hud-e-dot {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 1.5px solid rgba(255,255,255,0.2);
+  }
+  .hud-e-nombre { font-size: 11px; font-weight: 600; opacity: 0.8; max-width: 70px; overflow: hidden; text-overflow: ellipsis; }
+  .hud-e-goles { font-size: 20px; font-weight: 800; }
+  .hud-e-centro {
+    background: rgba(255,255,255,0.06);
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    border-left: 1px solid rgba(255,255,255,0.06);
+    border-right: 1px solid rgba(255,255,255,0.06);
+  }
+  .hud-e-separador { font-size: 14px; opacity: 0.2; font-weight: 300; }
+  .hud-e-modo { font-size: 7px; letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.35; }
+  .hud-e-equipo.activo .hud-e-goles { color: white; }
+  .hud-e-equipo:not(.activo) .hud-e-goles { color: rgba(255,255,255,0.3); }
+  .hud-e-equipo.activo .hud-e-dot { border-color: rgba(255,215,0,0.55); box-shadow: 0 0 6px rgba(255,215,0,0.3); }
+  .hud-e-equipo.activo .hud-e-nombre { opacity: 1; }
+
+  /* ══════════════════════════════════════════════════
+     PROPUESTA F — Todo integrado en el SVG, banda superior rediseñada
+  ══════════════════════════════════════════════════ */
+  .hud-f {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    display: flex;
+    align-items: stretch;
+    height: 60px;
+  }
+  .hud-f-equipo {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hud-f-equipo::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(6px);
+  }
+  .hud-f-equipo > * { position: relative; z-index: 1; }
+  .hud-f-equipo.visitante { flex-direction: row-reverse; }
+  .hud-f-equipo::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    opacity: 0;
+  }
+  .hud-f-equipo.activo::after { opacity: 1; }
+  .hud-f-local::after { background: #4fc3f7; }
+  .hud-f-visitante::after { background: #ef5350; }
+  .hud-f-dot {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 2px solid rgba(255,255,255,0.15);
+    transition: border-color 0.3s;
+  }
+  .hud-f-equipo.activo .hud-f-dot { border-color: rgba(255,255,255,0.5); }
+  .hud-f-textos { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+  .hud-f-nombre {
+    font-size: 11px; font-weight: 700;
+    opacity: 0.5;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    transition: opacity 0.3s;
+  }
+  .hud-f-equipo.activo .hud-f-nombre { opacity: 1; }
+  .hud-f-extra { font-size: 9px; opacity: 0.4; }
+  .hud-f-goles {
+    font-size: 32px; font-weight: 900;
+    line-height: 1;
+    transition: color 0.3s;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -1px;
+  }
+  .hud-f-equipo.activo .hud-f-goles { color: white; }
+  .hud-f-equipo:not(.activo) .hud-f-goles { color: rgba(255,255,255,0.2); }
+  .hud-f-divisor {
+    width: 1px;
+    background: rgba(255,255,255,0.08);
+    align-self: stretch;
+  }
+
+  /* ── Indicador de movimientos ── */
+  .movs-strip {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+  }
+  .mov-pip {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255,255,255,0.3);
+    background: none;
+    transition: background 0.15s;
+  }
+  .mov-pip.activo { background: white; border-color: white; }
+
+  /* Separador entre propuestas */
+  .sep { height: 1px; background: rgba(255,255,255,0.07); margin-bottom: 52px; }
+
+  /* Etiqueta flotante */
+  .prop-label {
+    display: inline-block;
+    background: rgba(255,255,255,0.07);
+    border-radius: 4px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    margin-bottom: 10px;
+    opacity: 0.6;
+  }
+
+  /* ── Controles locales por propuesta ── */
+  .ctrl-bar {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .ctrl-btn {
+    padding: 4px 10px;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.18);
+    background: transparent;
+    color: rgba(255,255,255,0.55);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .ctrl-btn:hover { background: rgba(255,255,255,0.07); color: white; }
+  .ctrl-btn.activo { background: rgba(255,255,255,0.12); color: white; border-color: rgba(255,255,255,0.4); }
+
+  /* ── PROPUESTA G — zonas grises externas ── */
+  .canvas-g-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #222;
+    border-radius: 12px;
+    overflow: hidden;
+    width: 100%;
+    max-width: 420px;
+  }
+  .hud-g-top {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    gap: 12px;
+    background: #1a1a1a;
+  }
+  .hud-g-equipo {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .hud-g-equipo.der { flex-direction: row-reverse; }
+  .hud-g-dot { width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; border: 2px solid rgba(255,255,255,0.15); }
+  .hud-g-textos { display: flex; flex-direction: column; gap: 1px; flex:1; min-width:0; }
+  .hud-g-nombre { font-size: 11px; font-weight: 700; opacity: 0.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: opacity .2s; }
+  .hud-g-extra  { font-size: 9px; opacity: 0.35; }
+  .hud-g-equipo.activo .hud-g-nombre { opacity: 1; }
+  .hud-g-goles  { font-size: 28px; font-weight: 900; transition: color .2s; font-variant-numeric: tabular-nums; }
+  .hud-g-equipo.activo .hud-g-goles { color: white; }
+  .hud-g-equipo:not(.activo) .hud-g-goles { color: rgba(255,255,255,0.22); }
+  .hud-g-equipo.activo .hud-g-dot { border-color: rgba(255,215,0,0.55); }
+  .hud-g-centro {
+    display: flex; flex-direction: column; align-items: center; gap: 2px; flex-shrink: 0;
+  }
+  .hud-g-turno-flecha { font-size: 10px; color: #FFD700; line-height: 1; }
+  .hud-g-modo { font-size: 8px; letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.3; }
+  .hud-g-campo {
+    width: 100%;
+    aspect-ratio: 110 / 150;
+    background: #2a5e2a;
+    position: relative;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px;
+  }
+  .hud-g-campo-inner {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px; opacity: 0.25;
+  }
+  .hud-g-bottom {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: #1a1a1a;
+  }
+  .hud-g-equipo.activo .hud-g-textos::before {
+    content: '';
+    display: block;
+    height: 2px;
+    width: 100%;
+    background: #FFD700;
+    border-radius: 1px;
+    margin-bottom: 2px;
+  }
+</style>
+</head>
+<body>
+
+<h1>MasterGoal — Propuestas de rediseño del HUD</h1>
+<p class="intro">Cada propuesta tiene sus propios controles. Interactúa con cada una de forma independiente.</p>
+
+<!-- ════════════════════════════════════════════
+     PROPUESTA A — Barra superior integrada en el tablero
+════════════════════════════════════════════ -->
+<div class="propuesta">
+  <div class="prop-label">A</div>
+  <div class="propuesta-titulo">Barra superior integrada en el tablero</div>
+  <p class="propuesta-desc">El HUD ocupa la banda superior del campo, sin espacio extra. Diseño limpio simétrico con el marcador grande en ambos extremos y un separador central con el modo. Indicador de turno activo: brillo en el equipo que juega.</p>
+
+  <div class="ctrl-bar">
+    <button class="ctrl-btn activo" onclick="setA('modo','goles',this)">Por goles</button>
+    <button class="ctrl-btn" onclick="setA('modo','turnos',this)">Por turnos</button>
+    <button class="ctrl-btn" onclick="setA('modo','crono',this)">Contrarreloj</button>
+    <button class="ctrl-btn" onclick="setA('turno',null,this)">Cambiar turno</button>
+    <button class="ctrl-btn" onclick="setA('mov',null,this)">+ movimiento balón</button>
+  </div>
+
+  <div class="canvas" id="canvas-a">
+    <div class="campo">
+      <div class="campo-linea"></div>
+      <div class="campo-centro"></div>
+      <div class="campo-linea"></div>
+    </div>
+    <div class="hud-a">
+      <div class="hud-a-equipo activo" id="a-local">
+        <div class="hud-a-dot" style="background:white;"></div>
+        <div style="flex:1; min-width:0;">
+          <div class="hud-a-nombre">Real Madrid</div>
+          <div class="movs-strip" id="a-movs" style="margin-top:3px;"></div>
+        </div>
+        <div class="hud-a-goles" id="a-goles-l">2</div>
+      </div>
+      <div class="hud-a-centro">
+        <div class="hud-a-separador">–</div>
+        <div class="hud-a-modo" id="a-modo">GOLES</div>
+      </div>
+      <div class="hud-a-equipo visitante" id="a-visitante">
+        <div class="hud-a-dot" style="background:#c62828;"></div>
+        <div style="flex:1; min-width:0; text-align:right;">
+          <div class="hud-a-nombre">Barcelona</div>
+        </div>
+        <div class="hud-a-goles" id="a-goles-r">1</div>
+      </div>
+      <div class="hud-a-turno">
+        <div class="hud-a-turno-bar" id="a-turno-bar" style="width:0%;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     PROPUESTA B — Laterales fuera del tablero
+════════════════════════════════════════════ -->
+<div class="propuesta">
+  <div class="prop-label">B</div>
+  <div class="propuesta-titulo">Paneles laterales flanqueando el tablero</div>
+  <p class="propuesta-desc">Los marcadores salen del campo y van a los lados. El tablero queda limpio al 100%. Más espacio para la info secundaria (turnos, crono). Ideal en pantallas anchas; en móvil vertical puede quedar estrecho.</p>
+
+  <div class="ctrl-bar">
+    <button class="ctrl-btn activo" onclick="setB('modo','goles',this)">Por goles</button>
+    <button class="ctrl-btn" onclick="setB('modo','turnos',this)">Por turnos</button>
+    <button class="ctrl-btn" onclick="setB('modo','crono',this)">Contrarreloj</button>
+    <button class="ctrl-btn" onclick="setB('turno',null,this)">Cambiar turno</button>
+    <button class="ctrl-btn" onclick="setB('mov',null,this)">+ movimiento balón</button>
+  </div>
+
+  <div class="canvas-b-wrap">
+    <div class="hud-b-lateral activo" id="b-local">
+      <div class="hud-b-turno-dot"></div>
+      <div class="hud-b-dot" style="background:white;"></div>
+      <div class="hud-b-goles" id="b-goles-l">2</div>
+      <div class="hud-b-label">Real Madrid</div>
+      <div class="hud-b-extra" id="b-extra-l"></div>
+    </div>
+    <div class="canvas" style="flex:1; border-radius:0; max-width:none;">
+      <div class="campo">
+        <div class="campo-linea"></div>
+        <div class="campo-centro"></div>
+        <div class="campo-linea"></div>
+      </div>
+      <div style="position:absolute; bottom:8px; left:50%; transform:translateX(-50%); display:flex; gap:5px;" id="b-movs"></div>
+    </div>
+    <div class="hud-b-lateral derecho" id="b-visitante">
+      <div class="hud-b-turno-dot"></div>
+      <div class="hud-b-dot" style="background:#c62828;"></div>
+      <div class="hud-b-goles" id="b-goles-r">1</div>
+      <div class="hud-b-label">Barcelona</div>
+      <div class="hud-b-extra" id="b-extra-r"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     PROPUESTA C — Esquinas integradas en el tablero
+════════════════════════════════════════════ -->
+<div class="propuesta">
+  <div class="prop-label">C</div>
+  <div class="propuesta-titulo">Badges en esquinas del tablero</div>
+  <p class="propuesta-desc">Muy discreto. Cada equipo vive en una esquina superior. El marcador aparece grande debajo del badge. Máxima integración con el campo. El turno activo se indica con una línea amarilla.</p>
+
+  <div class="ctrl-bar">
+    <button class="ctrl-btn activo" onclick="setC('modo','goles',this)">Por goles</button>
+    <button class="ctrl-btn" onclick="setC('modo','turnos',this)">Por turnos</button>
+    <button class="ctrl-btn" onclick="setC('modo','crono',this)">Contrarreloj</button>
+    <button class="ctrl-btn" onclick="setC('turno',null,this)">Cambiar turno</button>
+    <button class="ctrl-btn" onclick="setC('mov',null,this)">+ movimiento balón</button>
+  </div>
+
+  <div class="canvas" id="canvas-c">
+    <div class="campo">
+      <div class="campo-linea"></div>
+      <div class="campo-centro"></div>
+      <div class="campo-linea"></div>
+    </div>
+    <div class="hud-c-esquina izq activo" id="c-local">
+      <div class="hud-c-badge">
+        <div class="hud-c-dot" style="background:white;"></div>
+        <span class="hud-c-nombre">Real Madrid</span>
+      </div>
+      <div class="hud-c-goles" id="c-goles-l">2</div>
+      <div class="hud-c-extra" id="c-extra-l"></div>
+      <div class="hud-c-turno-line"></div>
+    </div>
+    <div class="hud-c-esquina der" id="c-visitante">
+      <div class="hud-c-badge">
+        <div class="hud-c-dot" style="background:#c62828;"></div>
+        <span class="hud-c-nombre">Barcelona</span>
+      </div>
+      <div class="hud-c-goles" id="c-goles-r" style="text-align:right;">1</div>
+      <div class="hud-c-extra" id="c-extra-r" style="text-align:right; padding-left:0; padding-right:8px;"></div>
+      <div class="hud-c-turno-line" style="margin-left:0; margin-right:8px;"></div>
+    </div>
+    <div style="position:absolute; top:8px; left:50%; transform:translateX(-50%); display:flex; gap:6px;" id="c-movs"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     PROPUESTA D — Barra inferior exterior
+════════════════════════════════════════════ -->
+<div class="propuesta">
+  <div class="prop-label">D</div>
+  <div class="propuesta-titulo">Barra inferior exterior al tablero</div>
+  <p class="propuesta-desc">El campo queda totalmente libre de UI. La barra aparece debajo del tablero, siempre visible. Pensada para landscape en móvil o pantallas donde el campo ocupa el centro. El nombre del equipo activo lleva subrayado dorado.</p>
+
+  <div class="ctrl-bar">
+    <button class="ctrl-btn activo" onclick="setD('modo','goles',this)">Por goles</button>
+    <button class="ctrl-btn" onclick="setD('modo','turnos',this)">Por turnos</button>
+    <button class="ctrl-btn" onclick="setD('modo','crono',this)">Contrarreloj</button>
+    <button class="ctrl-btn" onclick="setD('turno',null,this)">Cambiar turno</button>
+    <button class="ctrl-btn" onclick="setD('mov',null,this)">+ movimiento balón</button>
+  </div>
+
+  <div class="canvas-d-wrap">
+    <div class="canvas" style="border-radius:10px 10px 0 0; max-width:none;">
+      <div class="campo">
+        <div class="campo-linea"></div>
+        <div class="campo-centro"></div>
+        <div class="campo-linea"></div>
+      </div>
+      <div style="position:absolute; top:8px; left:50%; transform:translateX(-50%); display:flex; gap:6px;" id="d-movs-campo"></div>
+    </div>
+    <div class="hud-d">
+      <div class="hud-d-equipo activo" id="d-local">
+        <div class="hud-d-dot" style="background:white;"></div>
+        <div class="hud-d-info">
+          <div class="hud-d-nombre-wrap">
+            <div class="hud-d-nombre">Real Madrid</div>
+            <div class="hud-d-turno-underline"></div>
+          </div>
+          <div class="hud-d-extra" id="d-extra-l"></div>
+        </div>
+        <div class="hud-d-goles" id="d-goles-l">2</div>
+      </div>
+      <div class="hud-d-centro">
+        <div class="hud-d-vs">—</div>
+        <div class="hud-d-modo" id="d-modo">por goles</div>
+      </div>
+      <div class="hud-d-equipo visitante" id="d-visitante" style="flex-direction:row-reverse;">
+        <div class="hud-d-dot" style="background:#c62828;"></div>
+        <div class="hud-d-info" style="align-items:flex-end;">
+          <div class="hud-d-nombre-wrap">
+            <div class="hud-d-nombre">Barcelona</div>
+            <div class="hud-d-turno-underline"></div>
+          </div>
+          <div class="hud-d-extra" id="d-extra-r"></div>
+        </div>
+        <div class="hud-d-goles" id="d-goles-r">1</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     PROPUESTA E — Scoreboard TV flotante (centro-inferior)
+════════════════════════════════════════════ -->
+<div class="propuesta">
+  <div class="prop-label">E</div>
+  <div class="propuesta-titulo">Scoreboard flotante estilo retransmisión</div>
+  <p class="propuesta-desc">Un widget compacto centrado en la parte baja del campo, como el marcador de una retransmisión de TV. Muy legible, no invasivo porque el campo sigue visible alrededor. Los movimientos del balón aparecen como pips encima del widget.</p>
+
+  <div class="ctrl-bar">
+    <button class="ctrl-btn activo" onclick="setE('modo','goles',this)">Por goles</button>
+    <button class="ctrl-btn" onclick="setE('modo','turnos',this)">Por turnos</button>
+    <button class="ctrl-btn" onclick="setE('modo','crono',this)">Contrarreloj</button>
+    <button class="ctrl-btn" onclick="setE('turno',null,this)">Cambiar turno</button>
+    <button class="ctrl-btn" onclick="setE('mov',null,this)">+ movimiento balón</button>
+  </div>
+
+  <div class="canvas" id="canvas-e">
+    <div class="campo">
+      <div class="campo-linea"></div>
+      <div class="campo-centro"></div>
+      <div class="campo-linea"></div>
+    </div>
+    <div style="position:absolute; bottom:62px; left:50%; transform:translateX(-50%); display:flex; gap:6px;" id="e-movs"></div>
+    <div class="hud-e">
+      <div class="hud-e-equipo activo" id="e-local">
+        <div class="hud-e-dot" style="background:white;"></div>
+        <span class="hud-e-nombre">Real Madrid</span>
+        <span class="hud-e-goles" id="e-goles-l">2</span>
+      </div>
+      <div class="hud-e-centro">
+        <div class="hud-e-separador">:</div>
+        <div class="hud-e-modo" id="e-modo">GOLES</div>
+        <div id="e-extra" style="font-size:8px; opacity:0.4; margin-top:1px;"></div>
+      </div>
+      <div class="hud-e-equipo visitante" id="e-visitante" style="flex-direction:row-reverse;">
+        <div class="hud-e-dot" style="background:#c62828;"></div>
+        <span class="hud-e-nombre">Barcelona</span>
+        <span class="hud-e-goles" id="e-goles-r">1</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     PROPUESTA F — Rediseño completo banda superior (reemplaza HUD actual)
+════════════════════════════════════════════ -->
+<div class="propuesta">
+  <div class="prop-label">F</div>
+  <div class="propuesta-titulo">Rediseño banda superior — reemplaza el HUD actual</div>
+  <p class="propuesta-desc">Evolución directa del diseño actual pero con más altura, tipografía más grande y separación visual clara. La franja de color del equipo activo aparece en el borde superior. Es el cambio de menor impacto en el código: solo afecta al SVG.</p>
+
+  <div class="ctrl-bar">
+    <button class="ctrl-btn activo" onclick="setF('modo','goles',this)">Por goles</button>
+    <button class="ctrl-btn" onclick="setF('modo','turnos',this)">Por turnos</button>
+    <button class="ctrl-btn" onclick="setF('modo','crono',this)">Contrarreloj</button>
+    <button class="ctrl-btn" onclick="setF('turno',null,this)">Cambiar turno</button>
+    <button class="ctrl-btn" onclick="setF('mov',null,this)">+ movimiento balón</button>
+  </div>
+
+  <div class="canvas" id="canvas-f">
+    <div class="campo">
+      <div class="campo-linea"></div>
+      <div class="campo-centro"></div>
+      <div class="campo-linea"></div>
+    </div>
+    <div class="hud-f">
+      <div class="hud-f-equipo hud-f-local activo" id="f-local">
+        <div class="hud-f-dot" style="background:white;"></div>
+        <div class="hud-f-textos">
+          <div class="hud-f-nombre">Real Madrid</div>
+          <div class="hud-f-extra" id="f-extra-l"></div>
+          <div class="movs-strip" id="f-movs" style="margin-top:2px;"></div>
+        </div>
+        <div class="hud-f-goles" id="f-goles-l">2</div>
+      </div>
+      <div class="hud-f-divisor"></div>
+      <div class="hud-f-equipo hud-f-visitante" id="f-visitante" style="flex-direction:row-reverse;">
+        <div class="hud-f-dot" style="background:#c62828;"></div>
+        <div class="hud-f-textos" style="align-items:flex-end;">
+          <div class="hud-f-nombre">Barcelona</div>
+          <div class="hud-f-extra" id="f-extra-r"></div>
+        </div>
+        <div class="hud-f-goles" id="f-goles-r">1</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     PROPUESTA G — HUD en zonas grises externas (arriba + abajo del tablero)
+════════════════════════════════════════════ -->
+<div class="propuesta">
+  <div class="prop-label">G</div>
+  <div class="propuesta-titulo">Zonas grises externas — HUD fuera del tablero</div>
+  <p class="propuesta-desc">Aprovecha el espacio que queda libre encima y debajo del tablero en pantallas 1080p, 2K y móvil. El marcador de cada equipo va en la banda superior (fondo oscuro, fuera del verde) y los pips de movimiento en la banda inferior. El campo queda completamente libre.</p>
+
+  <div class="ctrl-bar">
+    <button class="ctrl-btn activo" onclick="setG('modo','goles',this)">Por goles</button>
+    <button class="ctrl-btn" onclick="setG('modo','turnos',this)">Por turnos</button>
+    <button class="ctrl-btn" onclick="setG('modo','crono',this)">Contrarreloj</button>
+    <button class="ctrl-btn" onclick="setG('turno',null,this)">Cambiar turno</button>
+    <button class="ctrl-btn" onclick="setG('mov',null,this)">+ movimiento balón</button>
+  </div>
+
+  <div class="canvas-g-wrap">
+    <!-- Banda superior: marcadores de ambos equipos -->
+    <div class="hud-g-top">
+      <div class="hud-g-equipo activo" id="g-local">
+        <div class="hud-g-dot" style="background:white;"></div>
+        <div class="hud-g-textos">
+          <div class="hud-g-nombre">Real Madrid</div>
+          <div class="hud-g-extra" id="g-extra-l"></div>
+        </div>
+        <div class="hud-g-goles" id="g-goles-l">2</div>
+      </div>
+      <div class="hud-g-centro">
+        <div class="hud-g-turno-flecha" id="g-flecha">▶</div>
+        <div class="hud-g-modo" id="g-modo">GOLES</div>
+      </div>
+      <div class="hud-g-equipo der" id="g-visitante">
+        <div class="hud-g-dot" style="background:#c62828;"></div>
+        <div class="hud-g-textos" style="align-items:flex-end;">
+          <div class="hud-g-nombre">Barcelona</div>
+          <div class="hud-g-extra" id="g-extra-r"></div>
+        </div>
+        <div class="hud-g-goles" id="g-goles-r">1</div>
+      </div>
+    </div>
+
+    <!-- Campo (verde, sin UI) -->
+    <div class="hud-g-campo">
+      <div class="hud-g-campo-inner">
+        <div class="campo-linea"></div>
+        <div class="campo-centro"></div>
+        <div class="campo-linea"></div>
+      </div>
+    </div>
+
+    <!-- Banda inferior: movimientos del balón -->
+    <div class="hud-g-bottom" id="g-movs-bottom">
+      <!-- pips se inyectan aquí -->
+    </div>
+  </div>
+</div>
+
+<script>
+  const GOLES_L = 2, GOLES_R = 1;
+  const TURNOS_L = 8, TURNOS_R = 10, TURNOS_TOTAL = 20;
+  const CRONO_L = '03:42', CRONO_R = '02:18';
+
+  function makePips(activos) {
+    let html = '';
+    for (let i = 1; i <= 4; i++) html += `<div class="mov-pip${i <= activos ? ' activo' : ''}"></div>`;
+    return html;
+  }
+
+  function extraTexto(modo, lado) {
+    if (modo === 'turnos') {
+      const t = lado === 'local' ? TURNOS_L : TURNOS_R;
+      return `${t}/${TURNOS_TOTAL}`;
+    }
+    if (modo === 'crono') return lado === 'local' ? CRONO_L : CRONO_R;
+    return '';
+  }
+
+  function modoTexto(modo) {
+    if (modo === 'goles')  return 'GOLES';
+    if (modo === 'turnos') return 'TURNOS';
+    if (modo === 'crono')  return 'TIEMPO';
+    return '';
+  }
+
+  function modoTextoLargo(modo) {
+    if (modo === 'goles')  return 'por goles';
+    if (modo === 'turnos') return 'por turnos';
+    if (modo === 'crono')  return 'contrarreloj';
+    return '';
+  }
+
+  /* ── Activar botón en ctrl-bar ── */
+  function activarBtn(btn, selector) {
+    btn.closest('.ctrl-bar').querySelectorAll(selector).forEach(b => b.classList.remove('activo'));
+    btn.classList.add('activo');
+  }
+
+  /* ════════════════════════════ PROPUESTA A ════════════════════════════ */
+  const stA = { modo: 'goles', turno: 'local', movs: 0 };
+
+  function setA(tipo, val, btn) {
+    if (tipo === 'modo') { stA.modo = val; activarBtn(btn, '.ctrl-btn:not(:nth-child(4)):not(:nth-child(5))'); }
+    else if (tipo === 'turno') { stA.turno = stA.turno === 'local' ? 'visitante' : 'local'; }
+    else if (tipo === 'mov')   { stA.movs = (stA.movs % 4) + 1; }
+    renderA();
+  }
+
+  function renderA() {
+    const loc = stA.turno === 'local';
+    document.getElementById('a-local').classList.toggle('activo', loc);
+    document.getElementById('a-visitante').classList.toggle('activo', !loc);
+    document.getElementById('a-goles-l').textContent = GOLES_L;
+    document.getElementById('a-goles-r').textContent = GOLES_R;
+    document.getElementById('a-modo').textContent = modoTexto(stA.modo);
+    document.getElementById('a-turno-bar').style.width = loc ? '0%' : '100%';
+    document.getElementById('a-movs').innerHTML = loc ? makePips(stA.movs) : '';
+  }
+
+  /* ════════════════════════════ PROPUESTA B ════════════════════════════ */
+  const stB = { modo: 'goles', turno: 'local', movs: 0 };
+
+  function setB(tipo, val, btn) {
+    if (tipo === 'modo') { stB.modo = val; activarBtn(btn, '.ctrl-btn:not(:nth-child(4)):not(:nth-child(5))'); }
+    else if (tipo === 'turno') { stB.turno = stB.turno === 'local' ? 'visitante' : 'local'; }
+    else if (tipo === 'mov')   { stB.movs = (stB.movs % 4) + 1; }
+    renderB();
+  }
+
+  function renderB() {
+    const loc = stB.turno === 'local';
+    document.getElementById('b-local').classList.toggle('activo', loc);
+    document.getElementById('b-visitante').classList.toggle('activo', !loc);
+    document.getElementById('b-goles-l').textContent = GOLES_L;
+    document.getElementById('b-goles-r').textContent = GOLES_R;
+    document.getElementById('b-extra-l').textContent = extraTexto(stB.modo, 'local');
+    document.getElementById('b-extra-r').textContent = extraTexto(stB.modo, 'visitante');
+    document.getElementById('b-movs').innerHTML = makePips(stB.movs);
+  }
+
+  /* ════════════════════════════ PROPUESTA C ════════════════════════════ */
+  const stC = { modo: 'goles', turno: 'local', movs: 0 };
+
+  function setC(tipo, val, btn) {
+    if (tipo === 'modo') { stC.modo = val; activarBtn(btn, '.ctrl-btn:not(:nth-child(4)):not(:nth-child(5))'); }
+    else if (tipo === 'turno') { stC.turno = stC.turno === 'local' ? 'visitante' : 'local'; }
+    else if (tipo === 'mov')   { stC.movs = (stC.movs % 4) + 1; }
+    renderC();
+  }
+
+  function renderC() {
+    const loc = stC.turno === 'local';
+    document.getElementById('c-local').classList.toggle('activo', loc);
+    document.getElementById('c-visitante').classList.toggle('activo', !loc);
+    document.getElementById('c-goles-l').textContent = GOLES_L;
+    document.getElementById('c-goles-r').textContent = GOLES_R;
+    document.getElementById('c-extra-l').textContent = extraTexto(stC.modo, 'local');
+    document.getElementById('c-extra-r').textContent = extraTexto(stC.modo, 'visitante');
+    document.getElementById('c-movs').innerHTML = makePips(stC.movs);
+  }
+
+  /* ════════════════════════════ PROPUESTA D ════════════════════════════ */
+  const stD = { modo: 'goles', turno: 'local', movs: 0 };
+
+  function setD(tipo, val, btn) {
+    if (tipo === 'modo') { stD.modo = val; activarBtn(btn, '.ctrl-btn:not(:nth-child(4)):not(:nth-child(5))'); }
+    else if (tipo === 'turno') { stD.turno = stD.turno === 'local' ? 'visitante' : 'local'; }
+    else if (tipo === 'mov')   { stD.movs = (stD.movs % 4) + 1; }
+    renderD();
+  }
+
+  function renderD() {
+    const loc = stD.turno === 'local';
+    document.getElementById('d-local').classList.toggle('activo', loc);
+    document.getElementById('d-visitante').classList.toggle('activo', !loc);
+    document.getElementById('d-goles-l').textContent = GOLES_L;
+    document.getElementById('d-goles-r').textContent = GOLES_R;
+    document.getElementById('d-extra-l').textContent = extraTexto(stD.modo, 'local');
+    document.getElementById('d-extra-r').textContent = extraTexto(stD.modo, 'visitante');
+    document.getElementById('d-modo').textContent = modoTextoLargo(stD.modo);
+    document.getElementById('d-movs-campo').innerHTML = makePips(stD.movs);
+  }
+
+  /* ════════════════════════════ PROPUESTA E ════════════════════════════ */
+  const stE = { modo: 'goles', turno: 'local', movs: 0 };
+
+  function setE(tipo, val, btn) {
+    if (tipo === 'modo') { stE.modo = val; activarBtn(btn, '.ctrl-btn:not(:nth-child(4)):not(:nth-child(5))'); }
+    else if (tipo === 'turno') { stE.turno = stE.turno === 'local' ? 'visitante' : 'local'; }
+    else if (tipo === 'mov')   { stE.movs = (stE.movs % 4) + 1; }
+    renderE();
+  }
+
+  function renderE() {
+    const loc = stE.turno === 'local';
+    document.getElementById('e-local').classList.toggle('activo', loc);
+    document.getElementById('e-visitante').classList.toggle('activo', !loc);
+    document.getElementById('e-goles-l').textContent = GOLES_L;
+    document.getElementById('e-goles-r').textContent = GOLES_R;
+    document.getElementById('e-modo').textContent = modoTexto(stE.modo);
+    const ex = loc ? extraTexto(stE.modo, 'local') : extraTexto(stE.modo, 'visitante');
+    document.getElementById('e-extra').textContent = ex;
+    document.getElementById('e-movs').innerHTML = makePips(stE.movs);
+  }
+
+  /* ════════════════════════════ PROPUESTA F ════════════════════════════ */
+  const stF = { modo: 'goles', turno: 'local', movs: 0 };
+
+  function setF(tipo, val, btn) {
+    if (tipo === 'modo') { stF.modo = val; activarBtn(btn, '.ctrl-btn:not(:nth-child(4)):not(:nth-child(5))'); }
+    else if (tipo === 'turno') { stF.turno = stF.turno === 'local' ? 'visitante' : 'local'; }
+    else if (tipo === 'mov')   { stF.movs = (stF.movs % 4) + 1; }
+    renderF();
+  }
+
+  function renderF() {
+    const loc = stF.turno === 'local';
+    document.getElementById('f-local').classList.toggle('activo', loc);
+    document.getElementById('f-visitante').classList.toggle('activo', !loc);
+    document.getElementById('f-goles-l').textContent = GOLES_L;
+    document.getElementById('f-goles-r').textContent = GOLES_R;
+    document.getElementById('f-extra-l').textContent = extraTexto(stF.modo, 'local');
+    document.getElementById('f-extra-r').textContent = extraTexto(stF.modo, 'visitante');
+    document.getElementById('f-movs').innerHTML = loc ? makePips(stF.movs) : '';
+  }
+
+  /* ════════════════════════════ PROPUESTA G ════════════════════════════ */
+  const stG = { modo: 'goles', turno: 'local', movs: 0 };
+
+  function setG(tipo, val, btn) {
+    if (tipo === 'modo') { stG.modo = val; activarBtn(btn, '.ctrl-btn:not(:nth-child(4)):not(:nth-child(5))'); }
+    else if (tipo === 'turno') { stG.turno = stG.turno === 'local' ? 'visitante' : 'local'; }
+    else if (tipo === 'mov')   { stG.movs = (stG.movs % 4) + 1; }
+    renderG();
+  }
+
+  function renderG() {
+    const loc = stG.turno === 'local';
+    document.getElementById('g-local').classList.toggle('activo', loc);
+    document.getElementById('g-visitante').classList.toggle('activo', !loc);
+    document.getElementById('g-goles-l').textContent = GOLES_L;
+    document.getElementById('g-goles-r').textContent = GOLES_R;
+    document.getElementById('g-extra-l').textContent = extraTexto(stG.modo, 'local');
+    document.getElementById('g-extra-r').textContent = extraTexto(stG.modo, 'visitante');
+    document.getElementById('g-modo').textContent = modoTexto(stG.modo);
+    document.getElementById('g-flecha').textContent = loc ? '▶' : '◀';
+    document.getElementById('g-movs-bottom').innerHTML = makePips(stG.movs);
+  }
+
+  /* ── Inicializar todas ── */
+  renderA(); renderB(); renderC(); renderD(); renderE(); renderF(); renderG();
+</script>
+</body>
+</html>

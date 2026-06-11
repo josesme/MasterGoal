@@ -24,7 +24,6 @@
     }
     
     /* UI Panel */
-    /* El game-container ocupa toda la pantalla */
     .game-container {
       width: 100vw !important;
       height: 100vh !important;
@@ -36,11 +35,18 @@
       background: #2e2e2e;
     }
 
-    .game-container svg {
-      /* El SVG crece hasta llenar la pantalla manteniendo proporción */
+    /* Wrapper: columna [HUD 80px] + [campo resto], ancho = ancho del SVG */
+    .svg-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      height: 100vh;
+      width: max-content;
+    }
+
+    .svg-wrapper svg {
       width: auto !important;
-      height: 100vh !important;
-      max-height: 100vh;
+      height: calc(100vh - 80px) !important;
       max-width: 100vw;
       display: block;
       touch-action: none;
@@ -49,47 +55,124 @@
     /* Ocultar barra superior antigua */
     .ui-panel { display: none !important; }
 
-    /* ====== MARCADOR SVG ====== */
-    .hud-equipo {
+    /* ══════════════════════════════════════════════
+       HUD diseño F
+    ══════════════════════════════════════════════ */
+    .hud-f-overlay {
+      height: 80px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: stretch;
+      background: #111;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    /* Cada mitad del HUD */
+    .hud-f-equipo {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 0 20px;
+      position: relative;
+      overflow: hidden;
+      min-width: 0;
+      transition: background 0.3s;
+    }
+    .hud-f-equipo.activo { background: rgba(255,255,255,0.05); }
+
+    /* Franja de color activo: borde inferior 3px */
+    .hud-f-equipo::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 3px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .hud-f-equipo.activo::after { opacity: 1; animation: hudPulso 1.4s ease-in-out infinite; }
+    .hud-f-local::after  { background: #4fc3f7; }
+    .hud-f-visitante::after { background: #ef5350; }
+
+    /* Visitante: espejo horizontal */
+    .hud-f-equipo.visitante { flex-direction: row-reverse; }
+
+    /* Dot jersey */
+    .hud-f-dot {
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background: #444;
+      overflow: hidden;
+      border: 2px solid rgba(255,255,255,0.12);
+      transition: border-color 0.3s;
+    }
+    .hud-f-equipo.activo .hud-f-dot { border-color: rgba(255,255,255,0.45); }
+
+    /* Bloque central: nombre (arriba) + [extra | pips] (abajo) */
+    .hud-f-textos {
+      display: flex; flex-direction: column; gap: 4px;
+      flex: 1; min-width: 0;
+    }
+    .hud-f-nombre {
+      font-size: 19px; font-weight: 800; letter-spacing: -0.3px;
+      color: rgba(255,255,255,0.35);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      transition: color 0.3s;
+      line-height: 1;
+    }
+    .hud-f-equipo.activo .hud-f-nombre { color: #fff; }
+
+    /* Fila secundaria: extra a un lado, pips al otro */
+    .hud-f-sub {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      min-width: 0;
+    }
+    .hud-f-extra {
+      font-size: 15px; font-weight: 500;
+      color: rgba(255,255,255,0.25);
+      white-space: nowrap;
+      letter-spacing: 0.1px;
+    }
+    .hud-f-equipo.activo .hud-f-extra { color: rgba(255,255,255,0.5); }
+
+    .hud-f-movs { display: flex; gap: 7px; align-items: center; }
+    .hud-f-pip {
+      width: 13px; height: 13px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.2);
+      background: none;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .hud-f-pip.activo { background: #fff; border-color: #fff; }
+
+    /* Goles: protagonistas */
+    .hud-f-goles {
+      font-size: 52px; font-weight: 900;
+      line-height: 1;
+      color: rgba(255,255,255,0.15);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -2px;
+      flex-shrink: 0;
+      transition: color 0.3s;
       font-family: system-ui, sans-serif;
     }
+    .hud-f-equipo.activo .hud-f-goles { color: #fff; }
 
-    .hud-goles {
-      font-size: 11px;
-      font-weight: bold;
-      fill: white;
+    /* Divisor central */
+    .hud-f-divisor {
+      width: 1px;
+      background: rgba(255,255,255,0.1);
+      align-self: stretch;
+      flex-shrink: 0;
     }
-
-    .hud-turno-indicator {
-      font-size: 6px;
-      fill: #FFD700;
-      font-weight: bold;
-    }
-
-    .hud-extra {
-      font-size: 5.5px;
-      fill: rgba(255,255,255,0.7);
-    }
-
-    .hud-crono {
-      font-size: 6px;
-      font-family: monospace;
-      font-weight: bold;
-    }
-
-    .hud-crono.activo { fill: #FFD700; }
-    .hud-crono.pausado { fill: rgba(255,255,255,0.35); }
 
     @keyframes hudPulso {
-      0%   { opacity: 1;   transform: scale(1); }
-      50%  { opacity: 0.3; transform: scale(0.75); }
-      100% { opacity: 1;   transform: scale(1); }
-    }
-
-    #hud-turno-b.activo, #hud-turno-r.activo {
-      animation: hudPulso 1s ease-in-out infinite;
-      transform-box: fill-box;
-      transform-origin: center;
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
     }
     
     /* Menu Inicial */
@@ -647,7 +730,7 @@
     .liga-partido {
       display: flex; align-items: center; gap: 8px; padding: 8px 10px;
       border-radius: 8px; border: 1.5px solid rgba(255,255,255,0.1);
-      background: rgba(255,255,255,0.04); font-size: 13px;
+      background: rgba(255,255,255,0.04); font-size: 13px; color: white;
     }
     .liga-partido.jugable { border-color: #4caf50; cursor: pointer; }
     .liga-partido.jugable:hover { background: rgba(76,175,80,0.1); }
@@ -912,18 +995,18 @@
         <h3>Tipo de encuentro</h3>
         <div class="encuentro-cols">
           <div class="encuentro-col">
-            <button class="torneo-tamano-btn activo" id="t-op-goles" onclick="torneoSelEncuentro('goles')">Por goles</button>
-            <div id="t-chips-wrap-goles" class="selector-chips encuentro-col-chips">
+            <button class="torneo-tamano-btn" id="t-op-goles" onclick="torneoSelEncuentro('goles')">Por goles</button>
+            <div id="t-chips-wrap-goles" class="selector-chips encuentro-col-chips" style="display:none;">
               <button class="chip activo" onclick="torneoSelChip(event,'goles',2)">2</button>
               <button class="chip" onclick="torneoSelChip(event,'goles',3)">3</button>
               <button class="chip" onclick="torneoSelChip(event,'goles',5)">5</button>
             </div>
           </div>
           <div class="encuentro-col">
-            <button class="torneo-tamano-btn" id="t-op-turnos" onclick="torneoSelEncuentro('turnos')">Por turnos</button>
-            <div id="t-chips-wrap-turnos" class="selector-chips encuentro-col-chips" style="display:none;">
-              <button class="chip activo" onclick="torneoSelChip(event,'turnos',20)">20</button>
-              <button class="chip" onclick="torneoSelChip(event,'turnos',30)">30</button>
+            <button class="torneo-tamano-btn activo" id="t-op-turnos" onclick="torneoSelEncuentro('turnos')">Por turnos</button>
+            <div id="t-chips-wrap-turnos" class="selector-chips encuentro-col-chips">
+              <button class="chip" onclick="torneoSelChip(event,'turnos',20)">20</button>
+              <button class="chip activo" onclick="torneoSelChip(event,'turnos',30)">30</button>
               <button class="chip" onclick="torneoSelChip(event,'turnos',40)">40</button>
             </div>
           </div>
@@ -948,7 +1031,7 @@
         </div>
       </div>
       <button class="btn-torneo-iniciar" id="btn-torneo-iniciar" onclick="torneoIniciar()" disabled>Sortear y comenzar</button>
-      <button class="btn-torneo-cerrar" onclick="cerrarTorneo()">Cancelar</button>
+      <button class="btn-torneo-cerrar" onclick="cerrarTorneo()">Volver</button>
     </div>
   </div>
 
@@ -959,7 +1042,8 @@
       <div class="bracket-ronda-label" id="bracket-ronda-label"></div>
       <div class="bracket-rondas" id="bracket-rondas"></div>
       <button class="btn-torneo-simular" id="btn-simular-ia" onclick="torneoSimularSiguienteIA()">Simular partido IA</button>
-      <button class="btn-torneo-cerrar" style="margin-top:8px;" onclick="torneoAbandonar()">Abandonar torneo</button>
+      <button class="btn-torneo-cerrar" style="margin-top:8px;" onclick="torneoVolverMenu()">Volver al menú</button>
+      <button class="btn-torneo-cerrar" style="color:#e57373;border-color:#e57373;margin-top:4px;" onclick="torneoAbandonar()">Abandonar torneo</button>
     </div>
   </div>
 
@@ -997,10 +1081,14 @@
     <div class="torneo-content">
       <div class="torneo-titulo">🥇 Liga</div>
       <div class="torneo-seccion">
-        <h3>Tu equipo</h3>
-        <select class="torneo-equipo-select" id="liga-mi-equipo" onchange="ligaActualizarRivales()">
-          <option value="">-- Selecciona tu equipo --</option>
-        </select>
+        <h3>Jugadores humanos</h3>
+        <div class="torneo-jugadores-btns">
+          <button class="torneo-tamano-btn activo" id="liga-btn-j1" onclick="ligaSetJugadores(1)">1 jugador</button>
+          <button class="torneo-tamano-btn" id="liga-btn-j2" onclick="ligaSetJugadores(2)">2 jugadores</button>
+          <button class="torneo-tamano-btn" id="liga-btn-j3" onclick="ligaSetJugadores(3)">3 jugadores</button>
+          <button class="torneo-tamano-btn" id="liga-btn-j4" onclick="ligaSetJugadores(4)">4 jugadores</button>
+        </div>
+        <div id="liga-jugadores-slots"></div>
       </div>
       <div class="torneo-seccion">
         <h3>Número de equipos</h3>
@@ -1014,15 +1102,16 @@
           <button class="torneo-tamano-btn" onclick="ligaSetTamano(20)">20</button>
         </div>
       </div>
+      <select id="liga-mi-equipo" style="display:none;"></select>
       <div class="torneo-seccion">
-        <h3>Rivales — <span id="liga-rivales-contador">Seleccionados: 0 / 9</span></h3>
+        <h3>Rivales (IA) — <span id="liga-rivales-contador">Seleccionados: 0 / 9</span></h3>
         <div class="torneo-rivales-grid" id="liga-rivales-grid"></div>
       </div>
       <div class="torneo-seccion">
         <h3>Tipo de encuentro</h3>
         <div class="selector-chips" style="margin-top:4px;">
-          <button class="chip activo" onclick="ligaSelChip(event,'turnos',20)">20</button>
-          <button class="chip" onclick="ligaSelChip(event,'turnos',30)">30</button>
+          <button class="chip" onclick="ligaSelChip(event,'turnos',20)">20</button>
+          <button class="chip activo" onclick="ligaSelChip(event,'turnos',30)">30</button>
           <button class="chip" onclick="ligaSelChip(event,'turnos',40)">40</button>
         </div>
       </div>
@@ -1129,8 +1218,8 @@
         <h3>Tipo de encuentro</h3>
         <div class="encuentro-cols">
           <div class="encuentro-col">
-            <button class="torneo-tamano-btn activo" id="op-goles" onclick="seleccionarEncuentro('goles')">Por goles</button>
-            <div id="chips-wrap-goles" class="selector-chips encuentro-col-chips">
+            <button class="torneo-tamano-btn" id="op-goles" onclick="seleccionarEncuentro('goles')">Por goles</button>
+            <div id="chips-wrap-goles" class="selector-chips encuentro-col-chips" style="display:none;">
               <button class="chip activo" onclick="seleccionarChip(event,'goles',1)">1</button>
               <button class="chip" onclick="seleccionarChip(event,'goles',2)">2</button>
               <button class="chip" onclick="seleccionarChip(event,'goles',3)">3</button>
@@ -1138,10 +1227,10 @@
             </div>
           </div>
           <div class="encuentro-col">
-            <button class="torneo-tamano-btn" id="op-turnos" onclick="seleccionarEncuentro('turnos')">Por turnos</button>
-            <div id="chips-wrap-turnos" class="selector-chips encuentro-col-chips" style="display:none;">
-              <button class="chip activo" onclick="seleccionarChip(event,'turnos',20)">20</button>
-              <button class="chip" onclick="seleccionarChip(event,'turnos',30)">30</button>
+            <button class="torneo-tamano-btn activo" id="op-turnos" onclick="seleccionarEncuentro('turnos')">Por turnos</button>
+            <div id="chips-wrap-turnos" class="selector-chips encuentro-col-chips">
+              <button class="chip" onclick="seleccionarChip(event,'turnos',20)">20</button>
+              <button class="chip activo" onclick="seleccionarChip(event,'turnos',30)">30</button>
               <button class="chip" onclick="seleccionarChip(event,'turnos',40)">40</button>
             </div>
           </div>
@@ -1226,7 +1315,46 @@
   </div>
 
   <div class="game-container" id="game-container" style="display:none;">
-    <svg viewBox="-10 -20 130 190" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+   <div class="svg-wrapper" id="svg-wrapper">
+
+    <!-- ══ HUD overlay diseño F ══ -->
+    <div class="hud-f-overlay" id="hud-f-overlay">
+      <div class="hud-f-equipo hud-f-local activo" id="hud-f-local">
+        <div class="hud-f-dot" id="hud-f-dot-local"></div>
+        <div class="hud-f-textos">
+          <div class="hud-f-nombre" id="hud-f-nombre-local">Local</div>
+          <div class="hud-f-sub">
+            <div class="hud-f-extra" id="hud-f-extra-local"></div>
+            <div class="hud-f-movs" id="hud-f-movs-local">
+              <div class="hud-f-pip" id="hud-f-pip-b-1"></div>
+              <div class="hud-f-pip" id="hud-f-pip-b-2"></div>
+              <div class="hud-f-pip" id="hud-f-pip-b-3"></div>
+              <div class="hud-f-pip" id="hud-f-pip-b-4"></div>
+            </div>
+          </div>
+        </div>
+        <div class="hud-f-goles" id="hud-f-goles-local">0</div>
+      </div>
+      <div class="hud-f-divisor"></div>
+      <div class="hud-f-equipo hud-f-visitante visitante" id="hud-f-visitante">
+        <div class="hud-f-dot" id="hud-f-dot-visitante"></div>
+        <div class="hud-f-textos">
+          <div class="hud-f-nombre" id="hud-f-nombre-visitante">Visitante</div>
+          <div class="hud-f-sub">
+            <div class="hud-f-extra" id="hud-f-extra-visitante"></div>
+            <div class="hud-f-movs" id="hud-f-movs-visitante">
+              <div class="hud-f-pip" id="hud-f-pip-r-1"></div>
+              <div class="hud-f-pip" id="hud-f-pip-r-2"></div>
+              <div class="hud-f-pip" id="hud-f-pip-r-3"></div>
+              <div class="hud-f-pip" id="hud-f-pip-r-4"></div>
+            </div>
+          </div>
+        </div>
+        <div class="hud-f-goles" id="hud-f-goles-visitante">0</div>
+      </div>
+    </div>
+
+    <svg viewBox="-10 -10 130 170" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
       <!-- ====== TABLERO (copia de tablero.svg) ====== -->
       <defs>
         <style>
@@ -1403,65 +1531,8 @@
       <circle cx="5" cy="15" r="0.75" class="corner"/> <circle cx="105" cy="15" r="0.75" class="corner"/>
       <circle cx="5" cy="135" r="0.75" class="corner"/> <circle cx="105" cy="135" r="0.75" class="corner"/>
       
-      <!-- ====== HUD MARCADOR (laterales portería superior) ====== -->
-      <g id="hud" font-family="system-ui, sans-serif">
-
-        <!-- LOCAL — lateral izquierdo (x:-10 a 29, y:-20 a 0) -->
-        <!-- Layout: [◀ INDICADOR] [● ICONO] [GOLES] [extra/crono] -->
-        <g id="hud-local">
-          <rect x="-10" y="-20" width="39" height="20" fill="rgba(0,0,0,0.5)" rx="2"/>
-          <!-- Indicador turno: exterior izquierdo, con pulso -->
-          <text id="hud-turno-b" x="-7" y="-8" font-size="9" fill="#FFD700"
-                font-weight="bold" opacity="0" text-anchor="middle">▶</text>
-          <!-- Icono equipo -->
-          <circle cx="5" cy="-11" r="3.5" fill="white" stroke="#bbb" stroke-width="0.3"/>
-          <!-- Goles -->
-          <text id="hud-goles-b" x="14" y="-7" font-size="10" font-weight="bold"
-                fill="white" text-anchor="middle">0</text>
-          <!-- Extra (turnos) -->
-          <text id="hud-extra-b" x="24" y="-12" font-size="4.5"
-                fill="rgba(255,255,255,0.65)" text-anchor="middle"></text>
-          <!-- Cronómetro -->
-          <text id="hud-crono-b" x="24" y="-5" font-size="5" font-family="monospace"
-                font-weight="bold" fill="rgba(255,255,255,0.35)"
-                text-anchor="middle" visibility="hidden"></text>
-        </g>
-
-        <!-- VISITANTE — lateral derecho (x:81 a 120, y:-20 a 0) — espejo de local -->
-        <g id="hud-visitante">
-          <rect x="81" y="-20" width="39" height="20" fill="rgba(0,0,0,0.5)" rx="2"/>
-          <!-- Extra (turnos) — interior izquierdo -->
-          <text id="hud-extra-r" x="86" y="-12" font-size="4.5"
-                fill="rgba(255,255,255,0.65)" text-anchor="middle"></text>
-          <!-- Cronómetro -->
-          <text id="hud-crono-r" x="86" y="-5" font-size="5" font-family="monospace"
-                font-weight="bold" fill="rgba(255,255,255,0.35)"
-                text-anchor="middle" visibility="hidden"></text>
-          <!-- Goles -->
-          <text id="hud-goles-r" x="96" y="-7" font-size="10" font-weight="bold"
-                fill="white" text-anchor="middle">0</text>
-          <!-- Icono equipo -->
-          <circle cx="105" cy="-11" r="3.5" fill="#d32f2f" stroke="#b71c1c" stroke-width="0.3"/>
-          <!-- Indicador turno: exterior derecho, con pulso -->
-          <text id="hud-turno-r" x="117" y="-8" font-size="9" fill="#FFD700"
-                font-weight="bold" opacity="0" text-anchor="middle">◀</text>
-        </g>
-
-      </g>
-
-      <!-- ====== INDICADOR MOVIMIENTOS BALÓN ====== -->
-      <g id="hud-movimientos" visibility="hidden">
-        <!-- Blanco: centrado en x=9.5, y=3 -->
-        <circle id="hud-mov-b-1" cx="3"   cy="3" r="1.4" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.5"/>
-        <circle id="hud-mov-b-2" cx="7.5" cy="3" r="1.4" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.5"/>
-        <circle id="hud-mov-b-3" cx="12"  cy="3" r="1.4" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.5"/>
-        <circle id="hud-mov-b-4" cx="16.5"cy="3" r="1.4" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.5"/>
-        <!-- Rojo: espejo en x=100.5 -->
-        <circle id="hud-mov-r-1" cx="93.5" cy="3" r="1.4" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.5"/>
-        <circle id="hud-mov-r-2" cx="98"   cy="3" r="1.4" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.5"/>
-        <circle id="hud-mov-r-3" cx="102.5"cy="3" r="1.4" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.5"/>
-        <circle id="hud-mov-r-4" cx="107"  cy="3" r="1.4" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.5"/>
-      </g>
+      <!-- HUD: ahora es HTML overlay (.hud-f-overlay) fuera del SVG -->
+      <g id="hud"></g>
 
       <!-- ====== FICHAS ====== -->
       <!-- Equipo Local (defiende P1) -->
@@ -1515,6 +1586,8 @@
       <!-- Capa para mostrar destinos posibles (se rellena con JS) -->
       <g id="destinos"></g>
     </svg>
+
+   </div><!-- /svg-wrapper -->
   </div>
   
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -1671,11 +1744,36 @@
           pattern.setAttribute('x', cx - r); pattern.setAttribute('y', cy - r);
           pattern.setAttribute('width', d); pattern.setAttribute('height', d);
           pattern.setAttribute('patternUnits', 'userSpaceOnUse');
-          pattern.innerHTML = `
-            <rect width="${d}" height="${d}" fill="${eq.colorPantalon}"/>
-            <svg x="0" y="0" width="${d}" height="${corte}" viewBox="0 0 ${d} ${d}" preserveAspectRatio="none">${pat.gen(eq.colorPrincipal, eq.colorSecundario, d)}</svg>
-            <line x1="0" y1="${corte}" x2="${d}" y2="${corte}" stroke="rgba(0,0,0,0.3)" stroke-width="0.4"/>
-          `;
+
+          // Capa 1: pantalón (fondo completo)
+          const mkRect = (x, y, w, h, fill) => {
+            const el = document.createElementNS('http://www.w3.org/2000/svg','rect');
+            if (x !== null) el.setAttribute('x', x);
+            if (y !== null) el.setAttribute('y', y);
+            el.setAttribute('width', w); el.setAttribute('height', h);
+            el.setAttribute('fill', fill);
+            return el;
+          };
+          pattern.appendChild(mkRect(null, null, d, d, eq.colorPantalon));
+
+          // Capa 2: shapes de camiseta (coords 0..d dentro del pattern)
+          const jerseyShapes = pat.gen(eq.colorPrincipal, eq.colorSecundario, d);
+          const parsed = new DOMParser().parseFromString(
+            `<svg xmlns="http://www.w3.org/2000/svg">${jerseyShapes}</svg>`, 'image/svg+xml');
+          Array.from(parsed.documentElement.children).forEach(c =>
+            pattern.appendChild(document.importNode(c, true))
+          );
+
+          // Capa 3: rect de pantalón que tapa la zona inferior (corte..d) de la camiseta
+          pattern.appendChild(mkRect(null, corte, d, d - corte, eq.colorPantalon));
+
+          // Capa 4: línea separadora
+          const sep = document.createElementNS('http://www.w3.org/2000/svg','line');
+          sep.setAttribute('x1','0'); sep.setAttribute('y1', String(corte));
+          sep.setAttribute('x2', String(d)); sep.setAttribute('y2', String(corte));
+          sep.setAttribute('stroke','rgba(0,0,0,0.3)'); sep.setAttribute('stroke-width','0.4');
+          pattern.appendChild(sep);
+
           defsEl.appendChild(pattern);
 
           el.setAttribute('fill', `url(#${patId})`);
@@ -2325,102 +2423,68 @@
     }
 
     function actualizarHUD() {
-      // Goles
-      document.getElementById('hud-goles-b').textContent = MARCADOR.local;
-      document.getElementById('hud-goles-r').textContent = MARCADOR.visitante;
-
-      // Indicador de turno activo
       const esB = estado.turno === 'local';
-      document.getElementById('hud-turno-b').setAttribute('opacity', esB ? '1' : '0');
-      document.getElementById('hud-turno-r').setAttribute('opacity', esB ? '0' : '1');
-
-      // Turno extra
-      const extraSufijo = estado.turnoExtra ? ' +' : '';
-
-      // Dato central según modo
       const enc = config.encuentro;
-      const extraB = document.getElementById('hud-extra-b');
-      const extraR = document.getElementById('hud-extra-r');
-      const cronoB = document.getElementById('hud-crono-b');
-      const cronoR = document.getElementById('hud-crono-r');
+      const extraSufijo = estado.turnoExtra;
 
-      // Animación pulso en el indicador activo
-      document.getElementById('hud-turno-b').classList.toggle('activo', esB);
-      document.getElementById('hud-turno-r').classList.toggle('activo', !esB);
+      // Goles
+      document.getElementById('hud-f-goles-local').textContent = MARCADOR.local;
+      document.getElementById('hud-f-goles-visitante').textContent = MARCADOR.visitante;
+
+      // Activo (controla brillo nombre, goles y franja de color via CSS)
+      document.getElementById('hud-f-local').classList.toggle('activo', esB);
+      document.getElementById('hud-f-visitante').classList.toggle('activo', !esB);
+
+      const extraB = document.getElementById('hud-f-extra-local');
+      const extraR = document.getElementById('hud-f-extra-visitante');
 
       if (enc === 'goles') {
-        extraB.textContent = extraSufijo ? 'EXTRA' : '';
-        extraR.textContent = '';
-        cronoB.setAttribute('visibility', 'hidden');
-        cronoR.setAttribute('visibility', 'hidden');
-
+        if (extraB) extraB.textContent = extraSufijo ? 'EXTRA' : '';
+        if (extraR) extraR.textContent = '';
       } else if (enc === 'turnos') {
         const tb = victoria.turnosRestantes.local;
         const tr = victoria.turnosRestantes.visitante;
         const total = config.turnos;
-        const turnoActualB = Math.min(total - tb + 1, total);
-        const turnoActualR = Math.min(total - tr + 1, total);
-        extraB.textContent = turnoActualB + '/' + total + (extraSufijo && esB ? '+' : '');
-        extraR.textContent = turnoActualR + '/' + total + (extraSufijo && !esB ? '+' : '');
-        cronoB.setAttribute('visibility', 'hidden');
-        cronoR.setAttribute('visibility', 'hidden');
-
+        if (extraB) extraB.textContent = Math.min(total - tb + 1, total) + '/' + total + (extraSufijo && esB ? '+' : '');
+        if (extraR) extraR.textContent = Math.min(total - tr + 1, total) + '/' + total + (extraSufijo && !esB ? '+' : '');
       } else if (enc === 'crono') {
-        extraB.textContent = extraSufijo && esB ? 'EXTRA' : '';
-        extraR.textContent = extraSufijo && !esB ? 'EXTRA' : '';
-        cronoB.setAttribute('visibility', 'visible');
-        cronoR.setAttribute('visibility', 'visible');
+        if (extraB) extraB.textContent = extraSufijo && esB ? 'EXTRA' : '';
+        if (extraR) extraR.textContent = extraSufijo && !esB ? 'EXTRA' : '';
         actualizarCronometrosHUD();
       }
 
-      // Indicador de movimientos de balón (solo en fase MOVER_BALON, modo pvp)
       actualizarMovimientosHUD();
     }
 
     function actualizarMovimientosHUD() {
-      const g = document.getElementById('hud-movimientos');
-      if (!g) return;
       const esVsIA = config.modo === 'vsIA';
       const visible = estado.fase === 'MOVER_BALON' &&
         (config.modo === 'pvp' || (esVsIA && estado.turno === 'local'));
-      // En vsIA: mantener visible pero solo mostrar lado local
-      if (config.modo !== 'pvp' && !esVsIA) { g.setAttribute('visibility', 'hidden'); return; }
-      g.setAttribute('visibility', visible || esVsIA ? 'visible' : 'hidden');
       const mov = visible ? estado.movimientosBalon : 0;
       const equipo = estado.turno;
-      console.log(`[HUD] fase:${estado.fase} turno:${equipo} mov:${mov} visible:${visible} esVsIA:${esVsIA}`);
-      ['b','r'].forEach(lado => {
-        // En vsIA nunca mostrar los del visitante (IA)
-        if (esVsIA && lado === 'r') {
-          for (let i = 1; i <= 4; i++) {
-            const el = document.getElementById(`hud-mov-r-${i}`);
-            if (el) { el.setAttribute('fill', 'none'); el.setAttribute('stroke', 'rgba(255,255,255,0.4)'); }
-          }
-          return;
-        }
+
+      [['b', 'local'], ['r', 'visitante']].forEach(([lado, eq]) => {
+        const ocultarTodos = esVsIA && lado === 'r';
         for (let i = 1; i <= 4; i++) {
-          const el = document.getElementById(`hud-mov-${lado}-${i}`);
-          if (!el) return;
-          const esEquipoLocal = lado === 'b' ? equipo === 'local' : equipo === 'visitante';
-          const esActivo = esEquipoLocal && i <= mov;
-          el.setAttribute('fill', esActivo ? 'white' : 'none');
-          el.setAttribute('stroke', esActivo ? 'white' : 'rgba(255,255,255,0.4)');
+          const el = document.getElementById(`hud-f-pip-${lado}-${i}`);
+          if (!el) continue;
+          const esActivo = !ocultarTodos && equipo === eq && i <= mov;
+          el.classList.toggle('activo', esActivo);
         }
       });
     }
 
     function actualizarCronometrosHUD() {
       ['local', 'visitante'].forEach(eq => {
-        const el = document.getElementById('hud-crono-' + eq[0]);
+        const el = document.getElementById('hud-f-extra-' + eq);
         if (!el) return;
         const s = victoria.tiempoRestante[eq] || 0;
         const mm = String(Math.floor(s / 60)).padStart(2, '0');
         const ss = String(s % 60).padStart(2, '0');
-        el.textContent = mm + ':' + ss;
         const activo = eq === estado.turno;
-        el.setAttribute('fill', activo ? '#FFD700' : 'rgba(255,255,255,0.35)');
-        // Pulso animado cuando activo y quedan menos de 30s
-        el.style.fontWeight = activo ? 'bold' : 'normal';
+        const extra = estado.turnoExtra ? ' EXTRA' : '';
+        el.textContent = mm + ':' + ss + (activo ? extra : '');
+        el.style.color = activo && s < 30 ? '#FFD700' : '';
       });
     }
     
@@ -3375,9 +3439,9 @@
     // ====== CONFIGURACION DE PARTIDA ======
     const config = {
       modo: 'vsIA',         // pvp | vsIA
-      encuentro: 'goles',   // goles | turnos | crono
+      encuentro: 'turnos',  // goles | turnos | crono
       goles: 1,
-      turnos: 20,
+      turnos: 30,
       cronoTiempo: 5,
       cronoGoles: 1
     };
@@ -3684,7 +3748,7 @@
       iaCalculando = false;
       estado.modo = config.modo;
       recolocar(equipoQueSaca);
-      document.getElementById('game-container').style.display = 'block';
+      document.getElementById('game-container').style.display = 'flex';
       document.getElementById('ui-panel').style.display = 'flex';
 
       // Inicializar condición de victoria
@@ -3788,6 +3852,7 @@
         p.golVisitante = soyLocal ? MARCADOR.visitante : MARCADOR.local;
         p.jugado = true;
         ligaRecalcularTabla();
+        ligaData.jornadaVista = ligaJornadaActual();
         ligaGuardar();
         const btnRevancha = document.querySelector('.btn-revancha');
         const btnMenu = document.querySelector('.btn-menu-volver');
@@ -3912,35 +3977,15 @@
       // Pintar fichas en el tablero
       pintarFichasTablero(localEq, rivalEq);
 
-      // Actualizar iconos de equipo en el HUD SVG
-      [['hud-local', localEq, '#ffffff', '#bbb'], ['hud-visitante', rivalEq, '#d32f2f', '#b71c1c']].forEach(([hudId, eq, defFill, defStroke]) => {
-        const circ = document.querySelector(`#${hudId} circle`);
-        if (!circ) return;
-        if (!eq) { circ.setAttribute('fill', defFill); circ.setAttribute('stroke', defStroke); return; }
-        const svgEl = document.querySelector('svg');
-        let defsEl = svgEl.querySelector('defs');
-        if (!defsEl) { defsEl = document.createElementNS('http://www.w3.org/2000/svg','defs'); svgEl.prepend(defsEl); }
-        const patId = 'pat_' + hudId;
-        const clipId = 'clip_' + hudId;
-        ['pattern','clipPath'].forEach(tag => { const old = defsEl.querySelector(`${tag}#${tag==='pattern'?patId:clipId}`); if (old) old.remove(); });
-        const cx = parseFloat(circ.getAttribute('cx')), cy = parseFloat(circ.getAttribute('cy')), r = parseFloat(circ.getAttribute('r'));
-        const d = r * 2; const corte = r * 1.35;
-        const pat = PATRONES_EQUIPO.find(p => p.id === eq.patron) || PATRONES_EQUIPO[0];
-        const clip = document.createElementNS('http://www.w3.org/2000/svg','clipPath'); clip.id = clipId;
-        const cc = document.createElementNS('http://www.w3.org/2000/svg','circle');
-        cc.setAttribute('cx', cx); cc.setAttribute('cy', cy); cc.setAttribute('r', r - 0.3);
-        clip.appendChild(cc); defsEl.appendChild(clip);
-        const pattern = document.createElementNS('http://www.w3.org/2000/svg','pattern'); pattern.id = patId;
-        pattern.setAttribute('x', cx - r); pattern.setAttribute('y', cy - r);
-        pattern.setAttribute('width', d); pattern.setAttribute('height', d);
-        pattern.setAttribute('patternUnits', 'userSpaceOnUse');
-        pattern.innerHTML = `<rect width="${d}" height="${d}" fill="${eq.colorPantalon}"/><svg x="0" y="0" width="${d}" height="${corte}" viewBox="0 0 ${d} ${d}" preserveAspectRatio="none">${pat.gen(eq.colorPrincipal, eq.colorSecundario, d)}</svg><line x1="0" y1="${corte}" x2="${d}" y2="${corte}" stroke="rgba(0,0,0,0.3)" stroke-width="0.4"/>`;
-        defsEl.appendChild(pattern);
-        circ.setAttribute('fill', `url(#${patId})`);
-        circ.setAttribute('clip-path', `url(#${clipId})`);
-        circ.setAttribute('stroke', '#333');
-        circ.setAttribute('stroke-width', '0.3');
-      });
+      // Nombres en la banda HUD
+      const nomB = document.getElementById('hud-f-nombre-local');
+      const nomR = document.getElementById('hud-f-nombre-visitante');
+      if (nomB) nomB.textContent = localEq ? localEq.nombre : 'Local';
+      if (nomR) nomR.textContent = rivalEq ? rivalEq.nombre : 'Visitante';
+
+      // Iconos de equipo en los dots HTML del HUD
+      aplicarMiniJersey(document.getElementById('hud-f-dot-local'),     localEq, 52);
+      aplicarMiniJersey(document.getElementById('hud-f-dot-visitante'), rivalEq, 52);
     }
 
     function guardarEquipos(lista) {
@@ -4014,7 +4059,7 @@
 
     // ====== TORNEO ======
     let torneoData = null;
-    const torneoConfig = { encuentro: 'goles', goles: 2, turnos: 20, cronoTiempo: 5, cronoGoles: 2 };
+    const torneoConfig = { encuentro: 'turnos', goles: 2, turnos: 30, cronoTiempo: 5, cronoGoles: 2 };
     let _torneoNumJugadores = 1; // cuántos slots humanos hay en la config actual
 
     window.torneoSelEncuentro = function(tipo) {
@@ -4308,6 +4353,11 @@
       document.getElementById('menu-inicial').style.display = 'flex';
     };
 
+    window.torneoVolverMenu = function() {
+      document.getElementById('bracket-overlay').classList.remove('visible');
+      document.getElementById('menu-inicial').style.display = 'flex';
+    };
+
     window.torneoAbandonar = function() {
       if (!confirm('¿Abandonar el torneo? Se perderá el progreso.')) return;
       torneoBorrar(); torneoData = null;
@@ -4376,30 +4426,54 @@
 
     // ====== LIGA ======
     let ligaData = null;
-    const ligaConfig = { encuentro: 'turnos', turnos: 20, tamano: 10 };
+    const ligaConfig = { encuentro: 'turnos', turnos: 30, tamano: 10 };
 
     function ligaGuardar() { localStorage.setItem('mg_liga', JSON.stringify(ligaData)); }
     function ligaCargar()  { const d = localStorage.getItem('mg_liga'); return d ? JSON.parse(d) : null; }
     function ligaBorrar()  { localStorage.removeItem('mg_liga'); }
 
+    let _ligaNumJugadores = 1;
+
+    function ligaGetJugadorIds() {
+      const ids = [];
+      for (let i = 1; i <= _ligaNumJugadores; i++) {
+        const v = document.getElementById(`liga-jugador-${i}`)?.value;
+        if (v) ids.push(v);
+      }
+      return ids;
+    }
+
+    window.ligaSetJugadores = function(n) {
+      _ligaNumJugadores = n;
+      [1, 2, 3, 4].forEach(i => document.getElementById('liga-btn-j' + i).classList.toggle('activo', i === n));
+      const equipos = equiposGuardados();
+      const slots = document.getElementById('liga-jugadores-slots');
+      slots.innerHTML = '';
+      for (let i = 1; i <= n; i++) {
+        const wrap = document.createElement('div'); wrap.className = 'torneo-jugador-slot';
+        const label = document.createElement('label');
+        label.textContent = n === 1 ? 'Tu equipo' : `Jugador ${i}`;
+        const sel = document.createElement('select');
+        sel.className = 'torneo-equipo-select';
+        sel.id = `liga-jugador-${i}`;
+        sel.innerHTML = '<option value="">-- Selecciona equipo --</option>';
+        equipos.forEach(e => {
+          const o = document.createElement('option'); o.value = e.id; o.textContent = e.nombre;
+          sel.appendChild(o);
+        });
+        sel.onchange = ligaActualizarRivales;
+        wrap.appendChild(label); wrap.appendChild(sel);
+        slots.appendChild(wrap);
+      }
+      ligaActualizarRivales();
+    };
+
     window.abrirLiga = function() {
       const saved = ligaCargar();
-      if (saved) {
-        ligaData = saved;
-        ligaMostrar();
-        return;
-      }
-      const equipos = equiposGuardados();
-      const sel = document.getElementById('liga-mi-equipo');
-      sel.innerHTML = '<option value="">-- Selecciona tu equipo --</option>';
-      equipos.forEach(e => {
-        const o = document.createElement('option');
-        o.value = e.id; o.textContent = e.nombre;
-        sel.appendChild(o);
-      });
-      ligaActualizarRivales();
+      if (saved) { ligaData = saved; ligaMostrar(); return; }
       document.getElementById('liga-crear-overlay').classList.add('visible');
       document.getElementById('menu-inicial').style.display = 'none';
+      ligaSetJugadores(1);
     };
 
     window.ligaCerrarCrear = function() {
@@ -4408,8 +4482,8 @@
     };
 
     window.ligaActualizarRivales = function() {
-      const miId = document.getElementById('liga-mi-equipo').value;
-      const equipos = equiposGuardados().filter(e => e.id !== miId);
+      const jugadorIds = new Set(ligaGetJugadorIds());
+      const equipos = equiposGuardados().filter(e => !jugadorIds.has(e.id));
       const grid = document.getElementById('liga-rivales-grid');
       const seleccionados = new Set([...grid.querySelectorAll('.torneo-rival-item.seleccionado')].map(el => el.dataset.id));
       grid.innerHTML = '';
@@ -4417,13 +4491,12 @@
         const div = document.createElement('div');
         div.className = 'torneo-rival-item' + (seleccionados.has(e.id) ? ' seleccionado' : '');
         div.dataset.id = e.id;
-        const dot = document.createElement('div');
-        dot.className = 'torneo-rival-dot';
+        const dot = document.createElement('div'); dot.className = 'torneo-rival-dot';
         aplicarMiniJersey(dot, e, 14);
         div.appendChild(dot);
         div.appendChild(document.createTextNode(e.nombre));
         div.onclick = () => {
-          const necesarios = ligaConfig.tamano - 1;
+          const necesarios = ligaConfig.tamano - jugadorIds.size;
           const activos = grid.querySelectorAll('.torneo-rival-item.seleccionado').length;
           if (!div.classList.contains('seleccionado') && activos >= necesarios) return;
           div.classList.toggle('seleccionado');
@@ -4439,19 +4512,20 @@
       document.querySelectorAll('#liga-crear-overlay .torneo-tamano-btn').forEach(b =>
         b.classList.toggle('activo', parseInt(b.textContent) === n)
       );
-      // Deseleccionar los sobrantes si hay más seleccionados que el nuevo límite
-      const necesarios = n - 1;
+      const jugadorIds = ligaGetJugadorIds();
+      const necesarios = n - jugadorIds.length;
       const seleccionados = [...document.querySelectorAll('#liga-rivales-grid .torneo-rival-item.seleccionado')];
       seleccionados.slice(necesarios).forEach(el => el.classList.remove('seleccionado'));
       ligaActualizarContador();
     };
 
     function ligaActualizarContador() {
-      const miId = document.getElementById('liga-mi-equipo').value;
-      const necesarios = ligaConfig.tamano - 1;
+      const jugadorIds = ligaGetJugadorIds();
+      const todosElegidos = jugadorIds.length === _ligaNumJugadores;
+      const necesarios = ligaConfig.tamano - jugadorIds.length;
       const activos = document.querySelectorAll('#liga-rivales-grid .torneo-rival-item.seleccionado').length;
       document.getElementById('liga-rivales-contador').textContent = `Seleccionados: ${activos} / ${necesarios}`;
-      document.getElementById('btn-liga-iniciar').disabled = (!miId || activos !== necesarios);
+      document.getElementById('btn-liga-iniciar').disabled = (!todosElegidos || activos !== necesarios);
     }
 
     window.ligaSelChip = function(e, tipo, valor) {
@@ -4461,20 +4535,40 @@
     };
 
     window.ligaIniciar = function() {
-      const miId = document.getElementById('liga-mi-equipo').value;
+      const jugadorIds = ligaGetJugadorIds();
       const rivalIds = [...document.querySelectorAll('#liga-rivales-grid .torneo-rival-item.seleccionado')].map(el => el.dataset.id);
-      const todos = [miId, ...rivalIds];
-      // Generar todos los partidos (todos contra todos, solo ida)
+      const todos = [...jugadorIds, ...rivalIds];
+      // Mezclar aleatoriamente para que el calendario sea diferente cada vez
+      for (let i = todos.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [todos[i], todos[j]] = [todos[j], todos[i]];
+      }
+      const miId = jugadorIds[0];
+      // Generar calendario round-robin con jornadas equilibradas
       const partidos = [];
-      for (let i = 0; i < todos.length; i++) {
-        for (let j = i + 1; j < todos.length; j++) {
-          partidos.push({ local: todos[i], visitante: todos[j], golLocal: null, golVisitante: null, jugado: false });
+      const n = todos.length;
+      // Si impar, añadir "bye" temporal
+      const equipos = n % 2 === 0 ? [...todos] : [...todos, null];
+      const numEq = equipos.length;
+      const numJornadas = numEq - 1;
+      const fijos = equipos.slice(1);
+      for (let j = 0; j < numJornadas; j++) {
+        const pivote = equipos[0];
+        const rotados = [...fijos];
+        // Rotar fijos j posiciones
+        const offset = j % fijos.length;
+        const ronda = [pivote, ...rotados.slice(offset), ...rotados.slice(0, offset)];
+        for (let k = 0; k < numEq / 2; k++) {
+          const local = ronda[k], visitante = ronda[numEq - 1 - k];
+          if (local && visitante) {
+            partidos.push({ jornada: j + 1, local, visitante, golLocal: null, golVisitante: null, jugado: false });
+          }
         }
       }
       // Inicializar tabla
       const tabla = {};
       todos.forEach(id => { tabla[id] = { pj:0, g:0, e:0, p:0, gf:0, gc:0, pts:0 }; });
-      ligaData = { miEquipo: miId, equipos: todos, partidos, tabla, config: { ...ligaConfig } };
+      ligaData = { miEquipo: miId, jugadores: jugadorIds, equipos: todos, partidos, tabla, config: { ...ligaConfig }, jornadaVista: 1 };
       ligaGuardar();
       document.getElementById('liga-crear-overlay').classList.remove('visible');
       ligaMostrar();
@@ -4539,6 +4633,7 @@
     }
 
     function ligaRenderTabla() {
+      document.getElementById('btn-liga-simular').style.display = 'none';
       const equipos = equiposGuardados();
       const eq = id => equipos.find(e => e.id === id);
       const orden = ligaOrdenarTabla();
@@ -4566,18 +4661,55 @@
       document.getElementById('liga-panel-tabla').innerHTML = html;
     }
 
+    function ligaJornadaActual() {
+      // Primera jornada con algún partido pendiente
+      const pendientes = ligaData.partidos.filter(p => !p.jugado);
+      if (!pendientes.length) return ligaData.partidos[ligaData.partidos.length - 1]?.jornada || 1;
+      return Math.min(...pendientes.map(p => p.jornada));
+    }
+
     function ligaRenderFixtures() {
       const equipos = equiposGuardados();
       const eq = id => equipos.find(e => e.id === id);
       const { partidos, miEquipo } = ligaData;
-      const pendientes = partidos.filter(p => !p.jugado);
-      const jugados = partidos.filter(p => p.jugado);
+      const totalJornadas = Math.max(...partidos.map(p => p.jornada));
+      const jornadaActual = ligaJornadaActual();
+
+      // jornadaVista: arranca en la actual si no está definida
+      if (!ligaData.jornadaVista) ligaData.jornadaVista = jornadaActual;
+      const j = ligaData.jornadaVista;
+
       const container = document.getElementById('liga-panel-fixtures');
       container.innerHTML = '';
 
-      const renderPartido = (p) => {
+      // Cabecera de navegación
+      const nav = document.createElement('div');
+      nav.style.cssText = 'display:flex;align-items:center;justify-content:space-between;width:100%;max-width:560px;margin-bottom:10px;';
+      const btnPrev = document.createElement('button');
+      btnPrev.textContent = '‹';
+      btnPrev.style.cssText = 'background:none;border:none;color:white;font-size:22px;cursor:pointer;opacity:' + (j > 1 ? '1' : '0.2') + ';padding:0 10px;';
+      btnPrev.disabled = j <= 1;
+      btnPrev.onclick = () => { ligaData.jornadaVista = j - 1; ligaRenderFixtures(); };
+      const titulo = document.createElement('div');
+      titulo.style.cssText = 'font-size:11px;letter-spacing:1.5px;text-transform:uppercase;opacity:0.55;color:white;';
+      titulo.textContent = `Jornada ${j} de ${totalJornadas}`;
+      const btnNext = document.createElement('button');
+      btnNext.textContent = '›';
+      btnNext.style.cssText = 'background:none;border:none;color:white;font-size:22px;cursor:pointer;opacity:' + (j < totalJornadas ? '1' : '0.2') + ';padding:0 10px;';
+      btnNext.disabled = j >= totalJornadas;
+      btnNext.onclick = () => { ligaData.jornadaVista = j + 1; ligaRenderFixtures(); };
+      nav.appendChild(btnPrev); nav.appendChild(titulo); nav.appendChild(btnNext);
+      container.appendChild(nav);
+
+      // Partidos de esta jornada
+      const partidosJornada = partidos.filter(p => p.jornada === j);
+      const jornada1Pendiente = partidos.filter(p => p.jornada === jornadaActual && !p.jugado);
+      const jornadaBloqueada = j > jornadaActual; // no se puede jugar si hay pendientes anteriores
+
+      partidosJornada.forEach(p => {
         const eLocal = eq(p.local), eVisit = eq(p.visitante);
-        const jugable = !p.jugado && (p.local === miEquipo || p.visitante === miEquipo);
+        const esMio = ligaEsHumano(p.local) || ligaEsHumano(p.visitante);
+        const jugable = !p.jugado && esMio && !jornadaBloqueada;
         const div = document.createElement('div');
         div.className = 'liga-partido' + (jugable ? ' jugable' : '') + (p.jugado ? ' jugado' : '');
         if (jugable) div.onclick = () => ligaJugarPartido(p);
@@ -4606,56 +4738,60 @@
 
         div.appendChild(equipoL); div.appendChild(centro); div.appendChild(equipoV);
         container.appendChild(div);
-      };
+      });
 
-      if (pendientes.length) {
-        const t = document.createElement('div'); t.className = 'liga-jornada-titulo';
-        t.textContent = 'Pendientes';
-        container.appendChild(t);
-        pendientes.forEach(renderPartido);
-      }
-      if (jugados.length) {
-        const t = document.createElement('div'); t.className = 'liga-jornada-titulo';
-        t.textContent = 'Jugados';
-        container.appendChild(t);
-        jugados.forEach(renderPartido);
-      }
-
-      const hayIA = pendientes.some(p => p.local !== miEquipo && p.visitante !== miEquipo);
+      // Botón simular: solo para la jornada actual y si hay partidos IA pendientes
+      const hayIA = j === jornadaActual &&
+        partidosJornada.some(p => !p.jugado && !ligaEsHumano(p.local) && !ligaEsHumano(p.visitante));
       document.getElementById('btn-liga-simular').style.display = hayIA ? 'block' : 'none';
     }
 
+    function ligaEsHumano(equipoId) {
+      return (ligaData.jugadores || [ligaData.miEquipo]).includes(equipoId);
+    }
+    function ligaJugadorNum(equipoId) {
+      const idx = (ligaData.jugadores || [ligaData.miEquipo]).indexOf(equipoId);
+      return idx >= 0 ? idx + 1 : null;
+    }
+
     function ligaJugarPartido(p) {
-      const soyLocal = p.local === ligaData.miEquipo;
-      config.equipoLocal = soyLocal ? p.local : p.visitante;
-      config.equipoRival = soyLocal ? p.visitante : p.local;
-      config.modo = 'vsIA';
+      const localHumano = ligaEsHumano(p.local);
+      const visitHumano = ligaEsHumano(p.visitante);
+      const esHvH = localHumano && visitHumano;
+      // El humano siempre juega como local en HvIA
+      config.equipoLocal = localHumano ? p.local : p.visitante;
+      config.equipoRival = localHumano ? p.visitante : p.local;
+      config.modo = esHvH ? 'pvp' : 'vsIA';
       config.encuentro  = ligaData.config.encuentro;
       config.turnos     = ligaData.config.turnos;
       config.cronoTiempo = ligaData.config.cronoTiempo;
       config._ligaPartido = p;
       config._ligaPendiente = true;
       actualizarSelectoresEquipo();
-      const selLocal = document.getElementById('sel-equipo-local');
-      const selRival = document.getElementById('sel-equipo-rival');
-      selLocal.value = config.equipoLocal || '';
-      selRival.value = config.equipoRival || '';
+      document.getElementById('sel-equipo-local').value = config.equipoLocal || '';
+      document.getElementById('sel-equipo-rival').value = config.equipoRival || '';
       actualizarDotEquipo('local');
       actualizarDotEquipo('rival');
       document.getElementById('liga-overlay').classList.remove('visible');
-      iniciarJuego();
+      const equipos = equiposGuardados();
+      const eqLocal = equipos.find(e => e.id === p.local);
+      const eqVisit = equipos.find(e => e.id === p.visitante);
+      mostrarPasaDispositivo(eqLocal, eqVisit, ligaJugadorNum(p.local), ligaJugadorNum(p.visitante), () => {
+        iniciarJuego();
+      });
     }
 
     window.ligaSimularPendientes = function() {
       const { partidos, miEquipo } = ligaData;
+      const jornadaActual = ligaJornadaActual();
       partidos.forEach(p => {
-        if (p.jugado || p.local === miEquipo || p.visitante === miEquipo) return;
-        let gl = simularGoles(), gv = simularGoles();
-        p.golLocal = gl; p.golVisitante = gv; p.jugado = true;
+        if (p.jornada !== jornadaActual) return;
+        if (p.jugado || ligaEsHumano(p.local) || ligaEsHumano(p.visitante)) return;
+        p.golLocal = simularGoles(); p.golVisitante = simularGoles(); p.jugado = true;
       });
       ligaRecalcularTabla();
       ligaGuardar();
-      ligaMostrarTab('fixtures');
+      ligaRenderFixtures();
     };
 
     window.ligaVolverMenu = function() {
