@@ -648,12 +648,9 @@ function iaBestBallSequence(f, c, movRestantes, alpha, beta) {
       const subRes = iaBestBallSequence(d.fila, d.col, movRestantes - 1, alpha, beta);
       resultado = { score: subRes.score + penalMargenFino + bonusLineasPostPase, seq: [d, ...subRes.seq] };
     } else if (!sigueVisitante && movRestantes > 1) {
-      // Perdemos posesión pero aún quedan movimientos: penalizar proporcionalmente a la
-      // superioridad rival que queda y a los movimientos restantes que perdemos
-      const penalPerdidaPosesion = 600 + (movRestantes - 1) * 500
-        + Math.max(0, -margenColindantes) * 200;
-      const subRes = iaBestBallSequence(d.fila, d.col, movRestantes - 1, alpha, beta);
-      resultado = { score: subRes.score - penalPerdidaPosesion + penalExposicion, seq: [d, ...subRes.seq] };
+      // Minimax: el local toma el control — simula su mejor turno completo (jugador + balón)
+      const scoreTrasTurnoLocal = iaMinimaxTurnoLocal(d.fila, d.col);
+      resultado = { score: scoreTrasTurnoLocal + penalExposicion, seq: [d] };
     } else {
       resultado = { score: scoreAqui + penalExposicion + bonusLineasPostPase, seq: [d] };
     }
@@ -719,6 +716,55 @@ function iaBestBallSequenceLocal(f, c, movRestantes) {
   estado.fichas.balon.fila = oldF; estado.fichas.balon.col = oldC;
   estado.turno = oldTurno; estado.movimientosBalon = oldMovs;
   return mejorScore;
+}
+
+// Minimax turno completo del local: mueve su mejor jugador y luego su mejor balón (prof 2).
+// Devuelve el score desde la perspectiva del visitante (cuanto más bajo, peor para visitante).
+function iaMinimaxTurnoLocal(balonF, balonC) {
+  const oldTurno = estado.turno;
+  estado.turno = 'local';
+  const piezasLocal = Object.entries(estado.fichas)
+    .filter(([id, d]) => d.equipo === 'local')
+    .map(([id, d]) => ({ id, fila: d.fila, col: d.col }));
+  let peorParaVisitante = Infinity;
+
+  for (const pieza of piezasLocal) {
+    const destinos = obtenerDestinosJugador(pieza.fila, pieza.col, 'local')
+      .filter(d => !estaOcupada(d.fila, d.col, pieza.id));
+
+    // Ordenar candidatos: prioriza los que dan posesión al local
+    const scored = destinos.map(d => {
+      estado.fichas[pieza.id].fila = d.fila;
+      estado.fichas[pieza.id].col  = d.col;
+      const consiguePosesion = equipoTienePosesion('local') ? 1 : 0;
+      estado.fichas[pieza.id].fila = pieza.fila;
+      estado.fichas[pieza.id].col  = pieza.col;
+      const distBal = iaDistancia(d.fila, d.col, balonF, balonC);
+      return { d, h: consiguePosesion * 2000 - distBal * 2 + d.fila };
+    });
+    scored.sort((a, b) => b.h - a.h);
+    const top = scored.slice(0, 6);
+
+    for (const { d: dest } of top) {
+      estado.fichas[pieza.id].fila = dest.fila;
+      estado.fichas[pieza.id].col  = dest.col;
+
+      let scoreFinal;
+      if (equipoTienePosesion('local')) {
+        // Local consiguió posesión: simula su mejor secuencia de balón (prof 2)
+        scoreFinal = iaBestBallSequenceLocal(balonF, balonC, 2) - 1500;
+      } else {
+        scoreFinal = iaEvaluarEstado();
+      }
+
+      if (scoreFinal < peorParaVisitante) peorParaVisitante = scoreFinal;
+
+      estado.fichas[pieza.id].fila = pieza.fila;
+      estado.fichas[pieza.id].col  = pieza.col;
+    }
+  }
+  estado.turno = oldTurno;
+  return peorParaVisitante === Infinity ? iaEvaluarEstado() : peorParaVisitante;
 }
 
 function iaSimularMejorTurnoLocal() {
