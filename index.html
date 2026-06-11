@@ -2887,15 +2887,83 @@
       }, 500);
     };
 
+    const IA_SERVER = 'http://localhost:3001';
+    let _iaServerDisponible = null; // null=sin probar, true/false
+
+    async function _pedirAlServidor(tipo, estadoCopia, movRestantes) {
+      const body = JSON.stringify({ tipo, estadoJuego: estadoCopia, movRestantes });
+      const ctrl = new AbortController();
+      const timeout = setTimeout(() => ctrl.abort(), 3000);
+      try {
+        const r = await fetch(`${IA_SERVER}/decision`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body, signal: ctrl.signal
+        });
+        clearTimeout(timeout);
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const data = await r.json();
+        _iaServerDisponible = true;
+        return data.decision;
+      } catch (err) {
+        clearTimeout(timeout);
+        _iaServerDisponible = false;
+        return undefined; // señal de fallo
+      }
+    }
+
+    function _procesarDecisionIA(tipo, decision) {
+      if (tipo === 'MOVER_JUGADOR') {
+        if (!decision) { iaCalculando = false; pasarTurno(); return; }
+        const exito = mover(decision.piezaId, decision.dest.fila, decision.dest.col);
+        if (exito && estado.fase === 'MOVER_BALON' && estado.modo === 'vsIA') {
+          ejecutarTurnoIA();
+        } else if (!exito) {
+          console.warn('IA: mover jugador rechazado, pasando turno');
+          iaCalculando = false;
+          pasarTurno();
+        } else {
+          iaCalculando = false;
+        }
+      } else if (tipo === 'MOVER_BALON') {
+        if (!decision) { iaCalculando = false; pasarTurno(); return; }
+        const exito = mover('balon', decision.dest.fila, decision.dest.col);
+        if (exito && estado.fase === 'MOVER_BALON' && estado.movimientosBalon < 4 && estado.modo === 'vsIA') {
+          ejecutarTurnoIA();
+        } else if (!exito) {
+          console.warn('IA: mover balón rechazado, pasando turno');
+          iaCalculando = false;
+          pasarTurno();
+        } else {
+          iaCalculando = false;
+        }
+      }
+    }
+
     function ejecutarTurnoIA() {
       if (estado.turno !== 'visitante' || estado.modo !== 'vsIA') return;
       iaCalculando = true;
-      setTimeout(() => {
+      setTimeout(async () => {
         const estadoCopia = JSON.parse(JSON.stringify(estado));
-        if (estado.fase === 'MOVER_JUGADOR') {
+        const tipo = estado.fase === 'MOVER_JUGADOR' ? 'MOVER_JUGADOR' : 'MOVER_BALON';
+        const movRestantes = 4 - estado.movimientosBalon;
+
+        // Intentar servidor externo si no sabemos que está caído
+        if (_iaServerDisponible !== false) {
+          const decision = await _pedirAlServidor(tipo, estadoCopia, movRestantes);
+          if (_iaServerDisponible) {
+            // Servidor respondió — usar su decisión
+            console.log(`%c🖥️ IA SERVER [${tipo}]`, 'color:#80deea;font-weight:bold');
+            _procesarDecisionIA(tipo, decision);
+            return;
+          }
+          // Primera vez que falla — avisar en consola y caer al worker
+          console.warn('⚠️ Servidor IA no disponible — usando worker local. Lanza: node servidor-ia.js');
+        }
+
+        // Fallback: worker local
+        if (tipo === 'MOVER_JUGADOR') {
           iaWorker.postMessage({ tipo: 'MOVER_JUGADOR', estadoJuego: estadoCopia });
-        } else if (estado.fase === 'MOVER_BALON') {
-          const movRestantes = 4 - estado.movimientosBalon;
+        } else {
           iaWorker.postMessage({ tipo: 'MOVER_BALON', estadoJuego: estadoCopia, movRestantes });
         }
       }, 600);
