@@ -2444,7 +2444,9 @@
     
     // ====== VERIFICAR GOL ======
     function animarGol(equipo) {
-      const color = equipo === 'local' ? '#4fc3f7' : '#ef5350';
+      const eqId = equipo === 'local' ? config.equipoLocal : config.equipoRival;
+      const eqData = EQUIPOS.find(e => e.id === eqId);
+      const color = eqData?.colorPrincipal || '#FFD700';
       const golFlash = document.getElementById('gol-flash');
       const golTexto = document.getElementById('gol-texto');
       const golNumEl = document.getElementById('hud-f-goles-' + equipo);
