@@ -1166,27 +1166,34 @@ self.onmessage = function(e) {
   _cntEvaluar = 0; _cntLineas = 0; _cntBestBall = 0; _cntBestBallLocal = 0; _cntAmenaza = 0;
   const _t0 = Date.now();
 
-  if (tipo === 'MOVER_JUGADOR') {
-    const decision = calcularDecisionJugador();
-    const ms = Date.now() - _t0;
-    console.log(
-      '⏱ PERF [JUGADOR] ' + ms + 'ms |' +
-      ' evaluar:' + _cntEvaluar +
-      ' lineas:' + _cntLineas +
-      ' bestBall:' + _cntBestBall +
-      ' bestBallLocal:' + _cntBestBallLocal +
-      ' amenaza:' + _cntAmenaza
-    );
-    self.postMessage({ tipo: 'DECISION_JUGADOR', decision });
-  } else if (tipo === 'MOVER_BALON') {
-    const decision = calcularDecisionBalon(movRestantes);
-    const ms = Date.now() - _t0;
-    console.log(
-      '⏱ PERF [BALON] ' + ms + 'ms |' +
-      ' evaluar:' + _cntEvaluar +
-      ' lineas:' + _cntLineas +
-      ' bestBall:' + _cntBestBall
-    );
-    self.postMessage({ tipo: 'DECISION_BALON', decision });
+  try {
+    if (tipo === 'MOVER_JUGADOR') {
+      const decision = calcularDecisionJugador();
+      const ms = Date.now() - _t0;
+      console.log(
+        '⏱ PERF [JUGADOR] ' + ms + 'ms |' +
+        ' evaluar:' + _cntEvaluar +
+        ' lineas:' + _cntLineas +
+        ' bestBall:' + _cntBestBall +
+        ' bestBallLocal:' + _cntBestBallLocal +
+        ' amenaza:' + _cntAmenaza
+      );
+      self.postMessage({ tipo: 'DECISION_JUGADOR', decision });
+    } else if (tipo === 'MOVER_BALON') {
+      const decision = calcularDecisionBalon(movRestantes);
+      const ms = Date.now() - _t0;
+      console.log(
+        '⏱ PERF [BALON] ' + ms + 'ms |' +
+        ' evaluar:' + _cntEvaluar +
+        ' lineas:' + _cntLineas +
+        ' bestBall:' + _cntBestBall
+      );
+      self.postMessage({ tipo: 'DECISION_BALON', decision });
+    }
+  } catch (err) {
+    console.error('IA worker excepción interna:', err);
+    // Siempre responder para no dejar el juego congelado
+    if (tipo === 'MOVER_JUGADOR') self.postMessage({ tipo: 'DECISION_JUGADOR', decision: null });
+    else self.postMessage({ tipo: 'DECISION_BALON', decision: null });
   }
 };

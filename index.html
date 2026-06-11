@@ -2841,9 +2841,14 @@
         console.log(`%c🤖 ELEGIDO: ${decision.piezaId} → (${decision.dest.fila},${decision.dest.col})`, 'color:#a5d6a7;font-weight:bold');
         const exito = mover(decision.piezaId, decision.dest.fila, decision.dest.col);
         if (exito && estado.fase === 'MOVER_BALON' && estado.modo === 'vsIA') {
-          ejecutarTurnoIA(); // iaCalculando sigue true, la IA continúa con el balón
+          ejecutarTurnoIA();
+        } else if (!exito) {
+          // mover() rechazó la decisión (estado divergió) — pasar turno para desbloquear
+          console.warn('IA: mover jugador rechazado, pasando turno');
+          iaCalculando = false;
+          pasarTurno();
         } else {
-          iaCalculando = false; // turno pasó al local
+          iaCalculando = false;
         }
 
       } else if (tipo === 'DECISION_BALON') {
@@ -2855,9 +2860,13 @@
         console.log(`   primer paso: (${decision.dest.fila},${decision.dest.col})`);
         const exito = mover('balon', decision.dest.fila, decision.dest.col);
         if (exito && estado.fase === 'MOVER_BALON' && estado.movimientosBalon < 4 && estado.modo === 'vsIA') {
-          ejecutarTurnoIA(); // iaCalculando sigue true, continúa moviendo el balón
+          ejecutarTurnoIA();
+        } else if (!exito) {
+          console.warn('IA: mover balón rechazado, pasando turno');
+          iaCalculando = false;
+          pasarTurno();
         } else {
-          iaCalculando = false; // turno pasó al local
+          iaCalculando = false;
         }
       }
     };
@@ -2865,6 +2874,13 @@
     iaWorker.onerror = function(err) {
       console.error('Error en IA worker:', err);
       iaCalculando = false;
+      // Relanzar el turno si sigue siendo de la IA, para no quedar congelados
+      setTimeout(() => {
+        if (estado.turno === 'visitante' && estado.modo === 'vsIA' && !iaCalculando) {
+          console.warn('IA: relanzando turno tras error del worker');
+          pasarTurno();
+        }
+      }, 500);
     };
 
     function ejecutarTurnoIA() {
