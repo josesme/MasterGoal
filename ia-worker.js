@@ -716,7 +716,13 @@ function iaSimularMejorTurnoLocal() {
     const scored = destinos.map(d => {
       const distBal = iaDistancia(d.fila, d.col, balonF, balonC);
       const avance = d.fila;
-      return { d, heuristica: -distBal * 2 + avance };
+      // Simular posesión tras mover: priorizar destinos que dan posesión al local
+      estado.fichas[pieza.id].fila = d.fila;
+      estado.fichas[pieza.id].col  = d.col;
+      const consiguePosesion = equipoTienePosesion('local') ? 1 : 0;
+      estado.fichas[pieza.id].fila = pieza.fila;
+      estado.fichas[pieza.id].col  = pieza.col;
+      return { d, heuristica: consiguePosesion * 2000 - distBal * 2 + avance };
     });
     scored.sort((a, b) => b.heuristica - a.heuristica);
     const top = scored.slice(0, 8).map(s => s.d);
@@ -846,7 +852,7 @@ function calcularDecisionJugador() {
             const scoreRival = iaSimularMejorTurnoLocal();
             estado.fichas[pieza.id].fila = pieza.fila;
             estado.fichas[pieza.id].col  = pieza.col;
-            score = resPropio.score - scoreRival * 0.8 + 8000;
+            score = resPropio.score - scoreRival * (0.8 + Math.max(0, (balonF - 7) / 7) * 0.4) + 8000;
           } else {
             // No puede recuperar: valorar cuántas líneas de amenaza bloquea desde este destino.
             // Simular el portero en dest y redetectar amenazas: las que desaparezcan = bloqueadas.
@@ -880,7 +886,7 @@ function calcularDecisionJugador() {
             const scoreRival = iaSimularMejorTurnoLocal();
             estado.fichas[pieza.id].fila = pieza.fila;
             estado.fichas[pieza.id].col  = pieza.col;
-            score = resPropio.score - scoreRival * 0.8 + 8000;
+            score = resPropio.score - scoreRival * (0.8 + Math.max(0, (balonF - 7) / 7) * 0.4) + 8000;
           } else if (esColindanteBalon) {
             score += 15000;
             score -= Math.abs(dest.col - 6) * 80;
@@ -936,11 +942,15 @@ function calcularDecisionJugador() {
       // es la jugada más valiosa de todas: abre el turno de balón completo.
       // Distinguimos tres niveles: recuperar posesión, empatar (neutro→posesión),
       // y simplemente acercarse.
+      // Factor rival: cuanto más cerca está el balón de nuestra portería (fila 14),
+      // más peso damos a lo que puede hacer el local en su turno.
+      const factorRival = 0.8 + Math.max(0, (balonF - 7) / 7) * 0.4; // 0.8 a 1.2
+
       if (!visitanteTienePosesion && ganaPosesionAhora) {
         // Recién conseguida la posesión: lookahead completo del balón
         const resPropio  = iaBestBallSequence(balonF, balonC, 4, -Infinity, Infinity);
         const scoreRival = iaSimularMejorTurnoLocal();
-        scoreTotal = resPropio.score - scoreRival * 0.8;
+        scoreTotal = resPropio.score - scoreRival * factorRival;
         // Bonus por haber conseguido la posesión con este movimiento
         // (cuánto más cerca del balón queda el jugador, más sólida la posesión)
         scoreTotal += 3500 + Math.max(0, 400 - distDestBalon * 60);
@@ -951,7 +961,7 @@ function calcularDecisionJugador() {
         // antes de mover el balón (abre líneas de tiro, mejora ángulo)
         const resPropio  = iaBestBallSequence(balonF, balonC, 4, -Infinity, Infinity);
         const scoreRival = iaSimularMejorTurnoLocal();
-        scoreTotal = resPropio.score - scoreRival * 0.8;
+        scoreTotal = resPropio.score - scoreRival * factorRival;
         scoreTotal += Math.max(0, 500 - distDestBalon * 50);
         if (esColindanteDest) scoreTotal += 300;
 
