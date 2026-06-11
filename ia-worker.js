@@ -479,31 +479,48 @@ function iaEvaluarEstado() {
   if (rc - lc >= 2) v += 400;
 
   // ── 4. LÍNEAS DE TIRO A PORTERÍA RIVAL (amenaza ofensiva) ────────────────
-  // Cada línea abierta sin portero en medio vale según cercanía a portería
+  // Precalcular posiciones locales para detección de cobertura
+  const posLocales = Object.values(estado.fichas).filter(f => f.equipo === 'local');
   const lineasOfensivas = iaLineasAPorteriaCached(bf, bc, 'visitante');
   for (const linea of lineasOfensivas) {
     if (!linea.bloqueadaPorPortero) {
-      // Línea totalmente libre: bonus inversamente proporcional a la distancia
       const bonusLinea = Math.max(0, 600 - linea.dist * 80);
-      // Líneas centrales (col 5-7 de portería) valen más
       const centralidad = 5 - Math.abs(linea.colPorteria - 6);
-      v += bonusLinea + centralidad * 40;
+      // Reducir valor si un local está colindante a la trayectoria (puede tapar el siguiente turno)
+      let cubierta = false;
+      for (let d = 1; d <= linea.dist && !cubierta; d++) {
+        const tf = bf + linea.df * d, tc = bc + linea.dc * d;
+        for (const loc of posLocales) {
+          if (Math.abs(loc.fila - tf) <= 1 && Math.abs(loc.col - tc) <= 1 && !(loc.fila === tf && loc.col === tc)) {
+            cubierta = true; break;
+          }
+        }
+      }
+      v += cubierta ? (bonusLinea + centralidad * 40) * 0.4 : bonusLinea + centralidad * 40;
     } else {
-      // Línea bloqueada solo por portero: vale menos pero sigue siendo amenaza
-      // (el portero puede moverse o ser superado)
       const bonusLinea = Math.max(0, 250 - linea.dist * 40);
       v += bonusLinea;
     }
   }
 
   // ── 5. LÍNEAS DE PELIGRO RIVALES (presión defensiva) ─────────────────────
-  // Penalizar cada línea que el local tiene abierta hacia nuestra portería
+  const posVisitantes = Object.values(estado.fichas).filter(f => f.equipo === 'visitante');
   const lineasDefensivas = iaLineasRivalesAbiertas(bf, bc);
   for (const linea of lineasDefensivas) {
     if (!linea.bloqueadaPorPortero) {
       const penalLinea = Math.max(0, 500 - linea.dist * 70);
       const centralidad = 5 - Math.abs(linea.colPorteria - 6);
-      v -= penalLinea + centralidad * 30;
+      // Reducir penalización si un visitante cubre la trayectoria
+      let cubierta = false;
+      for (let d = 1; d <= linea.dist && !cubierta; d++) {
+        const tf = bf + linea.df * d, tc = bc + linea.dc * d;
+        for (const vis of posVisitantes) {
+          if (Math.abs(vis.fila - tf) <= 1 && Math.abs(vis.col - tc) <= 1 && !(vis.fila === tf && vis.col === tc)) {
+            cubierta = true; break;
+          }
+        }
+      }
+      v -= cubierta ? (penalLinea + centralidad * 30) * 0.4 : penalLinea + centralidad * 30;
     } else {
       v -= Math.max(0, 180 - linea.dist * 30);
     }
