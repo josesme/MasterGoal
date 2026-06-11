@@ -207,9 +207,9 @@
 
     /* ── Animaciones de gol ── */
 
-    /* Variante A: flash de fondo */
+    /* Flash de fondo */
     @keyframes golFlash {
-      0%   { opacity: 0.7; }
+      0%   { opacity: 0.65; }
       100% { opacity: 0; }
     }
     #gol-flash {
@@ -218,15 +218,16 @@
     }
     #gol-flash.activo {
       display: block;
-      animation: golFlash 0.5s ease-out forwards;
+      animation: golFlash 1s ease-out forwards;
     }
 
-    /* Variante B: texto GOL centrado */
+    /* Texto GOL centrado */
     @keyframes golTexto {
-      0%   { opacity: 0; transform: translate(-50%,-50%) scale(0.5); }
-      20%  { opacity: 1; transform: translate(-50%,-50%) scale(1.1); }
-      70%  { opacity: 1; transform: translate(-50%,-50%) scale(1); }
-      100% { opacity: 0; transform: translate(-50%,-50%) scale(1); }
+      0%   { opacity: 0; transform: translate(-50%,-50%) scale(0.4); }
+      18%  { opacity: 1; transform: translate(-50%,-50%) scale(1.08); }
+      35%  { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+      75%  { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%,-50%) scale(1.05); }
     }
     #gol-texto {
       position: fixed; left: 50%; top: 45%;
@@ -240,27 +241,21 @@
     }
     #gol-texto.activo {
       display: block;
-      animation: golTexto 1.4s cubic-bezier(.22,1,.36,1) forwards;
+      animation: golTexto 2.2s cubic-bezier(.22,1,.36,1) forwards;
     }
 
-    /* Variante C: pump del número en el HUD */
+    /* Pump del número en el HUD */
     @keyframes golPump {
       0%   { transform: scale(1); }
-      30%  { transform: scale(1.6); }
-      60%  { transform: scale(0.95); }
+      25%  { transform: scale(1.7); }
+      55%  { transform: scale(0.92); }
+      75%  { transform: scale(1.08); }
       100% { transform: scale(1); }
     }
     .hud-f-goles.pump {
-      animation: golPump 0.5s cubic-bezier(.22,1,.36,1) forwards;
+      animation: golPump 0.8s cubic-bezier(.22,1,.36,1) forwards;
     }
 
-    /* Botón de prueba (se oculta en producción) */
-    #btn-test-gol {
-      position: fixed; bottom: 12px; right: 12px; z-index: 999;
-      background: #333; color: #fff; border: 1px solid #555;
-      padding: 6px 12px; border-radius: 8px; font-size: 13px;
-      cursor: pointer; font-family: system-ui, sans-serif;
-    }
     
     /* Menu Inicial */
     .menu-overlay {
@@ -1680,8 +1675,6 @@
   <!-- Animación de gol -->
   <div id="gol-flash"></div>
   <div id="gol-texto">⚽ GOL</div>
-  <!-- Botón temporal de prueba — quitar antes de producción -->
-  <button id="btn-test-gol" style="display:none;">⚽ Test gol</button>
   
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -2450,65 +2443,31 @@
     }
     
     // ====== VERIFICAR GOL ======
-    // ── Animación de gol ──
-    // Variante activa: 'A' flash, 'B' texto, 'C' pump, 'D' flash+texto+pump
-    const GOL_ANIM = 'D';
-
     function animarGol(equipo) {
       const color = equipo === 'local' ? '#4fc3f7' : '#ef5350';
-      const golFlash  = document.getElementById('gol-flash');
-      const golTexto  = document.getElementById('gol-texto');
-      const golNumEl  = document.getElementById('hud-f-goles-' + equipo);
+      const golFlash = document.getElementById('gol-flash');
+      const golTexto = document.getElementById('gol-texto');
+      const golNumEl = document.getElementById('hud-f-goles-' + equipo);
 
-      if (GOL_ANIM === 'A' || GOL_ANIM === 'D') {
-        golFlash.style.background = color;
-        golFlash.classList.remove('activo');
-        void golFlash.offsetWidth; // reflow para reiniciar animación
-        golFlash.classList.add('activo');
-        golFlash.addEventListener('animationend', () => golFlash.classList.remove('activo'), { once: true });
-      }
+      golFlash.style.background = color;
+      golFlash.classList.remove('activo');
+      void golFlash.offsetWidth;
+      golFlash.classList.add('activo');
+      golFlash.addEventListener('animationend', () => golFlash.classList.remove('activo'), { once: true });
 
-      if (GOL_ANIM === 'B' || GOL_ANIM === 'D') {
-        golTexto.style.color = color;
-        golTexto.classList.remove('activo');
-        void golTexto.offsetWidth;
-        golTexto.classList.add('activo');
-        golTexto.addEventListener('animationend', () => golTexto.classList.remove('activo'), { once: true });
-      }
+      golTexto.style.color = color;
+      golTexto.classList.remove('activo');
+      void golTexto.offsetWidth;
+      golTexto.classList.add('activo');
+      golTexto.addEventListener('animationend', () => golTexto.classList.remove('activo'), { once: true });
 
-      if ((GOL_ANIM === 'C' || GOL_ANIM === 'D') && golNumEl) {
+      if (golNumEl) {
         golNumEl.classList.remove('pump');
         void golNumEl.offsetWidth;
         golNumEl.classList.add('pump');
         golNumEl.addEventListener('animationend', () => golNumEl.classList.remove('pump'), { once: true });
       }
     }
-
-    // Botón de prueba temporal: cicla A → B → C → D
-    const _btnTestGol = document.getElementById('btn-test-gol');
-    const _variantesGol = ['A','B','C','D'];
-    let _testGolIdx = 0;
-    _btnTestGol.addEventListener('click', () => {
-      window._GOL_ANIM_TEST = _variantesGol[_testGolIdx % _variantesGol.length];
-      _btnTestGol.textContent = '⚽ Variante ' + window._GOL_ANIM_TEST;
-      // Parchear temporalmente GOL_ANIM
-      const orig = GOL_ANIM;
-      const eq = _testGolIdx % 2 === 0 ? 'local' : 'visitante';
-      // Ejecutar con la variante del ciclo
-      const _animTemp = (v, e) => {
-        const color = e === 'local' ? '#4fc3f7' : '#ef5350';
-        const gf = document.getElementById('gol-flash');
-        const gt = document.getElementById('gol-texto');
-        const gn = document.getElementById('hud-f-goles-' + e);
-        if (v === 'A' || v === 'D') { gf.style.background=color; gf.classList.remove('activo'); void gf.offsetWidth; gf.classList.add('activo'); gf.addEventListener('animationend',()=>gf.classList.remove('activo'),{once:true}); }
-        if (v === 'B' || v === 'D') { gt.style.color=color; gt.classList.remove('activo'); void gt.offsetWidth; gt.classList.add('activo'); gt.addEventListener('animationend',()=>gt.classList.remove('activo'),{once:true}); }
-        if ((v === 'C' || v === 'D') && gn) { gn.classList.remove('pump'); void gn.offsetWidth; gn.classList.add('pump'); gn.addEventListener('animationend',()=>gn.classList.remove('pump'),{once:true}); }
-      };
-      _animTemp(window._GOL_ANIM_TEST, eq);
-      _testGolIdx++;
-      setTimeout(() => { _btnTestGol.textContent = '⚽ Siguiente (' + _variantesGol[_testGolIdx % _variantesGol.length] + ')'; }, 100);
-    });
-    _btnTestGol.textContent = '⚽ Siguiente (A)';
 
     // Quien marca gol, saca primero en el siguiente turno
     function verificarGol() {
@@ -3910,7 +3869,7 @@
       recolocar(equipoQueSaca);
       document.getElementById('game-container').style.display = 'flex';
       document.getElementById('ui-panel').style.display = 'flex';
-      document.getElementById('btn-test-gol').style.display = 'block';
+
 
       // Inicializar condición de victoria
       if (config.encuentro === 'turnos') {
@@ -4089,7 +4048,7 @@
       document.getElementById('ui-panel').style.display = 'none';
       document.getElementById('cronometros').style.display = 'none';
       document.getElementById('partido-overlay').classList.remove('visible');
-      document.getElementById('btn-test-gol').style.display = 'none';
+
       document.getElementById('menu-inicial').style.display = 'flex';
       MARCADOR.local = 0; MARCADOR.visitante = 0;
       recolocar('local');
