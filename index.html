@@ -47,7 +47,7 @@
 
     .svg-wrapper svg {
       width: auto !important;
-      height: calc(100vh - 80px) !important;
+      height: calc(100vh - clamp(56px, 7.5vmin, 88px)) !important;
       max-width: 100vw;
       display: block;
       touch-action: none;
@@ -68,7 +68,7 @@
       }
       .svg-wrapper svg {
         width: auto !important;
-        height: calc(100vh - 80px) !important;
+        height: calc(100vh - clamp(56px, 7.5vmin, 88px)) !important;
         max-width: 100vw;
         flex-shrink: 1;
       }
@@ -78,10 +78,13 @@
     .ui-panel { display: none !important; }
 
     /* ══════════════════════════════════════════════
-       HUD diseño F
+       HUD diseño F — responsive con clamp()
+       Escala base: vmin (el menor de vw/vh).
+       PC landscape (~1080p): vmin≈56px → 80px alto OK
+       Móvil portrait (~390px): vmin≈390px × factor → compacto
     ══════════════════════════════════════════════ */
     .hud-f-overlay {
-      height: 80px;
+      height: clamp(56px, 7.5vmin, 88px);
       flex-shrink: 0;
       display: flex;
       align-items: stretch;
@@ -94,8 +97,8 @@
       flex: 1;
       display: flex;
       align-items: center;
-      gap: 14px;
-      padding: 0 20px;
+      gap: clamp(6px, 1.2vmin, 14px);
+      padding: 0 clamp(10px, 2vmin, 22px);
       position: relative;
       overflow: hidden;
       min-width: 0;
@@ -103,7 +106,7 @@
     }
     .hud-f-equipo.activo { background: rgba(255,255,255,0.05); }
 
-    /* Franja de color activo: borde inferior 3px */
+    /* Franja de color activo: borde inferior */
     .hud-f-equipo::after {
       content: '';
       position: absolute;
@@ -121,7 +124,8 @@
 
     /* Dot jersey */
     .hud-f-dot {
-      width: 52px; height: 52px;
+      width: clamp(34px, 4.5vmin, 56px);
+      height: clamp(34px, 4.5vmin, 56px);
       border-radius: 50%;
       flex-shrink: 0;
       background: #444;
@@ -133,11 +137,12 @@
 
     /* Bloque central: nombre (arriba) + [extra | pips] (abajo) */
     .hud-f-textos {
-      display: flex; flex-direction: column; gap: 4px;
+      display: flex; flex-direction: column; gap: clamp(2px, 0.5vmin, 5px);
       flex: 1; min-width: 0;
     }
     .hud-f-nombre {
-      font-size: 19px; font-weight: 800; letter-spacing: -0.3px;
+      font-size: clamp(12px, 1.7vmin, 20px);
+      font-weight: 800; letter-spacing: -0.3px;
       color: rgba(255,255,255,0.35);
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       transition: color 0.3s;
@@ -154,16 +159,18 @@
       min-width: 0;
     }
     .hud-f-extra {
-      font-size: 15px; font-weight: 500;
+      font-size: clamp(10px, 1.35vmin, 16px);
+      font-weight: 500;
       color: rgba(255,255,255,0.25);
       white-space: nowrap;
       letter-spacing: 0.1px;
     }
     .hud-f-equipo.activo .hud-f-extra { color: rgba(255,255,255,0.5); }
 
-    .hud-f-movs { display: flex; gap: 7px; align-items: center; }
+    .hud-f-movs { display: flex; gap: clamp(4px, 0.7vmin, 8px); align-items: center; }
     .hud-f-pip {
-      width: 13px; height: 13px;
+      width: clamp(8px, 1.2vmin, 14px);
+      height: clamp(8px, 1.2vmin, 14px);
       border-radius: 50%;
       border: 2px solid rgba(255,255,255,0.2);
       background: none;
@@ -173,7 +180,8 @@
 
     /* Goles: protagonistas */
     .hud-f-goles {
-      font-size: 52px; font-weight: 900;
+      font-size: clamp(32px, 5vmin, 58px);
+      font-weight: 900;
       line-height: 1;
       color: rgba(255,255,255,0.15);
       font-variant-numeric: tabular-nums;
