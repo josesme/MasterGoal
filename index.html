@@ -2829,7 +2829,6 @@
     const iaWorker = new Worker('ia-worker.js');
 
     iaWorker.onmessage = function(e) {
-      clearTimeout(_iaWatchdog);
       const { tipo, decision } = e.data;
 
       if (tipo === 'DECISION_JUGADOR') {
@@ -2888,21 +2887,9 @@
       }, 500);
     };
 
-    let _iaWatchdog = null;
     function ejecutarTurnoIA() {
       if (estado.turno !== 'visitante' || estado.modo !== 'vsIA') return;
       iaCalculando = true;
-
-      // Watchdog: si en 8s no llega respuesta del worker, desbloquear
-      clearTimeout(_iaWatchdog);
-      _iaWatchdog = setTimeout(() => {
-        if (iaCalculando && estado.turno === 'visitante' && estado.modo === 'vsIA') {
-          console.warn('IA watchdog: sin respuesta en 8s, pasando turno');
-          iaCalculando = false;
-          pasarTurno();
-        }
-      }, 8000);
-
       setTimeout(() => {
         const estadoCopia = JSON.parse(JSON.stringify(estado));
         if (estado.fase === 'MOVER_JUGADOR') {

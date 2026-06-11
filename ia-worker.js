@@ -536,50 +536,35 @@ function iaEvaluarEstado() {
   v += (controlCentroVisitante - controlCentroLocal) * 300;
 
   // ── 7. POSICIONAMIENTO INDIVIDUAL ─────────────────────────────────────────
-  // Precalcular destinos de balón alcanzables desde posición actual (para bonus cobertura)
-  const destinosBalon = obtenerDestinosBalon(bf, bc);
   const enPeligro = bf >= 8;
 
   for (const [id, d] of Object.entries(estado.fichas)) {
     if (id === 'balon' || esPortero(id)) continue;
     const distBal      = iaDistancia(d.fila, d.col, bf, bc);
     const esColindante = Math.abs(d.fila - bf) <= 1 && Math.abs(d.col - bc) <= 1;
+    // Aproximación barata: jugador en diagonal/línea recta desde el balón a dist 2-4
+    const df = d.fila - bf, dc = d.col - bc;
+    const enLineaPase = !esColindante && distBal >= 2 && distBal <= 4 &&
+      (df === 0 || dc === 0 || Math.abs(df) === Math.abs(dc));
 
     if (d.equipo === 'visitante') {
       if (enPeligro) {
-        // En peligro: priorizar recuperar el balón
         v += Math.max(0, 800 - distBal * 160);
         if (esColindante) v += 900;
       } else {
-        // En ataque: avance hacia portería rival (fila 0)
         v += (14 - d.fila) * 28;
-        // Proximidad al balón
         v += Math.max(0, 200 - distBal * 40);
-        // Colindante al balón: puede recibir pase inmediato
         if (esColindante) v += 350;
-        // Control de columnas centrales en zona ofensiva
         if (d.fila <= 7 && Math.abs(d.col - 6) <= 2) v += 150;
-        // Bonus por estar en línea de pase directa desde balón actual
-        // (cobertura ofensiva: el jugador está donde puede recibir el próximo pase)
-        const enLineaPase = destinosBalon.some(dest =>
-          Math.abs(dest.fila - d.fila) <= 1 && Math.abs(dest.col - d.col) <= 1
-        );
-        if (enLineaPase && !esColindante) v += 180;
-        // Penalizar jugadores muy retrasados cuando el balón está en campo rival
+        if (enLineaPase) v += 180;
         if (bf <= 6 && d.fila >= 9) v -= 200;
       }
     } else {
-      // Jugadores locales: penalizar su proximidad, avance y cobertura
       v -= Math.max(0, 200 - distBal * 40);
       if (esColindante) v -= 450;
       v -= d.fila * 28;
-      // Penalizar local en columna del balón por delante (bloquea línea)
       if (Math.abs(d.col - bc) <= 2 && d.fila > bf) v -= 250;
-      // Penalizar local en línea de pase directa
-      const enLineaPaseRival = destinosBalon.some(dest =>
-        Math.abs(dest.fila - d.fila) <= 1 && Math.abs(dest.col - d.col) <= 1
-      );
-      if (enLineaPaseRival) v -= 150;
+      if (enLineaPase) v -= 150;
     }
   }
 
