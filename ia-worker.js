@@ -527,42 +527,59 @@ function iaEvaluarEstado() {
   }
 
   // ── 6. CONTROL DEL CENTRO DEL CAMPO ──────────────────────────────────────
-  // Jugadores del visitante en la franja central (cols 4-8) de campo rival (filas 5-9)
-  // otorgan control estructural que facilita posesión y tiro
   let controlCentroVisitante = 0, controlCentroLocal = 0;
   for (const [id, d] of Object.entries(estado.fichas)) {
     if (id === 'balon' || esPortero(id)) continue;
     if (d.equipo === 'visitante' && d.fila >= 4 && d.fila <= 9 && Math.abs(d.col - 6) <= 2) controlCentroVisitante++;
     if (d.equipo === 'local'     && d.fila >= 5 && d.fila <= 10 && Math.abs(d.col - 6) <= 2) controlCentroLocal++;
   }
-  v += (controlCentroVisitante - controlCentroLocal) * 180;
+  v += (controlCentroVisitante - controlCentroLocal) * 300;
 
   // ── 7. POSICIONAMIENTO INDIVIDUAL ─────────────────────────────────────────
+  // Precalcular destinos de balón alcanzables desde posición actual (para bonus cobertura)
+  const destinosBalon = obtenerDestinosBalon(bf, bc);
   const enPeligro = bf >= 8;
+
   for (const [id, d] of Object.entries(estado.fichas)) {
     if (id === 'balon' || esPortero(id)) continue;
-    const distBal    = iaDistancia(d.fila, d.col, bf, bc);
+    const distBal      = iaDistancia(d.fila, d.col, bf, bc);
     const esColindante = Math.abs(d.fila - bf) <= 1 && Math.abs(d.col - bc) <= 1;
+
     if (d.equipo === 'visitante') {
       if (enPeligro) {
         // En peligro: priorizar recuperar el balón
-        v += Math.max(0, 500 - distBal * 120);
-        if (esColindante) v += 600;
+        v += Math.max(0, 800 - distBal * 160);
+        if (esColindante) v += 900;
       } else {
-        // En ataque: valorar avance + proximidad al balón + control de columna central
-        v += (14 - d.fila) * 12;
-        v += Math.max(0, 100 - distBal * 25);
-        if (esColindante) v += 200;
-        // Bonus por posicionarse en columnas centrales en zona ofensiva
-        if (d.fila <= 7 && Math.abs(d.col - 6) <= 2) v += 80;
+        // En ataque: avance hacia portería rival (fila 0)
+        v += (14 - d.fila) * 28;
+        // Proximidad al balón
+        v += Math.max(0, 200 - distBal * 40);
+        // Colindante al balón: puede recibir pase inmediato
+        if (esColindante) v += 350;
+        // Control de columnas centrales en zona ofensiva
+        if (d.fila <= 7 && Math.abs(d.col - 6) <= 2) v += 150;
+        // Bonus por estar en línea de pase directa desde balón actual
+        // (cobertura ofensiva: el jugador está donde puede recibir el próximo pase)
+        const enLineaPase = destinosBalon.some(dest =>
+          Math.abs(dest.fila - d.fila) <= 1 && Math.abs(dest.col - d.col) <= 1
+        );
+        if (enLineaPase && !esColindante) v += 180;
+        // Penalizar jugadores muy retrasados cuando el balón está en campo rival
+        if (bf <= 6 && d.fila >= 9) v -= 200;
       }
     } else {
-      // Jugadores locales: penalizar su proximidad y avance
-      v -= Math.max(0, 100 - distBal * 25);
-      if (esColindante) v -= 300;
-      v -= d.fila * 12;
-      // Penalizar local bien posicionado en columna del balón por delante
-      if (Math.abs(d.col - bc) <= 2 && d.fila > bf) v -= 160;
+      // Jugadores locales: penalizar su proximidad, avance y cobertura
+      v -= Math.max(0, 200 - distBal * 40);
+      if (esColindante) v -= 450;
+      v -= d.fila * 28;
+      // Penalizar local en columna del balón por delante (bloquea línea)
+      if (Math.abs(d.col - bc) <= 2 && d.fila > bf) v -= 250;
+      // Penalizar local en línea de pase directa
+      const enLineaPaseRival = destinosBalon.some(dest =>
+        Math.abs(dest.fila - d.fila) <= 1 && Math.abs(dest.col - d.col) <= 1
+      );
+      if (enLineaPaseRival) v -= 150;
     }
   }
 
