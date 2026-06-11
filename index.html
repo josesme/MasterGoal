@@ -42,6 +42,7 @@
       align-items: stretch;
       height: 100vh;
       width: max-content;
+      max-width: 100vw;
     }
 
     .svg-wrapper svg {
@@ -50,6 +51,27 @@
       max-width: 100vw;
       display: block;
       touch-action: none;
+      flex-shrink: 1;
+    }
+
+    /* En móvil estrecho: el wrapper ocupa todo el ancho para que el HUD no quede huérfano */
+    @media (max-aspect-ratio: 3/4) {
+      .svg-wrapper {
+        width: 100vw;
+        height: 100vh;
+        align-items: center;
+      }
+      .hud-f-overlay {
+        width: 100vw;
+        flex-shrink: 0;
+        align-self: stretch;
+      }
+      .svg-wrapper svg {
+        width: auto !important;
+        height: calc(100vh - 80px) !important;
+        max-width: 100vw;
+        flex-shrink: 1;
+      }
     }
 
     /* Ocultar barra superior antigua */
