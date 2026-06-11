@@ -589,11 +589,10 @@ function iaBestBallSequence(f, c, movRestantes, alpha, beta) {
   let mejorScore = -Infinity, mejorSeq = [];
   for (const { d } of scored) {
     if (d.fila === 0 && d.col >= 4 && d.col <= 8) {
-      const descuentoGolDirecto = (4 - movRestantes) * 1200;
       estado.fichas.balon.fila = oldF; estado.fichas.balon.col = oldC;
       estado.turno = oldTurno; estado.movimientosBalon = oldMovs;
       estado.ultimoPasador = oldPasador;
-      return { score: 500000 - descuentoGolDirecto, seq: [d] };
+      return { score: 500000, seq: [d] };
     }
     // Actualizar pasador para el siguiente nivel antes de la llamada recursiva
     estado.ultimoPasador = pasadorNivel;
@@ -630,8 +629,7 @@ function iaBestBallSequence(f, c, movRestantes, alpha, beta) {
     let resultado;
     if (sigueVisitante && movRestantes > 1) {
       const subRes = iaBestBallSequence(d.fila, d.col, movRestantes - 1, alpha, beta);
-      const descuentoProfundidad = subRes.score >= 490000 ? (4 - movRestantes) * 1200 : 0;
-      resultado = { score: subRes.score + penalMargenFino + bonusLineasPostPase - descuentoProfundidad, seq: [d, ...subRes.seq] };
+      resultado = { score: subRes.score + penalMargenFino + bonusLineasPostPase, seq: [d, ...subRes.seq] };
     } else if (!sigueVisitante && movRestantes > 1) {
       // Perdemos posesión pero aún quedan movimientos: penalizar proporcionalmente a la
       // superioridad rival que queda y a los movimientos restantes que perdemos
@@ -686,7 +684,7 @@ function iaBestBallSequenceLocal(f, c, movRestantes) {
     if (d.fila === 14) {
       estado.fichas.balon.fila = oldF; estado.fichas.balon.col = oldC;
       estado.turno = oldTurno; estado.movimientosBalon = oldMovs;
-      return -500000 + (4 - movRestantes) * 1200;
+      return -500000;
     }
     estado.fichas.balon.fila = d.fila; estado.fichas.balon.col = d.col;
     const sigueLocal = equipoTienePosesion('local');
