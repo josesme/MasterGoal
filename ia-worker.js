@@ -665,8 +665,10 @@ function iaBestBallSequence(f, c, movRestantes, alpha, beta) {
       const subRes = iaBestBallSequence(d.fila, d.col, movRestantes - 1, alpha, beta);
       resultado = { score: subRes.score + penalMargenFino + bonusLineasPostPase, seq: [d, ...subRes.seq] };
     } else if (!sigueVisitante && movRestantes > 1) {
-      // Minimax: el local toma el control — simula su mejor turno completo (jugador + balón)
-      const scoreTrasTurnoLocal = iaMinimaxTurnoLocal(d.fila, d.col);
+      // Minimax: solo en los últimos 2 movimientos para evitar explosión combinatoria
+      const scoreTrasTurnoLocal = movRestantes <= 2
+        ? iaMinimaxTurnoLocal(d.fila, d.col)
+        : iaSimularMejorTurnoLocal();
       resultado = { score: scoreTrasTurnoLocal + penalExposicion, seq: [d] };
     } else {
       resultado = { score: scoreAqui + penalExposicion + bonusLineasPostPase, seq: [d] };
