@@ -1698,9 +1698,11 @@
     const destinosGroup = document.getElementById('destinos');
 
     // En móvil, click tiene 300ms de delay. Usamos pointerdown para respuesta inmediata.
-    // _gestoProcesado: flag global que bloquea nuevos pointerdown hasta que se levante el dedo,
-    // evitando que un único gesto dispare dos acciones seguidas (p.ej. mover jugador + seleccionar balón).
+    // _gestoProcesado: bloquea nuevos pointerdown hasta que se levante el dedo.
+    // _ultimaAccionTs: timestamp de la última acción ejecutada. Los clicks sintéticos
+    // que llegan <400ms después se ignoran aunque el elemento sea nuevo (se recrean en actualizarUI).
     let _gestoProcesado = false;
+    let _ultimaAccionTs = 0;
     document.addEventListener('pointerup',     () => { _gestoProcesado = false; });
     document.addEventListener('pointercancel', () => { _gestoProcesado = false; });
 
@@ -1710,10 +1712,13 @@
         if (_gestoProcesado) return;
         _gestoProcesado = true;
         _pointerHandled = true;
+        _ultimaAccionTs = Date.now();
         handler(e);
       });
       el.addEventListener('click', (e) => {
         if (_pointerHandled) { _pointerHandled = false; return; }
+        // Bloquear clicks sintéticos rezagados tras un pointerdown reciente en otro elemento
+        if (Date.now() - _ultimaAccionTs < 400) return;
         handler(e);
       });
     }
