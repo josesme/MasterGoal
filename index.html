@@ -128,7 +128,6 @@
       height: clamp(34px, 4.5vmin, 56px);
       border-radius: 50%;
       flex-shrink: 0;
-      background: #444;
       overflow: hidden;
       border: 2px solid rgba(255,255,255,0.12);
       transition: border-color 0.3s;
@@ -787,6 +786,50 @@
     .campeon-dot { width: 48px; height: 48px; border-radius: 50%; margin: 0 auto 20px; border: 2px solid rgba(255,255,255,0.4); }
     .btn-campeon-menu { padding: 14px 32px; border-radius: 10px; border: none; background: #43a047; color: white; font-size: 15px; font-weight: 600; cursor: pointer; }
 
+    /* ====== EDITOR EQUIPOS ====== */
+    .btn-accion {
+      padding: 10px 14px; border-radius: 8px; border: none;
+      background: rgba(76,175,80,0.25); color: white;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-accion:hover { background: rgba(76,175,80,0.4); }
+    .torneo-btn-volver {
+      padding: 10px 24px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.2); background: transparent;
+      color: rgba(255,255,255,0.6); font-size: 14px; cursor: pointer;
+    }
+    .eq-item {
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+      border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.04);
+    }
+    .eq-item-jersey { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; overflow:hidden; }
+    .eq-item-nombre { flex: 1; font-size: 14px; font-weight: 500; }
+    .eq-item-pre { font-size: 10px; opacity: 0.4; margin-top: 2px; }
+    .eq-item-btns { display: flex; gap: 6px; }
+    .eq-item-btn {
+      padding: 5px 10px; border-radius: 6px; border: none;
+      background: rgba(255,255,255,0.1); color: white;
+      font-size: 12px; cursor: pointer;
+    }
+    .eq-item-btn:hover { background: rgba(255,255,255,0.2); }
+    .eq-item-btn.danger { background: rgba(220,50,50,0.2); }
+    .eq-item-btn.danger:hover { background: rgba(220,50,50,0.4); }
+    .eq-patron-btn {
+      width: 100%; aspect-ratio: 1; border-radius: 50%; border: 2px solid transparent;
+      cursor: pointer; overflow: hidden; padding: 0; background: none;
+      transition: border-color 0.12s;
+    }
+    .eq-patron-btn.activo { border-color: #4caf50; }
+    .eq-patron-btn img, .eq-patron-btn svg { width: 100%; height: 100%; display: block; }
+    .eq-copy-btn {
+      padding: 4px 8px; border-radius: 5px; border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7);
+      font-size: 11px; cursor: pointer; white-space: nowrap;
+    }
+    .eq-copy-btn:hover { background: rgba(255,255,255,0.18); color: white; }
+
     /* ====== LIGA ====== */
     .liga-overlay {
       display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92);
@@ -806,7 +849,7 @@
     .liga-tabla td { padding: 7px 6px; text-align: center; border-top: 1px solid rgba(255,255,255,0.06); }
     .liga-tabla td:first-child { text-align: left; display: flex; align-items: center; gap: 7px; }
     .liga-tabla tr.mi-equipo td { color: #81d4fa; font-weight: 700; }
-    .liga-tabla tr.lider td:first-child::before { content: '🥇 '; }
+    .liga-tabla tr.lider td:first-child::before { content: ''; }
     .liga-fixtures { width: 100%; max-width: 560px; display: flex; flex-direction: column; gap: 6px; }
     .liga-jornada-titulo { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.4; margin: 10px 0 4px; }
     .liga-partido {
@@ -1248,6 +1291,77 @@
       <p style="margin-top:20px; font-size:10px; opacity:0.35; letter-spacing:0.5px; color:white;">
         Fan project. MasterGoal © GOALMIND S.A. 1992.<br>Sin afiliación oficial ni ánimo de lucro.
       </p>
+    </div>
+  </div>
+
+  <!-- ====== EDITOR DE EQUIPOS ====== -->
+  <div id="equipos-overlay" class="torneo-overlay">
+    <div class="torneo-content" style="max-width:560px;">
+      <div class="torneo-titulo">✏️ Edición de equipos</div>
+
+      <!-- Lista de equipos -->
+      <div id="eq-lista-panel">
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <button class="btn-accion" onclick="eqNuevo()" style="flex:1;">＋ Nuevo equipo</button>
+          <button class="btn-accion" onclick="eqImportar()" style="background:rgba(255,255,255,0.08);">⬆ Importar</button>
+          <button class="btn-accion" onclick="eqExportar()" style="background:rgba(255,255,255,0.08);">⬇ Exportar</button>
+          <input type="file" id="eq-import-input" accept=".json" style="display:none" onchange="eqImportarArchivo(event)">
+        </div>
+        <div id="eq-lista" style="display:flex;flex-direction:column;gap:6px;max-height:55vh;overflow-y:auto;"></div>
+        <div style="margin-top:16px;text-align:center;">
+          <button class="torneo-btn-volver" onclick="cerrarEquipos()">← Volver</button>
+        </div>
+      </div>
+
+      <!-- Formulario de edición -->
+      <div id="eq-form-panel" style="display:none;">
+        <div style="display:flex;gap:16px;align-items:flex-start;">
+          <!-- Preview camiseta -->
+          <div style="flex-shrink:0;text-align:center;">
+            <div id="eq-preview" style="width:80px;height:80px;border-radius:50%;overflow:hidden;border:2px solid rgba(255,255,255,0.2);margin:0 auto 8px;"></div>
+            <div style="font-size:11px;opacity:0.5;">Preview</div>
+          </div>
+          <!-- Campos -->
+          <div style="flex:1;display:flex;flex-direction:column;gap:10px;">
+            <div>
+              <label style="font-size:12px;opacity:0.6;display:block;margin-bottom:4px;">Nombre del equipo</label>
+              <input id="eq-nombre" type="text" maxlength="30" placeholder="Nombre..." style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:white;padding:8px 10px;font-size:14px;">
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <input id="eq-c1" type="color" style="width:36px;height:36px;border:none;border-radius:6px;cursor:pointer;background:none;flex-shrink:0;">
+                <span style="font-size:12px;opacity:0.6;min-width:90px;">Principal</span>
+                <button class="eq-copy-btn" onclick="eqCopiarColor('eq-c1','eq-c2')">→ Sec.</button>
+                <button class="eq-copy-btn" onclick="eqCopiarColor('eq-c1','eq-cp')">→ Pant.</button>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <input id="eq-c2" type="color" style="width:36px;height:36px;border:none;border-radius:6px;cursor:pointer;background:none;flex-shrink:0;">
+                <span style="font-size:12px;opacity:0.6;min-width:90px;">Secundario</span>
+                <button class="eq-copy-btn" onclick="eqCopiarColor('eq-c2','eq-c1')">→ Princ.</button>
+                <button class="eq-copy-btn" onclick="eqCopiarColor('eq-c2','eq-cp')">→ Pant.</button>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <input id="eq-cp" type="color" style="width:36px;height:36px;border:none;border-radius:6px;cursor:pointer;background:none;flex-shrink:0;">
+                <span style="font-size:12px;opacity:0.6;min-width:90px;">Pantalón</span>
+                <button class="eq-copy-btn" onclick="eqCopiarColor('eq-cp','eq-c1')">→ Princ.</button>
+                <button class="eq-copy-btn" onclick="eqCopiarColor('eq-cp','eq-c2')">→ Sec.</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Selector de patrón -->
+        <div style="margin-top:14px;">
+          <label style="font-size:12px;opacity:0.6;display:block;margin-bottom:8px;">Diseño de camiseta</label>
+          <div id="eq-patrones" style="display:grid;grid-template-columns:repeat(8,1fr);gap:6px;"></div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:16px;">
+          <button class="btn-accion" onclick="eqGuardar()" style="flex:1;">✓ Guardar</button>
+          <button id="eq-btn-restaurar" class="btn-accion" onclick="eqRestaurar()" style="background:rgba(255,165,0,0.2);display:none;">↺ Restaurar</button>
+          <button class="btn-accion" onclick="eqCancelar()" style="background:rgba(255,255,255,0.08);">Cancelar</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1709,45 +1823,53 @@
     const MARCADOR = { local: 0, visitante: 0 };
 
     // ====== PATRONES DE CAMISETA ======
+    // gen(c1, c2, s, h) — s=ancho total, h=altura de la zona camiseta (≈67.5% de s)
+    // Los patrones dibujan solo hasta h para que queden bien en el dot circular
     const PATRONES_EQUIPO = [
-      { id: 'solido',   nombre: 'Sólido',          gen: (c1,c2,s) => `<rect width="${s}" height="${s}" fill="${c1}"/>` },
-      { id: 'v2',       nombre: 'Franjas V. anchas',gen: (c1,c2,s) => `<rect width="${s}" height="${s}" fill="${c1}"/><rect x="${s/2}" width="${s/2}" height="${s}" fill="${c2}"/>` },
-      { id: 'banda_v',  nombre: 'Banda vertical',   gen: (c1,c2,s) => `<rect width="${s}" height="${s}" fill="${c1}"/><rect x="${s*0.3}" width="${s*0.4}" height="${s}" fill="${c2}"/>` },
-      { id: 'mangas',   nombre: 'Mangas',           gen: (c1,c2,s) => `<rect width="${s}" height="${s}" fill="${c1}"/><rect width="${s*0.20}" height="${s}" fill="${c2}"/><rect x="${s*0.80}" width="${s*0.20}" height="${s}" fill="${c2}"/>` },
-      { id: 'v4',       nombre: 'Franjas V. medias',gen: (c1,c2,s) => { const u=s/7; const xs=[0,u,u*2.5,u*4.5,u*6]; const ws=[u,u*1.5,u*2,u*1.5,u]; const cs=[c1,c2,c1,c2,c1]; return xs.map((x,i)=>`<rect x="${x}" width="${ws[i]}" height="${s}" fill="${cs[i]}"/>`).join(''); } },
-      { id: 'v8',       nombre: 'Franjas V. finas', gen: (c1,c2,s) => [0,1,2,3,4,5,6,7,8].map(i=>`<rect x="${i*s/9}" width="${s/9}" height="${s}" fill="${i%2===0?c1:c2}"/>`).join('') },
-      { id: 'sash',     nombre: 'Banda izquierda',  gen: (c1,c2,s) => `<rect width="${s}" height="${s}" fill="${c1}"/><rect x="${s*0.18}" width="${s*0.14}" height="${s}" fill="${c2}"/>` },
-      { id: 'pinwheel', nombre: 'Banda diagonal',   gen: (c1,c2,s) => { const w=s*0.08; return `<rect width="${s}" height="${s}" fill="${c2}"/><polygon points="0,0 ${s-w*2},0 0,${s-w*2}" fill="${c1}"/><polygon points="${w*2},${s} ${s},${s} ${s},${w*2}" fill="${c1}"/>`; } },
-      { id: 'diag2',    nombre: 'Diagonal \\',      gen: (c1,c2,s) => `<rect width="${s}" height="${s}" fill="${c1}"/><polygon points="0,0 ${s},0 0,${s}" fill="${c2}"/>` },
-      { id: 'diag1',    nombre: 'Diagonal /',       gen: (c1,c2,s) => `<rect width="${s}" height="${s}" fill="${c1}"/><polygon points="0,0 ${s},0 ${s},${s}" fill="${c2}"/>` },
-      { id: 'banda_h',  nombre: 'Banda horizontal', gen: (c1,c2,s) => `<rect width="${s}" height="${s}" fill="${c1}"/><rect y="${s*0.375}" width="${s}" height="${s*0.25}" fill="${c2}"/>` },
-      { id: 'h2',       nombre: 'Franjas H. anchas',gen: (c1,c2,s) => `<rect width="${s}" height="${s}" fill="${c1}"/><rect y="${s/2}" width="${s}" height="${s/2}" fill="${c2}"/>` },
-      { id: 'h8',       nombre: 'Franjas H. finas', gen: (c1,c2,s) => [0,1,2,3,4,5,6,7].map(i=>`<rect y="${i*s/8}" width="${s}" height="${s/8}" fill="${i%2===0?c1:c2}"/>`).join('') },
-      { id: 'cuadros',  nombre: 'Cuadros',          gen: (c1,c2,s) => `<rect width="${s}" height="${s}" fill="${c1}"/><rect width="${s/2}" height="${s/2}" fill="${c2}"/><rect x="${s/2}" y="${s/2}" width="${s/2}" height="${s/2}" fill="${c2}"/>` },
-      { id: 'h4',       nombre: 'Cuadrícula',        gen: (c1,c2,s) => { const n=6; const c=s/n; return Array.from({length:n*n},(_,k)=>{const col=k%n,row=Math.floor(k/n);return `<rect x="${col*c}" y="${row*c}" width="${c}" height="${c}" fill="${(col+row)%2===0?c1:c2}"/>`;}).join(''); } },
-      { id: 'hombros',  nombre: 'Hombros',          gen: (c1,c2,s) => `<rect width="${s}" height="${s}" fill="${c1}"/><rect width="${s}" height="${s*0.28}" fill="${c2}"/>` },
+      { id: 'solido',   nombre: 'Sólido',           gen: (c1,c2,s,h) => `<rect width="${s}" height="${h}" fill="${c1}"/>` },
+      { id: 'v2',       nombre: 'Franjas V. anchas', gen: (c1,c2,s,h) => `<rect width="${s}" height="${h}" fill="${c1}"/><rect x="${s/2}" width="${s/2}" height="${h}" fill="${c2}"/>` },
+      { id: 'banda_v',  nombre: 'Banda vertical',    gen: (c1,c2,s,h) => `<rect width="${s}" height="${h}" fill="${c1}"/><rect x="${s*0.3}" width="${s*0.4}" height="${h}" fill="${c2}"/>` },
+      { id: 'mangas',   nombre: 'Mangas',            gen: (c1,c2,s,h) => `<rect width="${s}" height="${h}" fill="${c1}"/><rect width="${s*0.15}" height="${h}" fill="${c2}"/><rect x="${s*0.85}" width="${s*0.15}" height="${h}" fill="${c2}"/>` },
+      { id: 'v4',       nombre: 'Franjas V. medias', gen: (c1,c2,s,h) => { const u=s/7; const xs=[0,u,u*2.5,u*4.5,u*6]; const ws=[u,u*1.5,u*2,u*1.5,u]; const cs=[c1,c2,c1,c2,c1]; return xs.map((x,i)=>`<rect x="${x}" width="${ws[i]}" height="${h}" fill="${cs[i]}"/>`).join(''); } },
+      { id: 'v8',       nombre: 'Franjas V. finas',  gen: (c1,c2,s,h) => [0,1,2,3,4,5,6,7,8].map(i=>`<rect x="${i*s/9}" width="${s/9}" height="${h}" fill="${i%2===0?c1:c2}"/>`).join('') },
+      { id: 'sash',     nombre: 'Banda izquierda',   gen: (c1,c2,s,h) => `<rect width="${s}" height="${h}" fill="${c1}"/><rect x="${s*0.18}" width="${s*0.18}" height="${h}" fill="${c2}"/>` },
+      { id: 'pinwheel', nombre: 'Banda diagonal',    gen: (c1,c2,s,h) => { const w=s*0.28; return `<rect width="${s}" height="${h}" fill="${c1}"/><polygon points="0,${h} ${w},${h} ${s},0 ${s-w},0" fill="${c2}"/>`; } },
+      { id: 'diag2',    nombre: 'Diagonal \\',       gen: (c1,c2,s,h) => `<rect width="${s}" height="${h}" fill="${c1}"/><polygon points="0,0 ${s},0 0,${h}" fill="${c2}"/>` },
+      { id: 'diag1',    nombre: 'Diagonal /',        gen: (c1,c2,s,h) => `<rect width="${s}" height="${h}" fill="${c1}"/><polygon points="0,0 ${s},0 ${s},${h}" fill="${c2}"/>` },
+      { id: 'banda_h',  nombre: 'Banda horizontal',  gen: (c1,c2,s,h) => `<rect width="${s}" height="${h}" fill="${c1}"/><rect y="${h*0.35}" width="${s}" height="${h*0.21}" fill="${c2}"/>` },
+      { id: 'h2',       nombre: 'Franjas H. anchas', gen: (c1,c2,s,h) => `<rect width="${s}" height="${h}" fill="${c1}"/><rect y="${h/2}" width="${s}" height="${h/2}" fill="${c2}"/>` },
+      { id: 'h8',       nombre: 'Franjas H. finas',  gen: (c1,c2,s,h) => [0,1,2,3,4,5,6,7].map(i=>`<rect y="${i*h/8}" width="${s}" height="${h/8}" fill="${i%2===0?c1:c2}"/>`).join('') },
+      { id: 'cuadros',  nombre: 'Cuadros',           gen: (c1,c2,s,h) => `<rect width="${s}" height="${h}" fill="${c1}"/><rect width="${s/2}" height="${h/2}" fill="${c2}"/><rect x="${s/2}" y="${h/2}" width="${s/2}" height="${h/2}" fill="${c2}"/>` },
+      { id: 'h4',       nombre: 'Cuadrícula',        gen: (c1,c2,s,h) => { const n=6; const cw=s/n; const ch=h/n; return Array.from({length:n*n},(_,k)=>{const col=k%n,row=Math.floor(k/n);return `<rect x="${col*cw}" y="${row*ch}" width="${cw}" height="${ch}" fill="${(col+row)%2===0?c1:c2}"/>`;}).join(''); } },
+      { id: 'hombros',  nombre: 'Hombros',           gen: (c1,c2,s,h) => `<rect width="${s}" height="${h}" fill="${c1}"/><rect width="${s}" height="${h*0.245}" fill="${c2}"/>` },
     ];
 
     function miniJerseySVG(eq, size) {
       if (!eq) return '';
       const pat = PATRONES_EQUIPO.find(p => p.id === eq.patron) || PATRONES_EQUIPO[0];
       const s = size; const corte = Math.round(s * 0.675);
-      const jerseyInner = pat.gen(eq.colorPrincipal, eq.colorSecundario, s);
+      const jerseyInner = pat.gen(eq.colorPrincipal, eq.colorSecundario, s, corte);
       return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
         <rect width="${s}" height="${s}" fill="${eq.colorPantalon}"/>
-        <svg x="0" y="0" width="${s}" height="${corte}" viewBox="0 0 ${s} ${s}" preserveAspectRatio="none">${jerseyInner}</svg>
+        ${jerseyInner}
         <line x1="0" y1="${corte}" x2="${s}" y2="${corte}" stroke="rgba(0,0,0,0.25)" stroke-width="1"/>
       </svg>`;
     }
 
     function aplicarMiniJersey(el, eq, size) {
       if (!el) return;
-      if (!eq) { el.style.background = 'rgba(255,255,255,0.15)'; el.style.backgroundImage = ''; return; }
-      const s = size || parseInt(el.getAttribute('data-jersey-size')) || parseInt(el.offsetWidth) || 14;
-      const svgStr = miniJerseySVG(eq, s);
-      el.style.backgroundImage = `url("data:image/svg+xml,${encodeURIComponent(svgStr)}")`;
-      el.style.backgroundSize = '100% 100%';
-      el.style.backgroundColor = '';
+      el.innerHTML = '';
+      if (!eq) {
+        el.style.background = 'rgba(255,255,255,0.15)';
+        return;
+      }
+      const svgStr = miniJerseySVG(eq, 100);
+      const b64 = btoa(unescape(encodeURIComponent(svgStr)));
+      el.style.setProperty('background-image', `url("data:image/svg+xml;base64,${b64}")`);
+      el.style.setProperty('background-size', '100% 100%');
+      el.style.setProperty('background-position', '0 0');
+      el.style.setProperty('background-repeat', 'no-repeat');
+      el.style.setProperty('background-color', 'transparent');
     }
 
     const svg = document.querySelector('svg');
@@ -1847,13 +1969,17 @@
           };
           pattern.appendChild(mkRect(null, null, d, d, eq.colorPantalon));
 
-          // Capa 2: shapes de camiseta (coords 0..d dentro del pattern)
-          const jerseyShapes = pat.gen(eq.colorPrincipal, eq.colorSecundario, d);
+          // Capa 2: shapes de camiseta (coords 0..corte dentro del pattern)
+          const jerseyShapes = pat.gen(eq.colorPrincipal, eq.colorSecundario, d, corte);
           const parsed = new DOMParser().parseFromString(
             `<svg xmlns="http://www.w3.org/2000/svg">${jerseyShapes}</svg>`, 'image/svg+xml');
-          Array.from(parsed.documentElement.children).forEach(c =>
-            pattern.appendChild(document.importNode(c, true))
-          );
+          if (parsed.documentElement.tagName === 'parsererror') {
+            console.error('SVG parse error para patrón', eq.patron, jerseyShapes);
+          } else {
+            const nodes = Array.from(parsed.documentElement.children);
+            console.log('[MESA] patrón', eq.patron, '→', nodes.length, 'nodos, shapes:', jerseyShapes.substring(0,80));
+            nodes.forEach(c => pattern.appendChild(document.importNode(c, true)));
+          }
 
           // Capa 3: rect de pantalón que tapa la zona inferior (corte..d) de la camiseta
           pattern.appendChild(mkRect(null, corte, d, d - corte, eq.colorPantalon));
@@ -2010,20 +2136,16 @@
     }
     
     // Verifica si un movimiento de balon es autopase
-    // Segun el manual: "El Jugador no puede hacer un autopase, es decir, no puede pasar 
-    // el Balon de una casilla que le pertenece en exclusividad a otra casilla concerniente 
-    // a la suya" (es decir, el mismo jugador sigue siendo el unico colindante)
+    // Regla: un jugador no puede pasar el balón a una casilla donde él mismo
+    // sigue siendo el único colindante — el balón no ha cambiado de poseedor.
+    // Solo aplica cuando hay un único colindante en el origen (posesión exclusiva).
     function esAutopase(filaDest, colDest) {
       const equipo = estado.turno;
       const actuales = obtenerColindantesEquipo(estado.fichas.balon.fila, estado.fichas.balon.col, equipo);
       const destino  = obtenerColindantesEquipo(filaDest, colDest, equipo);
 
-      // Caso clásico: mismo único jugador colindante en origen y destino
+      // Solo hay autopase si el mismo jugador único sigue siendo el único colindante
       if (actuales.length === 1 && destino.length === 1 && actuales[0] === destino[0]) return true;
-
-      // Caso extendido: el último pasador (único responsable del pase anterior)
-      // no puede ser el único colindante en el destino del siguiente pase
-      if (estado.ultimoPasador && destino.length === 1 && destino[0] === estado.ultimoPasador) return true;
 
       return false;
     }
@@ -2887,7 +3009,7 @@
       }, 500);
     };
 
-    const IA_SERVER = 'http://localhost:3001';
+    const IA_SERVER = `http://${location.hostname === 'localhost' ? 'localhost' : '192.168.1.26'}:3001`;
     let _iaServerDisponible = null; // null=sin probar, true/false
 
     async function _pedirAlServidor(tipo, estadoCopia, movRestantes) {
@@ -4168,6 +4290,19 @@
       { id: 'pre_boca',       nombre: 'Boca Juniors',    colorPrincipal: '#1565c0', colorSecundario: '#f9a825', colorPantalon: '#1565c0', patron: 'banda_h', pj:0,pg:0,pp:0,gf:0,gc:0 },
       { id: 'pre_river',      nombre: 'River Plate',     colorPrincipal: '#ffffff', colorSecundario: '#e53935', colorPantalon: '#212121', patron: 'pinwheel',pj:0,pg:0,pp:0,gf:0,gc:0 },
       { id: 'pre_palmeiras',  nombre: 'Palmeiras',       colorPrincipal: '#00897b', colorSecundario: '#ffffff', colorPantalon: '#ffffff', patron: 'solido',  pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_vasco',      nombre: 'Vasco Gama',      colorPrincipal: '#212121', colorSecundario: '#ffffff', colorPantalon: '#212121', patron: 'pinwheel',pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_bilbao',     nombre: 'Ath. Bilbao',     colorPrincipal: '#e53935', colorSecundario: '#ffffff', colorPantalon: '#212121', patron: 'v8',      pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_rayo',       nombre: 'Rayo Vallecano',  colorPrincipal: '#ffffff', colorSecundario: '#d92626', colorPantalon: '#ffffff', patron: 'pinwheel',pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_valencia',   nombre: 'Valencia',        colorPrincipal: '#ffffff', colorSecundario: '#ffffff', colorPantalon: '#212121', patron: 'solido',  pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_realsoc',    nombre: 'Real Sociedad',   colorPrincipal: '#123ce2', colorSecundario: '#ffffff', colorPantalon: '#ffffff', patron: 'v8',      pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_espanyol',   nombre: 'RCD Español',     colorPrincipal: '#ffffff', colorSecundario: '#2f47f9', colorPantalon: '#2f47f9', patron: 'v4',      pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_betis',      nombre: 'Real Betis',      colorPrincipal: '#119231', colorSecundario: '#ffffff', colorPantalon: '#ffffff', patron: 'v4',      pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_sevilla',    nombre: 'Sevilla FC',      colorPrincipal: '#ffffff', colorSecundario: '#f42525', colorPantalon: '#ffffff', patron: 'banda_h', pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_depor',      nombre: 'Depor Coruña',    colorPrincipal: '#343aef', colorSecundario: '#ffffff', colorPantalon: '#343aef', patron: 'v4',      pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_villarreal', nombre: 'Villarreal',      colorPrincipal: '#e7f070', colorSecundario: '#e7f070', colorPantalon: '#e7f070', patron: 'solido',  pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_astonvilla', nombre: 'Aston Villa',     colorPrincipal: '#f61357', colorSecundario: '#88d5f7', colorPantalon: '#f4ecec', patron: 'hombros', pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_racing',     nombre: 'Racing Santander',colorPrincipal: '#ffffff', colorSecundario: '#0f6115', colorPantalon: '#212121', patron: 'hombros', pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_santos',     nombre: 'Santos',          colorPrincipal: '#ffffff', colorSecundario: '#ffffff', colorPantalon: '#ffffff', patron: 'v8',      pj:0,pg:0,pp:0,gf:0,gc:0 },
     ];
 
     function equiposGuardados() {
@@ -4184,6 +4319,7 @@
       const todos = equiposGuardados();
       const localEq  = todos.find(e => e.id === config.equipoLocal)  || null;
       const rivalEq  = todos.find(e => e.id === config.equipoRival)  || null;
+      console.log('[HUD] equipoLocal:', config.equipoLocal, '→', localEq?.nombre, '| equipoRival:', config.equipoRival, '→', rivalEq?.nombre);
 
       // Pintar fichas en el tablero
       pintarFichasTablero(localEq, rivalEq);
@@ -4207,15 +4343,11 @@
       const lista = equiposGuardados();
       let actualizado = false;
       EQUIPOS_PREDEFINIDOS.forEach(ep => {
-        const idx = lista.findIndex(e => e.id === ep.id);
-        if (idx === -1) {
+        if (lista.findIndex(e => e.id === ep.id) === -1) {
           lista.unshift(ep);
           actualizado = true;
-        } else {
-          const stats = { pj: lista[idx].pj, pg: lista[idx].pg, pp: lista[idx].pp, gf: lista[idx].gf, gc: lista[idx].gc };
-          lista[idx] = { ...ep, ...stats };
-          actualizado = true;
         }
+        // Si ya existe (predefinido o editado por el usuario), no tocar
       });
       if (actualizado) guardarEquipos(lista);
     }
@@ -4227,7 +4359,7 @@
         const sel = document.getElementById(selId);
         if (!sel) return;
         const val = sel.value;
-        sel.innerHTML = '<option value="">-- Visitante --</option>';
+        sel.innerHTML = '<option value="">Selecciona equipo</option>';
         equipos.forEach(e => {
           const o = document.createElement('option');
           o.value = e.id; o.textContent = e.nombre;
@@ -4239,16 +4371,245 @@
 
     window.actualizarDotEquipo = function actualizarDotEquipo(lado) {
       const selId = lado === 'local' ? 'sel-equipo-local' : 'sel-equipo-rival';
+      const dotId = lado === 'local' ? 'hud-f-dot-local' : 'hud-f-dot-visitante';
       const sel = document.getElementById(selId);
       if (!sel) return;
       if (lado === 'local') config.equipoLocal = sel.value || null;
       else config.equipoRival = sel.value || null;
+      const eq = equiposGuardados().find(e => e.id === sel.value) || null;
+      aplicarMiniJersey(document.getElementById(dotId), eq, 52);
     };
 
+    // ====== EDITOR DE EQUIPOS ======
+
+    let _eqEditandoId = null; // null = nuevo equipo
+    let _eqPatronActual = 'solido';
+
+    function _eqEquipoActualEnForm() {
+      return {
+        colorPrincipal:  document.getElementById('eq-c1').value,
+        colorSecundario: document.getElementById('eq-c2').value,
+        colorPantalon:   document.getElementById('eq-cp').value,
+        patron: _eqPatronActual,
+      };
+    }
+
+    function _eqActualizarPreview() {
+      const eq = _eqEquipoActualEnForm();
+      const el = document.getElementById('eq-preview');
+      if (!el) return;
+      aplicarMiniJersey(el, eq, 80);
+    }
+
+    function _eqActualizarPatrones() {
+      const eq = _eqEquipoActualEnForm();
+      const cont = document.getElementById('eq-patrones');
+      if (!cont) return;
+      cont.innerHTML = '';
+      PATRONES_EQUIPO.forEach(pat => {
+        const btn = document.createElement('button');
+        btn.className = 'eq-patron-btn' + (pat.id === _eqPatronActual ? ' activo' : '');
+        btn.title = pat.nombre;
+        const svgStr = miniJerseySVG({ ...eq, patron: pat.id }, 40);
+        btn.innerHTML = svgStr;
+        btn.onclick = () => {
+          _eqPatronActual = pat.id;
+          document.querySelectorAll('.eq-patron-btn').forEach(b => b.classList.remove('activo'));
+          btn.classList.add('activo');
+          _eqActualizarPreview();
+        };
+        cont.appendChild(btn);
+      });
+    }
+
+    function _eqRenderLista() {
+      const cont = document.getElementById('eq-lista');
+      const equipos = equiposGuardados();
+      cont.innerHTML = '';
+      equipos.forEach(eq => {
+        const esPre = eq.id.startsWith('pre_');
+        const item = document.createElement('div');
+        item.className = 'eq-item';
+        const jerseyEl = document.createElement('div');
+        jerseyEl.className = 'eq-item-jersey';
+        aplicarMiniJersey(jerseyEl, eq, 36);
+        const info = document.createElement('div');
+        info.style.flex = '1';
+        info.innerHTML = `<div class="eq-item-nombre">${eq.nombre}</div>${esPre ? '<div class="eq-item-pre">Predefinido</div>' : ''}`;
+        const btns = document.createElement('div');
+        btns.className = 'eq-item-btns';
+        const btnEdit = document.createElement('button');
+        btnEdit.className = 'eq-item-btn';
+        btnEdit.textContent = 'Editar';
+        btnEdit.onclick = () => eqEditar(eq.id);
+        btns.appendChild(btnEdit);
+        if (!esPre) {
+          const btnDel = document.createElement('button');
+          btnDel.className = 'eq-item-btn danger';
+          btnDel.textContent = 'Borrar';
+          btnDel.onclick = () => {
+            if (!confirm(`¿Borrar "${eq.nombre}"?`)) return;
+            const lista = equiposGuardados().filter(e => e.id !== eq.id);
+            guardarEquipos(lista);
+            actualizarSelectoresEquipo();
+            _eqRenderLista();
+          };
+          btns.appendChild(btnDel);
+        }
+        item.appendChild(jerseyEl);
+        item.appendChild(info);
+        item.appendChild(btns);
+        cont.appendChild(item);
+      });
+    }
+
+    function _eqMostrarForm() {
+      document.getElementById('eq-lista-panel').style.display = 'none';
+      document.getElementById('eq-form-panel').style.display = 'block';
+    }
+
+    function _eqMostrarLista() {
+      document.getElementById('eq-lista-panel').style.display = 'block';
+      document.getElementById('eq-form-panel').style.display = 'none';
+      _eqRenderLista();
+    }
+
     window.abrirEquipos = function() {
-      // Placeholder: abre un futuro panel de edición de equipos
-      alert('Edición de equipos: próximamente');
+      _eqMostrarLista();
+      document.getElementById('equipos-overlay').classList.add('visible');
     };
+
+    window.cerrarEquipos = function() {
+      document.getElementById('equipos-overlay').classList.remove('visible');
+      actualizarSelectoresEquipo();
+      actualizarDotEquipo('local');
+      actualizarDotEquipo('rival');
+    };
+
+    window.eqNuevo = function() {
+      _eqEditandoId = null;
+      _eqPatronActual = 'solido';
+      document.getElementById('eq-nombre').value = '';
+      document.getElementById('eq-c1').value = '#e53935';
+      document.getElementById('eq-c2').value = '#ffffff';
+      document.getElementById('eq-cp').value = '#212121';
+      document.getElementById('eq-btn-restaurar').style.display = 'none';
+      _eqActualizarPatrones();
+      _eqActualizarPreview();
+      _eqMostrarForm();
+    };
+
+    window.eqEditar = function(id) {
+      const eq = equiposGuardados().find(e => e.id === id);
+      if (!eq) return;
+      _eqEditandoId = id;
+      _eqPatronActual = eq.patron || 'solido';
+      document.getElementById('eq-nombre').value = eq.nombre;
+      document.getElementById('eq-c1').value = eq.colorPrincipal;
+      document.getElementById('eq-c2').value = eq.colorSecundario;
+      document.getElementById('eq-cp').value = eq.colorPantalon;
+      const esPre = id.startsWith('pre_');
+      document.getElementById('eq-btn-restaurar').style.display = esPre ? '' : 'none';
+      _eqActualizarPatrones();
+      _eqActualizarPreview();
+      _eqMostrarForm();
+    };
+
+    window.eqGuardar = function() {
+      const nombre = document.getElementById('eq-nombre').value.trim();
+      if (!nombre) { alert('El equipo necesita un nombre.'); return; }
+      const eq = {
+        nombre,
+        colorPrincipal:  document.getElementById('eq-c1').value,
+        colorSecundario: document.getElementById('eq-c2').value,
+        colorPantalon:   document.getElementById('eq-cp').value,
+        patron: _eqPatronActual,
+      };
+      const lista = equiposGuardados();
+      if (_eqEditandoId) {
+        const idx = lista.findIndex(e => e.id === _eqEditandoId);
+        if (idx !== -1) lista[idx] = { ...lista[idx], ...eq };
+      } else {
+        const nuevoId = 'custom_' + Date.now();
+        lista.push({ id: nuevoId, pj:0, pg:0, pp:0, gf:0, gc:0, ...eq });
+      }
+      guardarEquipos(lista);
+      actualizarSelectoresEquipo();
+      _eqMostrarLista();
+    };
+
+    window.eqRestaurar = function() {
+      if (!_eqEditandoId) return;
+      const original = EQUIPOS_PREDEFINIDOS.find(e => e.id === _eqEditandoId);
+      if (!original || !confirm(`¿Restaurar "${original.nombre}" a sus valores originales?`)) return;
+      const lista = equiposGuardados();
+      const idx = lista.findIndex(e => e.id === _eqEditandoId);
+      if (idx !== -1) {
+        const stats = { pj: lista[idx].pj, pg: lista[idx].pg, pp: lista[idx].pp, gf: lista[idx].gf, gc: lista[idx].gc };
+        lista[idx] = { ...original, ...stats };
+        guardarEquipos(lista);
+      }
+      eqEditar(_eqEditandoId);
+    };
+
+    window.eqCancelar = function() { _eqMostrarLista(); };
+
+    window.eqCopiarColor = function(origen, destino) {
+      const val = document.getElementById(origen).value;
+      document.getElementById(destino).value = val;
+      _eqActualizarPreview();
+      _eqActualizarPatrones();
+    };
+
+    window.eqExportar = function() {
+      const equipos = equiposGuardados();
+      if (!equipos.length) { alert('No tienes equipos que exportar.'); return; }
+      const json = JSON.stringify(equipos, null, 2);
+      const a = document.createElement('a');
+      a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(json);
+      a.download = 'mastergoal-equipos.json';
+      a.click();
+    };
+
+    window.eqImportar = function() {
+      document.getElementById('eq-import-input').click();
+    };
+
+    window.eqImportarArchivo = function(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const importados = JSON.parse(e.target.result);
+          if (!Array.isArray(importados)) throw new Error('Formato inválido');
+          const lista = equiposGuardados();
+          let añadidos = 0;
+          importados.forEach(eq => {
+            if (!eq.id || !eq.nombre) return;
+            const existe = lista.findIndex(x => x.id === eq.id);
+            if (existe !== -1) { lista[existe] = eq; }
+            else { lista.push(eq); añadidos++; }
+          });
+          guardarEquipos(lista);
+          actualizarSelectoresEquipo();
+          _eqRenderLista();
+          alert(`Importados ${importados.length} equipos.`);
+        } catch(err) {
+          alert('Error al importar: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    };
+
+    // Actualizar preview en tiempo real al cambiar colores
+    ['eq-c1','eq-c2','eq-cp'].forEach(id => {
+      document.getElementById(id)?.addEventListener('input', () => {
+        _eqActualizarPreview();
+        _eqActualizarPatrones();
+      });
+    });
 
     // ====== PARTIDO ÚNICO ======
     function validarBtnJugar() {
@@ -4260,6 +4621,8 @@
     window.abrirPartidoUnico = function() {
       actualizarSelectoresEquipo();
       validarBtnJugar();
+      actualizarDotEquipo('local');
+      actualizarDotEquipo('rival');
       document.getElementById('partido-overlay').classList.add('visible');
       document.getElementById('menu-inicial').style.display = 'none';
     };
