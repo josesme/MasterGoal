@@ -2445,7 +2445,7 @@
     // ====== VERIFICAR GOL ======
     function animarGol(equipo) {
       const eqId = equipo === 'local' ? config.equipoLocal : config.equipoRival;
-      const eqData = EQUIPOS.find(e => e.id === eqId);
+      const eqData = equiposGuardados().find(e => e.id === eqId);
       const color = eqData?.colorPrincipal || '#FFD700';
       const golFlash = document.getElementById('gol-flash');
       const golTexto = document.getElementById('gol-texto');
