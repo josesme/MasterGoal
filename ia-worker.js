@@ -480,10 +480,30 @@ function iaColindantesSimulados(bf, bc, equipo) {
   return n;
 }
 
+function iaErrorRate() {
+  // Error base por nivel (imbatible=0, leyenda=0.10, profesional=0.25, juvenil=0.45, cadete=0.65)
+  const baseNivel = { imbatible: 0, leyenda: 0.10, profesional: 0.25, juvenil: 0.45, cadete: 0.65 };
+  const base = baseNivel[estado.nivelIA] ?? 0.25;
+  if (base === 0) return 0;
+  // Potencial (1-5): potencial alto reduce el error, potencial bajo lo aumenta
+  // Rango de ajuste: ±(base * 0.3), centrado en potencial 3
+  const potencial = estado.potencialRival ?? 3;
+  const ajuste = base * 0.3 * (3 - potencial) / 2; // potencial 5 → -0.15*base, potencial 1 → +0.15*base
+  return Math.max(0, Math.min(0.95, base + ajuste));
+}
+
 function iaElegir(candidatos) {
   if (candidatos.length === 0) return null;
   candidatos.sort((a, b) => b.score - a.score);
   if (candidatos.length === 1) return candidatos[0];
+
+  // Error aleatorio según nivel y potencial del rival
+  const errorRate = iaErrorRate();
+  if (errorRate > 0 && Math.random() < errorRate) {
+    return candidatos[Math.floor(Math.random() * candidatos.length)];
+  }
+
+  // Sin error: elección ponderada entre los 3 mejores (comportamiento original)
   const mejor = candidatos[0].score;
   const segundo = candidatos[1].score;
   if (mejor > segundo * 1.1 || mejor - segundo > 100) return candidatos[0];
@@ -1179,6 +1199,16 @@ function calcularDecisionBalon(movRestantes) {
     primero = res.seq.length > 0 ? res.seq[0] : null;
     secuencia = res.seq;
     scoreElegido = res.score;
+    // Fallback greedy si minimax no encontró secuencia (callejón sin salida)
+    if (!primero) {
+      let mejorScore = -Infinity;
+      for (const d of destinos) {
+        estado.fichas.balon.fila = d.fila; estado.fichas.balon.col = d.col;
+        const s = iaEvaluarEstado();
+        estado.fichas.balon.fila = balonF; estado.fichas.balon.col = balonC;
+        if (s > mejorScore) { mejorScore = s; primero = d; scoreElegido = s; }
+      }
+    }
   } else {
     let mejorScore = -Infinity;
     for (const d of destinos) {
@@ -1188,6 +1218,14 @@ function calcularDecisionBalon(movRestantes) {
       estado.fichas.balon.fila = balonF; estado.fichas.balon.col = balonC;
       if (s > mejorScore) { mejorScore = s; primero = d; scoreElegido = s; }
     }
+  }
+
+  // Error aleatorio en movimiento de balón: elegir destino al azar del pool válido
+  const errorRate = iaErrorRate();
+  if (primero && errorRate > 0 && Math.random() < errorRate) {
+    primero = destinos[Math.floor(Math.random() * destinos.length)];
+    secuencia = [];
+    scoreElegido = 0;
   }
 
   return primero ? { dest: primero, secuencia, score: scoreElegido } : null;

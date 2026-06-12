@@ -1161,6 +1161,16 @@
           </div>
         </div>
       </div>
+      <div class="torneo-seccion">
+        <h3>Nivel de dificultad (IA)</h3>
+        <div class="radio-group" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">
+          <button class="radio-btn" id="t-btn-nivel-cadete"       onclick="seleccionarNivel('cadete')">Cadete</button>
+          <button class="radio-btn" id="t-btn-nivel-juvenil"      onclick="seleccionarNivel('juvenil')">Juvenil</button>
+          <button class="radio-btn activo" id="t-btn-nivel-profesional" onclick="seleccionarNivel('profesional')">Profesional</button>
+          <button class="radio-btn" id="t-btn-nivel-leyenda"      onclick="seleccionarNivel('leyenda')">Leyenda</button>
+          <button class="radio-btn" id="t-btn-nivel-imbatible"    onclick="seleccionarNivel('imbatible')">Imbatible</button>
+        </div>
+      </div>
       <button class="btn-torneo-iniciar" id="btn-torneo-iniciar" onclick="torneoIniciar()" disabled>Sortear y comenzar</button>
       <button class="btn-torneo-cerrar" onclick="cerrarTorneo()">Volver</button>
     </div>
@@ -1244,6 +1254,16 @@
           <button class="chip" onclick="ligaSelChip(event,'turnos',20)">20</button>
           <button class="chip activo" onclick="ligaSelChip(event,'turnos',30)">30</button>
           <button class="chip" onclick="ligaSelChip(event,'turnos',40)">40</button>
+        </div>
+      </div>
+      <div class="torneo-seccion">
+        <h3>Nivel de dificultad (IA)</h3>
+        <div class="radio-group" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">
+          <button class="radio-btn" id="l-btn-nivel-cadete"       onclick="seleccionarNivel('cadete')">Cadete</button>
+          <button class="radio-btn" id="l-btn-nivel-juvenil"      onclick="seleccionarNivel('juvenil')">Juvenil</button>
+          <button class="radio-btn activo" id="l-btn-nivel-profesional" onclick="seleccionarNivel('profesional')">Profesional</button>
+          <button class="radio-btn" id="l-btn-nivel-leyenda"      onclick="seleccionarNivel('leyenda')">Leyenda</button>
+          <button class="radio-btn" id="l-btn-nivel-imbatible"    onclick="seleccionarNivel('imbatible')">Imbatible</button>
         </div>
       </div>
       <button class="btn-torneo-iniciar" id="btn-liga-iniciar" onclick="ligaIniciar()" disabled>Iniciar liga</button>
@@ -1371,15 +1391,27 @@
           <div id="eq-patrones" style="display:grid;grid-template-columns:repeat(8,1fr);gap:6px;"></div>
         </div>
 
-        <!-- Estilo de juego -->
-        <div style="margin-top:14px;">
-          <label style="font-size:12px;opacity:0.6;display:block;margin-bottom:6px;">Estilo de juego (IA)</label>
-          <select id="eq-estilo" class="mg-select">
-            <option value="equilibrado">Equilibrado</option>
-            <option value="defensivo">Defensivo</option>
-            <option value="presion">Presión alta</option>
-            <option value="contraataque">Contraataque</option>
-          </select>
+        <!-- Estilo de juego + Potencial -->
+        <div style="margin-top:14px;display:flex;gap:10px;align-items:flex-end;">
+          <div style="flex:1;">
+            <label style="font-size:12px;opacity:0.6;display:block;margin-bottom:6px;">Estilo de juego (IA)</label>
+            <select id="eq-estilo" class="mg-select">
+              <option value="equilibrado">Equilibrado</option>
+              <option value="defensivo">Defensivo</option>
+              <option value="presion">Presión alta</option>
+              <option value="contraataque">Contraataque</option>
+            </select>
+          </div>
+          <div style="flex:1;">
+            <label style="font-size:12px;opacity:0.6;display:block;margin-bottom:6px;">Potencial</label>
+            <select id="eq-potencial" class="mg-select">
+              <option value="1">1 — Humilde</option>
+              <option value="2">2 — Modesto</option>
+              <option value="3">3 — Competitivo</option>
+              <option value="4">4 — Top</option>
+              <option value="5">5 — Elite</option>
+            </select>
+          </div>
         </div>
 
         <div style="display:flex;gap:8px;margin-top:16px;">
@@ -1420,6 +1452,17 @@
           <div class="online-error" id="online-error"></div>
         </div>
         <div id="picker-equipos-wrap" style="margin-top:12px; display:none;">
+        </div>
+      </div>
+
+      <div class="torneo-seccion" id="seccion-nivel-ia">
+        <h3>Nivel de dificultad</h3>
+        <div class="radio-group" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">
+          <button class="radio-btn" id="btn-nivel-cadete"       onclick="seleccionarNivel('cadete')">Cadete</button>
+          <button class="radio-btn" id="btn-nivel-juvenil"      onclick="seleccionarNivel('juvenil')">Juvenil</button>
+          <button class="radio-btn activo" id="btn-nivel-profesional" onclick="seleccionarNivel('profesional')">Profesional</button>
+          <button class="radio-btn" id="btn-nivel-leyenda"      onclick="seleccionarNivel('leyenda')">Leyenda</button>
+          <button class="radio-btn" id="btn-nivel-imbatible"    onclick="seleccionarNivel('imbatible')">Imbatible</button>
         </div>
       </div>
 
@@ -2805,11 +2848,7 @@
 
       // Validacion defensiva: nunca pasar turno si el balon tiene posesion del equipo actual
       if (estado.fase === 'MOVER_BALON' && equipoTienePosesion(estado.turno)) {
-        console.log('ERROR: No se puede pasar turno con posesion del balon.');
-        // Si es turno IA y no está calculando, relanzar para no congelar
-        if (estado.turno === 'visitante' && estado.modo === 'vsIA' && !iaCalculando) {
-          ejecutarTurnoIA();
-        }
+        console.error('ERROR: pasarTurno con posesion activa — esto no debería ocurrir');
         return;
       }
 
@@ -2842,8 +2881,12 @@
         if (victoria.turnosRestantes.local <= 0 && victoria.turnosRestantes.visitante <= 0) {
           if (MARCADOR.local > MARCADOR.visitante)      { finPartida('local',     'turnos'); return; }
           else if (MARCADOR.visitante > MARCADOR.local) { finPartida('visitante', 'turnos'); return; }
-          else {
-            // Empate: activar gol de oro
+          else if (config._ligaPendiente) {
+            // Liga: el empate es resultado válido, sin tiempo extra
+            finPartida('empate', 'turnos');
+            return;
+          } else {
+            // Torneo: activar gol de oro
             victoria.golDeOro = true;
             const ov = document.getElementById('goldeoro-overlay');
             ov.style.display = 'flex';
@@ -3014,7 +3057,16 @@
         }
 
       } else if (tipo === 'DECISION_BALON') {
-        if (!decision) { iaCalculando = false; pasarTurno(); return; }
+        if (!decision) {
+          iaCalculando = false;
+          if (equipoTienePosesion(estado.turno)) {
+            console.warn('IA: sin destinos con posesión, rindiendo balón');
+            estado.posesion = false;
+            estado.ultimoPasador = null;
+          }
+          pasarTurno();
+          return;
+        }
         const balonF = estado.fichas.balon.fila, balonC = estado.fichas.balon.col;
         const seqStr = decision.secuencia.map(d => `(${d.fila},${d.col})`).join(' → ');
         console.log(`%c🤖 IA BALÓN mov${estado.movimientosBalon+1} | balón(${balonF},${balonC}) | posesión:${equipoTienePosesion('visitante')?'VISITANTE':'NADIE'}`, 'color:#ffcc80;font-weight:bold');
@@ -3083,7 +3135,16 @@
           iaCalculando = false;
         }
       } else if (tipo === 'MOVER_BALON') {
-        if (!decision) { iaCalculando = false; pasarTurno(); return; }
+        if (!decision) {
+          iaCalculando = false;
+          if (equipoTienePosesion(estado.turno)) {
+            console.warn('IA: sin destinos con posesión, rindiendo balón');
+            estado.posesion = false;
+            estado.ultimoPasador = null;
+          }
+          pasarTurno();
+          return;
+        }
         const exito = mover('balon', decision.dest.fila, decision.dest.col);
         if (exito && estado.fase === 'MOVER_BALON' && estado.movimientosBalon < 4 && estado.modo === 'vsIA') {
           ejecutarTurnoIA();
@@ -3105,6 +3166,8 @@
         // Enriquecer con datos que necesita el motor para aplicar estilo
         const eqRival = equiposGuardados().find(e => e.id === config.equipoRival);
         estadoCopia.estiloVisitante = eqRival?.estilo || 'equilibrado';
+        estadoCopia.nivelIA = config.nivelIA || 'profesional';
+        estadoCopia.potencialRival = eqRival?.potencial ?? 3;
         estadoCopia.marcador = { visitante: MARCADOR.visitante, local: MARCADOR.local };
         const tipo = estado.fase === 'MOVER_JUGADOR' ? 'MOVER_JUGADOR' : 'MOVER_BALON';
         const movRestantes = 4 - estado.movimientosBalon;
@@ -3814,7 +3877,8 @@
       goles: 1,
       turnos: 30,
       cronoTiempo: 5,
-      cronoGoles: 1
+      cronoGoles: 1,
+      nivelIA: 'profesional'
     };
 
     // ====== ESTADO DE VICTORIA ======
@@ -4031,9 +4095,20 @@
       document.getElementById('btn-modo-ia').classList.toggle('activo', modo === 'vsIA');
       document.getElementById('btn-modo-online').classList.toggle('activo', modo === 'online');
       document.getElementById('online-panel').classList.toggle('visible', modo === 'online');
+      document.getElementById('seccion-nivel-ia').style.display = modo === 'vsIA' ? '' : 'none';
       // En modo online ocultar el botón JUGAR — la partida arranca por la conexión
       const btnJugar = document.querySelector('.btn-jugar') || document.querySelector('.btn-torneo-iniciar');
       if (btnJugar) btnJugar.style.display = modo === 'online' ? 'none' : '';
+    };
+
+    window.seleccionarNivel = function(nivel) {
+      config.nivelIA = nivel;
+      ['cadete','juvenil','profesional','leyenda','imbatible'].forEach(n => {
+        ['btn-nivel-','t-btn-nivel-','l-btn-nivel-'].forEach(prefix => {
+          const el = document.getElementById(prefix + n);
+          if (el) el.classList.toggle('activo', n === nivel);
+        });
+      });
     };
 
     window.seleccionarEncuentro = function(tipo) {
@@ -4308,48 +4383,48 @@
 
     // ====== EQUIPOS ======
     const EQUIPOS_PREDEFINIDOS = [
-      { id: 'pre_barca',      nombre: 'FC Barcelona',    colorPrincipal: '#1531cb', colorSecundario: '#c62828', colorPantalon: '#1531cb', patron: 'v4',      estilo: 'presion',      kit2: { colorPrincipal: '#fed234', colorSecundario: '#c62828', colorPantalon: '#c62828', patron: 'v8'      }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_madrid',     nombre: 'Real Madrid',     colorPrincipal: '#ffffff', colorSecundario: '#ffffff', colorPantalon: '#ffffff', patron: 'solido',  estilo: 'contraataque', kit2: { colorPrincipal: '#212121', colorSecundario: '#212121', colorPantalon: '#212121', patron: 'solido'   }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_atleti',     nombre: 'Atlético Madrid', colorPrincipal: '#e53935', colorSecundario: '#ffffff', colorPantalon: '#1565c0', patron: 'v8',      estilo: 'defensivo',    kit2: { colorPrincipal: '#1565c0', colorSecundario: '#ffffff', colorPantalon: '#1565c0', patron: 'v2'      }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_city',       nombre: 'Man. City',       colorPrincipal: '#2196f3', colorSecundario: '#ffffff', colorPantalon: '#ffffff', patron: 'solido',  estilo: 'presion',      kit2: { colorPrincipal: '#e0fe48', colorSecundario: '#474343', colorPantalon: '#474343', patron: 'v8'      }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_chelsea',    nombre: 'Chelsea',         colorPrincipal: '#0f24c7', colorSecundario: '#0f24c7', colorPantalon: '#0f24c7', patron: 'solido',  estilo: 'contraataque', kit2: { colorPrincipal: '#ffffff', colorSecundario: '#0f24c7', colorPantalon: '#ffffff', patron: 'banda_h' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_arsenal',    nombre: 'Arsenal',         colorPrincipal: '#e53935', colorSecundario: '#ffffff', colorPantalon: '#ffffff', patron: 'mangas',  estilo: 'presion',      kit2: { colorPrincipal: '#1d1aff', colorSecundario: '#0400e6', colorPantalon: '#ffffff', patron: 'h4'      }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_liverpool',  nombre: 'Liverpool',       colorPrincipal: '#ca1e1c', colorSecundario: '#ca1e1c', colorPantalon: '#ca1e1c', patron: 'solido',  estilo: 'contraataque', kit2: { colorPrincipal: '#f1d104', colorSecundario: '#ca1e1c', colorPantalon: '#f1d104', patron: 'hombros' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_acmilan',    nombre: 'AC Milan',        colorPrincipal: '#e53935', colorSecundario: '#212121', colorPantalon: '#212121', patron: 'v4',      estilo: 'contraataque', kit2: { colorPrincipal: '#ffffff', colorSecundario: '#e53935', colorPantalon: '#ffffff', patron: 'hombros' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_inter',      nombre: 'Inter Milan',     colorPrincipal: '#1565c0', colorSecundario: '#121212', colorPantalon: '#121212', patron: 'v8',      estilo: 'defensivo',    kit2: { colorPrincipal: '#f7fafd', colorSecundario: '#ed2626', colorPantalon: '#f7fafd', patron: 'sash'    }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_napoli',     nombre: 'Napoli',          colorPrincipal: '#00cfeb', colorSecundario: '#ffffff', colorPantalon: '#ffffff', patron: 'banda_h', estilo: 'presion',      kit2: { colorPrincipal: '#eb2d2d', colorSecundario: '#ffffff', colorPantalon: '#ffffff', patron: 'banda_h' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_juve',       nombre: 'Juventus',        colorPrincipal: '#ffffff', colorSecundario: '#151414', colorPantalon: '#ffffff', patron: 'v8',      estilo: 'defensivo',    kit2: { colorPrincipal: '#f7e955', colorSecundario: '#1a29ff', colorPantalon: '#151414', patron: 'hombros' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_dortmund',   nombre: 'Dortmund',        colorPrincipal: '#f9a825', colorSecundario: '#0f0f0f', colorPantalon: '#0f0f0f', patron: 'hombros', estilo: 'contraataque', kit2: { colorPrincipal: '#f9a825', colorSecundario: '#0f0f0f', colorPantalon: '#f9a825', patron: 'v8'      }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_bayern',     nombre: 'Bayern Munich',   colorPrincipal: '#c62828', colorSecundario: '#ffffff', colorPantalon: '#c62828', patron: 'hombros', estilo: 'presion',      kit2: { colorPrincipal: '#ffffff', colorSecundario: '#c62828', colorPantalon: '#ffffff', patron: 'mangas'  }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_psg',        nombre: 'PSG',             colorPrincipal: '#0825ba', colorSecundario: '#e53935', colorPantalon: '#0020c2', patron: 'banda_v', estilo: 'presion',      kit2: { colorPrincipal: '#ffffff', colorSecundario: '#e53935', colorPantalon: '#ffffff', patron: 'sash'    }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_ajax',       nombre: 'Ajax',            colorPrincipal: '#ffffff', colorSecundario: '#e53935', colorPantalon: '#ffffff', patron: 'banda_v', estilo: 'presion',      kit2: { colorPrincipal: '#212121', colorSecundario: '#e53935', colorPantalon: '#ffffff', patron: 'hombros' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_psv',        nombre: 'PSV',             colorPrincipal: '#ffffff', colorSecundario: '#e53935', colorPantalon: '#212121', patron: 'v8',      estilo: 'equilibrado',  kit2: { colorPrincipal: '#52cbff', colorSecundario: '#ffffff', colorPantalon: '#212121', patron: 'solido'  }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_feyenoord',  nombre: 'Feyenoord',       colorPrincipal: '#e53935', colorSecundario: '#ffffff', colorPantalon: '#212121', patron: 'v2',      estilo: 'presion',      kit2: { colorPrincipal: '#212121', colorSecundario: '#e53935', colorPantalon: '#212121', patron: 'v2'      }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_galatasaray',nombre: 'Galatasaray',     colorPrincipal: '#ff9800', colorSecundario: '#e53935', colorPantalon: '#263238', patron: 'v2',      estilo: 'contraataque', kit2: { colorPrincipal: '#fcf8f8', colorSecundario: '#e53935', colorPantalon: '#ff9800', patron: 'hombros' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_fenerbahce', nombre: 'Fenerbahçe',      colorPrincipal: '#1565c0', colorSecundario: '#f9a825', colorPantalon: '#ffffff', patron: 'v8',      estilo: 'equilibrado',  kit2: { colorPrincipal: '#ffffff', colorSecundario: '#ffffff', colorPantalon: '#1565c0', patron: 'solido'  }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_boca',       nombre: 'Boca Juniors',    colorPrincipal: '#1565c0', colorSecundario: '#f9a825', colorPantalon: '#1565c0', patron: 'banda_h', estilo: 'contraataque', kit2: { colorPrincipal: '#f9a825', colorSecundario: '#1565c0', colorPantalon: '#f9a825', patron: 'banda_h' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_river',      nombre: 'River Plate',     colorPrincipal: '#ffffff', colorSecundario: '#e53935', colorPantalon: '#212121', patron: 'pinwheel',estilo: 'presion',      kit2: { colorPrincipal: '#212121', colorSecundario: '#e53935', colorPantalon: '#ffffff', patron: 'pinwheel'}, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_palmeiras',  nombre: 'Palmeiras',       colorPrincipal: '#00897b', colorSecundario: '#ffffff', colorPantalon: '#ffffff', patron: 'solido',  estilo: 'defensivo',    kit2: { colorPrincipal: '#ffffff', colorSecundario: '#ffffff', colorPantalon: '#00897b', patron: 'solido'  }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_vasco',      nombre: 'Vasco Gama',      colorPrincipal: '#212121', colorSecundario: '#ffffff', colorPantalon: '#212121', patron: 'pinwheel',estilo: 'defensivo',    kit2: { colorPrincipal: '#ffffff', colorSecundario: '#212121', colorPantalon: '#ffffff', patron: 'pinwheel'}, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_bilbao',     nombre: 'Ath. Bilbao',     colorPrincipal: '#e53935', colorSecundario: '#ffffff', colorPantalon: '#212121', patron: 'v8',      estilo: 'presion',      kit2: { colorPrincipal: '#212121', colorSecundario: '#e53935', colorPantalon: '#ffffff', patron: 'hombros' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_rayo',       nombre: 'Rayo Vallecano',  colorPrincipal: '#ffffff', colorSecundario: '#d92626', colorPantalon: '#ffffff', patron: 'pinwheel',estilo: 'presion',      kit2: { colorPrincipal: '#d92626', colorSecundario: '#ffffff', colorPantalon: '#d92626', patron: 'pinwheel'}, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_valencia',   nombre: 'Valencia',        colorPrincipal: '#ffffff', colorSecundario: '#ffffff', colorPantalon: '#212121', patron: 'solido',  estilo: 'contraataque', kit2: { colorPrincipal: '#e8d826', colorSecundario: '#fc2222', colorPantalon: '#1e40eb', patron: 'v8'      }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_realsoc',    nombre: 'Real Sociedad',   colorPrincipal: '#123ce2', colorSecundario: '#ffffff', colorPantalon: '#ffffff', patron: 'v8',      estilo: 'presion',      kit2: { colorPrincipal: '#a47e13', colorSecundario: '#c3a550', colorPantalon: '#353431', patron: 'h2'      }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_espanyol',   nombre: 'RCD Español',     colorPrincipal: '#ffffff', colorSecundario: '#243cf5', colorPantalon: '#243cf5', patron: 'v4',      estilo: 'defensivo',    kit2: { colorPrincipal: '#f52424', colorSecundario: '#ffffff', colorPantalon: '#ffffff', patron: 'banda_h' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_betis',      nombre: 'Real Betis',      colorPrincipal: '#119231', colorSecundario: '#ffffff', colorPantalon: '#ffffff', patron: 'v4',      estilo: 'presion',      kit2: { colorPrincipal: '#58eef9', colorSecundario: '#119231', colorPantalon: '#212121', patron: 'pinwheel'}, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_sevilla',    nombre: 'Sevilla FC',      colorPrincipal: '#ffffff', colorSecundario: '#f42525', colorPantalon: '#ffffff', patron: 'banda_h', estilo: 'defensivo',    kit2: { colorPrincipal: '#f42525', colorSecundario: '#ffffff', colorPantalon: '#f42525', patron: 'hombros' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_depor',      nombre: 'Depor Coruña',    colorPrincipal: '#343aef', colorSecundario: '#ffffff', colorPantalon: '#343aef', patron: 'v4',      estilo: 'equilibrado',  kit2: { colorPrincipal: '#f61e1e', colorSecundario: '#ffffff', colorPantalon: '#f61e1e', patron: 'hombros' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_villarreal', nombre: 'Villarreal',      colorPrincipal: '#e7f070', colorSecundario: '#e7f070', colorPantalon: '#e7f070', patron: 'solido',  estilo: 'presion',      kit2: { colorPrincipal: '#4d4c4c', colorSecundario: '#4d4c4c', colorPantalon: '#e7f070', patron: 'solido'  }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_astonvilla', nombre: 'Aston Villa',     colorPrincipal: '#f61357', colorSecundario: '#88d5f7', colorPantalon: '#f4ecec', patron: 'hombros', estilo: 'contraataque', kit2: { colorPrincipal: '#fbf789', colorSecundario: '#88d5f7', colorPantalon: '#212121', patron: 'hombros' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_racing',     nombre: 'Racing Santander',colorPrincipal: '#ffffff', colorSecundario: '#0f6115', colorPantalon: '#212121', patron: 'hombros', estilo: 'defensivo',    kit2: { colorPrincipal: '#212121', colorSecundario: '#0f6115', colorPantalon: '#ffffff', patron: 'hombros' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_santos',     nombre: 'Santos',          colorPrincipal: '#ffffff', colorSecundario: '#ffffff', colorPantalon: '#ffffff', patron: 'v8',      estilo: 'contraataque', kit2: { colorPrincipal: '#212121', colorSecundario: '#ffffff', colorPantalon: '#212121', patron: 'v8'      }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_celta',      nombre: 'Celta',           colorPrincipal: '#34d0e5', colorSecundario: '#ffffff', colorPantalon: '#ffffff', patron: 'sash',    estilo: 'equilibrado',  kit2: { colorPrincipal: '#e82121', colorSecundario: '#ffffff', colorPantalon: '#ffffff', patron: 'sash'    }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_getafe',     nombre: 'Getafe',          colorPrincipal: '#1349ec', colorSecundario: '#ffffff', colorPantalon: '#1349ec', patron: 'banda_h', estilo: 'defensivo',    kit2: { colorPrincipal: '#f22121', colorSecundario: '#ffffff', colorPantalon: '#f22121', patron: 'banda_h' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_osasuna',    nombre: 'Osasuna',         colorPrincipal: '#ad1714', colorSecundario: '#ffffff', colorPantalon: '#1b1d55', patron: 'solido',  estilo: 'contraataque', kit2: { colorPrincipal: '#ffffff', colorSecundario: '#ffffff', colorPantalon: '#1b1d55', patron: 'solido'  }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_elche',      nombre: 'Elche',           colorPrincipal: '#ffffff', colorSecundario: '#0bc129', colorPantalon: '#ffffff', patron: 'banda_h', estilo: 'presion',      kit2: { colorPrincipal: '#212121', colorSecundario: '#0bc129', colorPantalon: '#212121', patron: 'banda_h' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_levante',    nombre: 'Levante',         colorPrincipal: '#0e0495', colorSecundario: '#a60a07', colorPantalon: '#0e0495', patron: 'v8',      estilo: 'equilibrado',  kit2: { colorPrincipal: '#eedf3a', colorSecundario: '#f72222', colorPantalon: '#0c32ed', patron: 'v8'      }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_alaves',     nombre: 'Alavés',          colorPrincipal: '#ffffff', colorSecundario: '#11409c', colorPantalon: '#11409c', patron: 'v8',      estilo: 'equilibrado',  kit2: { colorPrincipal: '#ffffff', colorSecundario: '#ee2020', colorPantalon: '#1136b0', patron: 'sash'   }, pj:0,pg:0,pp:0,gf:0,gc:0 },
-      { id: 'pre_malaga',     nombre: 'Málaga',          colorPrincipal: '#34b0e5', colorSecundario: '#ffffff', colorPantalon: '#ffffff', patron: 'v8',      estilo: 'equilibrado',  kit2: { colorPrincipal: '#212121', colorSecundario: '#34b0ff', colorPantalon: '#212121', patron: 'hombros' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_barca',      nombre: 'FC Barcelona',    colorPrincipal: '#1531cb', colorSecundario: '#c62828', colorPantalon: '#1531cb', patron: 'v4',      estilo: 'presion',      potencial: 5, kit2: { colorPrincipal: '#fed234', colorSecundario: '#c62828', colorPantalon: '#c62828', patron: 'v8'      }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_madrid',     nombre: 'Real Madrid',     colorPrincipal: '#ffffff', colorSecundario: '#ffffff', colorPantalon: '#ffffff', patron: 'solido',  estilo: 'contraataque', potencial: 5, kit2: { colorPrincipal: '#212121', colorSecundario: '#212121', colorPantalon: '#212121', patron: 'solido'   }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_atleti',     nombre: 'Atlético Madrid', colorPrincipal: '#e53935', colorSecundario: '#ffffff', colorPantalon: '#1565c0', patron: 'v8',      estilo: 'defensivo',    potencial: 4, kit2: { colorPrincipal: '#1565c0', colorSecundario: '#ffffff', colorPantalon: '#1565c0', patron: 'v2'      }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_city',       nombre: 'Man. City',       colorPrincipal: '#2196f3', colorSecundario: '#ffffff', colorPantalon: '#ffffff', patron: 'solido',  estilo: 'presion',      potencial: 5, kit2: { colorPrincipal: '#e0fe48', colorSecundario: '#474343', colorPantalon: '#474343', patron: 'v8'      }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_chelsea',    nombre: 'Chelsea',         colorPrincipal: '#0f24c7', colorSecundario: '#0f24c7', colorPantalon: '#0f24c7', patron: 'solido',  estilo: 'contraataque', potencial: 4, kit2: { colorPrincipal: '#ffffff', colorSecundario: '#0f24c7', colorPantalon: '#ffffff', patron: 'banda_h' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_arsenal',    nombre: 'Arsenal',         colorPrincipal: '#e53935', colorSecundario: '#ffffff', colorPantalon: '#ffffff', patron: 'mangas',  estilo: 'presion',      potencial: 5, kit2: { colorPrincipal: '#1d1aff', colorSecundario: '#0400e6', colorPantalon: '#ffffff', patron: 'h4'      }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_liverpool',  nombre: 'Liverpool',       colorPrincipal: '#ca1e1c', colorSecundario: '#ca1e1c', colorPantalon: '#ca1e1c', patron: 'solido',  estilo: 'contraataque', potencial: 4, kit2: { colorPrincipal: '#f1d104', colorSecundario: '#ca1e1c', colorPantalon: '#f1d104', patron: 'hombros' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_acmilan',    nombre: 'AC Milan',        colorPrincipal: '#e53935', colorSecundario: '#212121', colorPantalon: '#212121', patron: 'v4',      estilo: 'contraataque', potencial: 4, kit2: { colorPrincipal: '#ffffff', colorSecundario: '#e53935', colorPantalon: '#ffffff', patron: 'hombros' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_inter',      nombre: 'Inter Milan',     colorPrincipal: '#1565c0', colorSecundario: '#121212', colorPantalon: '#121212', patron: 'v8',      estilo: 'defensivo',    potencial: 5, kit2: { colorPrincipal: '#f7fafd', colorSecundario: '#ed2626', colorPantalon: '#f7fafd', patron: 'sash'    }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_napoli',     nombre: 'Napoli',          colorPrincipal: '#00cfeb', colorSecundario: '#ffffff', colorPantalon: '#ffffff', patron: 'banda_h', estilo: 'presion',      potencial: 4, kit2: { colorPrincipal: '#eb2d2d', colorSecundario: '#ffffff', colorPantalon: '#ffffff', patron: 'banda_h' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_juve',       nombre: 'Juventus',        colorPrincipal: '#ffffff', colorSecundario: '#151414', colorPantalon: '#ffffff', patron: 'v8',      estilo: 'defensivo',    potencial: 4, kit2: { colorPrincipal: '#f7e955', colorSecundario: '#1a29ff', colorPantalon: '#151414', patron: 'hombros' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_dortmund',   nombre: 'Dortmund',        colorPrincipal: '#f9a825', colorSecundario: '#0f0f0f', colorPantalon: '#0f0f0f', patron: 'hombros', estilo: 'contraataque', potencial: 4, kit2: { colorPrincipal: '#f9a825', colorSecundario: '#0f0f0f', colorPantalon: '#f9a825', patron: 'v8'      }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_bayern',     nombre: 'Bayern Munich',   colorPrincipal: '#c62828', colorSecundario: '#ffffff', colorPantalon: '#c62828', patron: 'hombros', estilo: 'presion',      potencial: 5, kit2: { colorPrincipal: '#ffffff', colorSecundario: '#c62828', colorPantalon: '#ffffff', patron: 'mangas'  }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_psg',        nombre: 'PSG',             colorPrincipal: '#0825ba', colorSecundario: '#e53935', colorPantalon: '#0020c2', patron: 'banda_v', estilo: 'presion',      potencial: 5, kit2: { colorPrincipal: '#ffffff', colorSecundario: '#e53935', colorPantalon: '#ffffff', patron: 'sash'    }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_ajax',       nombre: 'Ajax',            colorPrincipal: '#ffffff', colorSecundario: '#e53935', colorPantalon: '#ffffff', patron: 'banda_v', estilo: 'presion',      potencial: 3, kit2: { colorPrincipal: '#212121', colorSecundario: '#e53935', colorPantalon: '#ffffff', patron: 'hombros' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_psv',        nombre: 'PSV',             colorPrincipal: '#ffffff', colorSecundario: '#e53935', colorPantalon: '#212121', patron: 'v8',      estilo: 'equilibrado',  potencial: 3, kit2: { colorPrincipal: '#52cbff', colorSecundario: '#ffffff', colorPantalon: '#212121', patron: 'solido'  }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_feyenoord',  nombre: 'Feyenoord',       colorPrincipal: '#e53935', colorSecundario: '#ffffff', colorPantalon: '#212121', patron: 'v2',      estilo: 'presion',      potencial: 3, kit2: { colorPrincipal: '#212121', colorSecundario: '#e53935', colorPantalon: '#212121', patron: 'v2'      }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_galatasaray',nombre: 'Galatasaray',     colorPrincipal: '#ff9800', colorSecundario: '#e53935', colorPantalon: '#263238', patron: 'v2',      estilo: 'contraataque', potencial: 3, kit2: { colorPrincipal: '#fcf8f8', colorSecundario: '#e53935', colorPantalon: '#ff9800', patron: 'hombros' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_fenerbahce', nombre: 'Fenerbahçe',      colorPrincipal: '#1565c0', colorSecundario: '#f9a825', colorPantalon: '#ffffff', patron: 'v8',      estilo: 'equilibrado',  potencial: 3, kit2: { colorPrincipal: '#ffffff', colorSecundario: '#ffffff', colorPantalon: '#1565c0', patron: 'solido'  }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_boca',       nombre: 'Boca Juniors',    colorPrincipal: '#1565c0', colorSecundario: '#f9a825', colorPantalon: '#1565c0', patron: 'banda_h', estilo: 'contraataque', potencial: 3, kit2: { colorPrincipal: '#f9a825', colorSecundario: '#1565c0', colorPantalon: '#f9a825', patron: 'banda_h' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_river',      nombre: 'River Plate',     colorPrincipal: '#ffffff', colorSecundario: '#e53935', colorPantalon: '#212121', patron: 'pinwheel',estilo: 'presion',      potencial: 3, kit2: { colorPrincipal: '#212121', colorSecundario: '#e53935', colorPantalon: '#ffffff', patron: 'pinwheel'}, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_palmeiras',  nombre: 'Palmeiras',       colorPrincipal: '#00897b', colorSecundario: '#ffffff', colorPantalon: '#ffffff', patron: 'solido',  estilo: 'defensivo',    potencial: 3, kit2: { colorPrincipal: '#ffffff', colorSecundario: '#ffffff', colorPantalon: '#00897b', patron: 'solido'  }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_vasco',      nombre: 'Vasco Gama',      colorPrincipal: '#212121', colorSecundario: '#ffffff', colorPantalon: '#212121', patron: 'pinwheel',estilo: 'defensivo',    potencial: 2, kit2: { colorPrincipal: '#ffffff', colorSecundario: '#212121', colorPantalon: '#ffffff', patron: 'pinwheel'}, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_bilbao',     nombre: 'Ath. Bilbao',     colorPrincipal: '#e53935', colorSecundario: '#ffffff', colorPantalon: '#212121', patron: 'v8',      estilo: 'presion',      potencial: 3, kit2: { colorPrincipal: '#212121', colorSecundario: '#e53935', colorPantalon: '#ffffff', patron: 'hombros' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_rayo',       nombre: 'Rayo Vallecano',  colorPrincipal: '#ffffff', colorSecundario: '#d92626', colorPantalon: '#ffffff', patron: 'pinwheel',estilo: 'presion',      potencial: 2, kit2: { colorPrincipal: '#d92626', colorSecundario: '#ffffff', colorPantalon: '#d92626', patron: 'pinwheel'}, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_valencia',   nombre: 'Valencia',        colorPrincipal: '#ffffff', colorSecundario: '#ffffff', colorPantalon: '#212121', patron: 'solido',  estilo: 'contraataque', potencial: 2, kit2: { colorPrincipal: '#e8d826', colorSecundario: '#fc2222', colorPantalon: '#1e40eb', patron: 'v8'      }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_realsoc',    nombre: 'Real Sociedad',   colorPrincipal: '#123ce2', colorSecundario: '#ffffff', colorPantalon: '#ffffff', patron: 'v8',      estilo: 'presion',      potencial: 3, kit2: { colorPrincipal: '#a47e13', colorSecundario: '#c3a550', colorPantalon: '#353431', patron: 'h2'      }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_espanyol',   nombre: 'RCD Español',     colorPrincipal: '#ffffff', colorSecundario: '#243cf5', colorPantalon: '#243cf5', patron: 'v4',      estilo: 'defensivo',    potencial: 2, kit2: { colorPrincipal: '#f52424', colorSecundario: '#ffffff', colorPantalon: '#ffffff', patron: 'banda_h' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_betis',      nombre: 'Real Betis',      colorPrincipal: '#119231', colorSecundario: '#ffffff', colorPantalon: '#ffffff', patron: 'v4',      estilo: 'presion',      potencial: 3, kit2: { colorPrincipal: '#58eef9', colorSecundario: '#119231', colorPantalon: '#212121', patron: 'pinwheel'}, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_sevilla',    nombre: 'Sevilla FC',      colorPrincipal: '#ffffff', colorSecundario: '#f42525', colorPantalon: '#ffffff', patron: 'banda_h', estilo: 'defensivo',    potencial: 3, kit2: { colorPrincipal: '#f42525', colorSecundario: '#ffffff', colorPantalon: '#f42525', patron: 'hombros' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_depor',      nombre: 'Depor Coruña',    colorPrincipal: '#343aef', colorSecundario: '#ffffff', colorPantalon: '#343aef', patron: 'v4',      estilo: 'equilibrado',  potencial: 1, kit2: { colorPrincipal: '#f61e1e', colorSecundario: '#ffffff', colorPantalon: '#f61e1e', patron: 'hombros' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_villarreal', nombre: 'Villarreal',      colorPrincipal: '#e7f070', colorSecundario: '#e7f070', colorPantalon: '#e7f070', patron: 'solido',  estilo: 'presion',      potencial: 4, kit2: { colorPrincipal: '#4d4c4c', colorSecundario: '#4d4c4c', colorPantalon: '#e7f070', patron: 'solido'  }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_astonvilla', nombre: 'Aston Villa',     colorPrincipal: '#f61357', colorSecundario: '#88d5f7', colorPantalon: '#f4ecec', patron: 'hombros', estilo: 'contraataque', potencial: 4, kit2: { colorPrincipal: '#fbf789', colorSecundario: '#88d5f7', colorPantalon: '#212121', patron: 'hombros' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_racing',     nombre: 'Racing Santander',colorPrincipal: '#ffffff', colorSecundario: '#0f6115', colorPantalon: '#212121', patron: 'hombros', estilo: 'defensivo',    potencial: 1, kit2: { colorPrincipal: '#212121', colorSecundario: '#0f6115', colorPantalon: '#ffffff', patron: 'hombros' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_santos',     nombre: 'Santos',          colorPrincipal: '#ffffff', colorSecundario: '#ffffff', colorPantalon: '#ffffff', patron: 'v8',      estilo: 'contraataque', potencial: 2, kit2: { colorPrincipal: '#212121', colorSecundario: '#ffffff', colorPantalon: '#212121', patron: 'v8'      }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_celta',      nombre: 'Celta',           colorPrincipal: '#34d0e5', colorSecundario: '#ffffff', colorPantalon: '#ffffff', patron: 'sash',    estilo: 'equilibrado',  potencial: 2, kit2: { colorPrincipal: '#e82121', colorSecundario: '#ffffff', colorPantalon: '#ffffff', patron: 'sash'    }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_getafe',     nombre: 'Getafe',          colorPrincipal: '#1349ec', colorSecundario: '#ffffff', colorPantalon: '#1349ec', patron: 'banda_h', estilo: 'defensivo',    potencial: 1, kit2: { colorPrincipal: '#f22121', colorSecundario: '#ffffff', colorPantalon: '#f22121', patron: 'banda_h' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_osasuna',    nombre: 'Osasuna',         colorPrincipal: '#ad1714', colorSecundario: '#ffffff', colorPantalon: '#1b1d55', patron: 'solido',  estilo: 'contraataque', potencial: 2, kit2: { colorPrincipal: '#ffffff', colorSecundario: '#ffffff', colorPantalon: '#1b1d55', patron: 'solido'  }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_elche',      nombre: 'Elche',           colorPrincipal: '#ffffff', colorSecundario: '#0bc129', colorPantalon: '#ffffff', patron: 'banda_h', estilo: 'presion',      potencial: 1, kit2: { colorPrincipal: '#212121', colorSecundario: '#0bc129', colorPantalon: '#212121', patron: 'banda_h' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_levante',    nombre: 'Levante',         colorPrincipal: '#0e0495', colorSecundario: '#a60a07', colorPantalon: '#0e0495', patron: 'v8',      estilo: 'equilibrado',  potencial: 1, kit2: { colorPrincipal: '#eedf3a', colorSecundario: '#f72222', colorPantalon: '#0c32ed', patron: 'v8'      }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_alaves',     nombre: 'Alavés',          colorPrincipal: '#ffffff', colorSecundario: '#11409c', colorPantalon: '#11409c', patron: 'v8',      estilo: 'equilibrado',  potencial: 1, kit2: { colorPrincipal: '#ffffff', colorSecundario: '#ee2020', colorPantalon: '#1136b0', patron: 'sash'   }, pj:0,pg:0,pp:0,gf:0,gc:0 },
+      { id: 'pre_malaga',     nombre: 'Málaga',          colorPrincipal: '#34b0e5', colorSecundario: '#ffffff', colorPantalon: '#ffffff', patron: 'v8',      estilo: 'equilibrado',  potencial: 1, kit2: { colorPrincipal: '#212121', colorSecundario: '#34b0ff', colorPantalon: '#212121', patron: 'hombros' }, pj:0,pg:0,pp:0,gf:0,gc:0 },
     ];
 
     function equiposGuardados() {
@@ -4395,10 +4470,9 @@
         if (idx === -1) {
           lista.unshift(ep);
           actualizado = true;
-        } else if (!lista[idx].estilo) {
-          // Migración: añadir estilo si el predefinido existente no lo tiene
-          lista[idx].estilo = ep.estilo;
-          actualizado = true;
+        } else {
+          if (!lista[idx].estilo) { lista[idx].estilo = ep.estilo; actualizado = true; }
+          if (lista[idx].potencial !== ep.potencial) { lista[idx].potencial = ep.potencial; actualizado = true; }
         }
       });
       if (actualizado) guardarEquipos(lista);
@@ -4469,6 +4543,7 @@
         colorPantalon:   document.getElementById('eq-cp').value,
         patron: _eqPatronActual,
         estilo: document.getElementById('eq-estilo').value,
+        potencial: parseInt(document.getElementById('eq-potencial').value),
       };
     }
 
@@ -4621,6 +4696,7 @@
       _eqEquipacionActual = 1;
       document.getElementById('eq-nombre').value = eq.nombre;
       document.getElementById('eq-estilo').value = eq.estilo || 'equilibrado';
+      document.getElementById('eq-potencial').value = eq.potencial || 3;
       _eqCargarEquipacionEnForm(eq);
       const esPre = id.startsWith('pre_');
       document.getElementById('eq-btn-restaurar').style.display = esPre ? '' : 'none';
@@ -4642,15 +4718,19 @@
       if (_eqEditandoId) {
         const idx = lista.findIndex(e => e.id === _eqEditandoId);
         if (idx !== -1) {
+          const estilo = document.getElementById('eq-estilo').value;
+          const potencial = parseInt(document.getElementById('eq-potencial').value);
           if (_eqEquipacionActual === 1) {
-            lista[idx] = { ...lista[idx], nombre, estilo: document.getElementById('eq-estilo').value, ...kitActual };
+            lista[idx] = { ...lista[idx], nombre, estilo, potencial, ...kitActual };
           } else {
-            lista[idx] = { ...lista[idx], nombre, estilo: document.getElementById('eq-estilo').value, kit2: kitActual };
+            lista[idx] = { ...lista[idx], nombre, estilo, potencial, kit2: kitActual };
           }
         }
       } else {
         const nuevoId = 'custom_' + Date.now();
-        lista.push({ id: nuevoId, pj:0, pg:0, pp:0, gf:0, gc:0, nombre, estilo: document.getElementById('eq-estilo').value, ...kitActual });
+        const estilo = document.getElementById('eq-estilo').value;
+        const potencial = parseInt(document.getElementById('eq-potencial').value);
+        lista.push({ id: nuevoId, pj:0, pg:0, pp:0, gf:0, gc:0, nombre, estilo, potencial, ...kitActual });
       }
       guardarEquipos(lista);
       actualizarSelectoresEquipo();
