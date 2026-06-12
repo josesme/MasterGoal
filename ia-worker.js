@@ -3,6 +3,57 @@
 
 let estado = null;
 
+// ── ESTILOS DE JUEGO ─────────────────────────────────────────────────────────
+// Cada estilo ajusta multiplicadores sobre los pesos base de iaEvaluarEstado.
+// Los valores son factores (1.0 = sin cambio).
+const IA_ESTILOS = {
+  equilibrado: {
+    posBalon:        1.0,   // avance e importancia del balón
+    superioridad:    1.0,   // control colindantes al balón
+    lineasOfensivas: 1.0,   // líneas de tiro a portería rival
+    lineasDefensivas:1.0,   // líneas de peligro propias
+    controlCentro:   1.0,   // jugadores en el centro del campo
+    avanceJugadores: 1.0,   // bonus por jugadores adelantados
+    cercaniaBalon:   1.0,   // bonus por cercanía al balón
+    presionZona:     1.0,   // bonus por jugadores cerca del balón en peligro
+  },
+  defensivo: {
+    posBalon:        0.7,   // menos obsesión con avanzar el balón
+    superioridad:    1.2,   // mantener control cerca del balón
+    lineasOfensivas: 0.6,   // menos agresividad ofensiva
+    lineasDefensivas:1.8,   // muy sensible a líneas de peligro rivales
+    controlCentro:   0.5,   // no arriesga por el centro
+    avanceJugadores: 0.4,   // jugadores retrasados
+    cercaniaBalon:   0.8,
+    presionZona:     1.5,   // agrupa bien en defensa cuando hay peligro
+  },
+  presion: {
+    posBalon:        1.1,
+    superioridad:    1.4,   // dominar colindantes es clave
+    lineasOfensivas: 1.3,
+    lineasDefensivas:0.7,   // asume riesgo defensivo
+    controlCentro:   1.6,   // el centro es vital para la presión
+    avanceJugadores: 1.5,   // jugadores muy adelantados
+    cercaniaBalon:   1.6,   // todos cerca del balón
+    presionZona:     0.8,
+  },
+  contraataque: {
+    posBalon:        1.2,
+    superioridad:    1.1,
+    lineasOfensivas: 1.4,   // maximizar líneas de tiro cuando ataca
+    lineasDefensivas:1.2,   // cuidado defensivo pero no obsesivo
+    controlCentro:   0.7,   // equipo escalonado, no compacto en centro
+    avanceJugadores: 0.6,   // esperan retrasados para salir en transición
+    cercaniaBalon:   0.9,
+    presionZona:     1.3,
+  },
+};
+
+function iaGetEstilo() {
+  const id = estado.estiloVisitante || 'equilibrado';
+  return IA_ESTILOS[id] || IA_ESTILOS.equilibrado;
+}
+
 // Caché de iaLineasAPorteria — válida solo dentro de un turno de IA.
 // Clave: "bf,bc,equipo". Se resetea al inicio de cada calcularDecision*.
 // Justificación: dentro del lookahead recursivo, iaLineasAPorteria se llama
@@ -450,6 +501,7 @@ function iaEvaluarEstado() {
   _cntEvaluar++;
   const bf = estado.fichas.balon.fila;
   const bc = estado.fichas.balon.col;
+  const E  = iaGetEstilo();
   let v = 0;
 
   // ── 1. POSESIÓN ──────────────────────────────────────────────────────────
@@ -459,34 +511,27 @@ function iaEvaluarEstado() {
   if (localTiene)     v -= 3000;
 
   // ── 2. POSICIÓN DEL BALÓN (avance + centralidad) ──────────────────────────
-  // El balón cuanto más cerca de portería rival (fila 0) mejor para visitante
-  v += (14 - bf) * 200;
-  // Centralidad en campo propio: balón en el centro amenaza más ángulos
-  if (bf <= 6) v += (5 - Math.abs(bc - 6)) * 90;
-  // Balón en zona de tiro (filas 1-3): bonus extra por centralidad y cercanía
-  if (bf <= 3) v += (4 - bf) * 220 + (5 - Math.abs(bc - 6)) * 60;
-  // Balón en zona de peligro propio (filas 8-13)
+  v += (14 - bf) * 200 * E.posBalon;
+  if (bf <= 6) v += (5 - Math.abs(bc - 6)) * 90 * E.posBalon;
+  if (bf <= 3) v += ((4 - bf) * 220 + (5 - Math.abs(bc - 6)) * 60) * E.posBalon;
   if (bf >= 9) {
     const peligro = (bf - 8) * 400 + (5 - Math.abs(bc - 6)) * 120;
-    v -= peligro;
+    v -= peligro * E.lineasDefensivas;
   }
 
   // ── 3. SUPERIORIDAD NUMÉRICA EN CASILLAS COLINDANTES ─────────────────────
   const rc  = iaColindantesSimulados(bf, bc, 'visitante');
   const lc  = iaColindantesSimulados(bf, bc, 'local');
-  v += (rc - lc) * 320;
-  // Bonus adicional por tener mayoría clara (no solo +1): indica control sólido
-  if (rc - lc >= 2) v += 400;
+  v += (rc - lc) * 320 * E.superioridad;
+  if (rc - lc >= 2) v += 400 * E.superioridad;
 
   // ── 4. LÍNEAS DE TIRO A PORTERÍA RIVAL (amenaza ofensiva) ────────────────
-  // Precalcular posiciones locales para detección de cobertura
   const posLocales = Object.values(estado.fichas).filter(f => f.equipo === 'local');
   const lineasOfensivas = iaLineasAPorteriaCached(bf, bc, 'visitante');
   for (const linea of lineasOfensivas) {
     if (!linea.bloqueadaPorPortero) {
       const bonusLinea = Math.max(0, 600 - linea.dist * 80);
       const centralidad = 5 - Math.abs(linea.colPorteria - 6);
-      // Reducir valor si un local está colindante a la trayectoria (puede tapar el siguiente turno)
       let cubierta = false;
       for (let d = 1; d <= linea.dist && !cubierta; d++) {
         const tf = bf + linea.df * d, tc = bc + linea.dc * d;
@@ -496,10 +541,9 @@ function iaEvaluarEstado() {
           }
         }
       }
-      v += cubierta ? (bonusLinea + centralidad * 40) * 0.4 : bonusLinea + centralidad * 40;
+      v += (cubierta ? (bonusLinea + centralidad * 40) * 0.4 : bonusLinea + centralidad * 40) * E.lineasOfensivas;
     } else {
-      const bonusLinea = Math.max(0, 250 - linea.dist * 40);
-      v += bonusLinea;
+      v += Math.max(0, 250 - linea.dist * 40) * E.lineasOfensivas;
     }
   }
 
@@ -510,7 +554,6 @@ function iaEvaluarEstado() {
     if (!linea.bloqueadaPorPortero) {
       const penalLinea = Math.max(0, 500 - linea.dist * 70);
       const centralidad = 5 - Math.abs(linea.colPorteria - 6);
-      // Reducir penalización si un visitante cubre la trayectoria
       let cubierta = false;
       for (let d = 1; d <= linea.dist && !cubierta; d++) {
         const tf = bf + linea.df * d, tc = bc + linea.dc * d;
@@ -520,9 +563,9 @@ function iaEvaluarEstado() {
           }
         }
       }
-      v -= cubierta ? (penalLinea + centralidad * 30) * 0.4 : penalLinea + centralidad * 30;
+      v -= (cubierta ? (penalLinea + centralidad * 30) * 0.4 : penalLinea + centralidad * 30) * E.lineasDefensivas;
     } else {
-      v -= Math.max(0, 180 - linea.dist * 30);
+      v -= Math.max(0, 180 - linea.dist * 30) * E.lineasDefensivas;
     }
   }
 
@@ -533,38 +576,42 @@ function iaEvaluarEstado() {
     if (d.equipo === 'visitante' && d.fila >= 4 && d.fila <= 9 && Math.abs(d.col - 6) <= 2) controlCentroVisitante++;
     if (d.equipo === 'local'     && d.fila >= 5 && d.fila <= 10 && Math.abs(d.col - 6) <= 2) controlCentroLocal++;
   }
-  v += (controlCentroVisitante - controlCentroLocal) * 300;
+  v += (controlCentroVisitante - controlCentroLocal) * 300 * E.controlCentro;
 
   // ── 7. POSICIONAMIENTO INDIVIDUAL ─────────────────────────────────────────
   const enPeligro = bf >= 8;
+
+  // Defensivo: si va ganando, reforzar posiciones retrasadas
+  const marcador = estado.marcador || { visitante: 0, local: 0 };
+  const vaGanando = marcador.visitante > marcador.local;
+  const extraDefensivo = (estado.estiloVisitante === 'defensivo' && vaGanando) ? 1.4 : 1.0;
 
   for (const [id, d] of Object.entries(estado.fichas)) {
     if (id === 'balon' || esPortero(id)) continue;
     const distBal      = iaDistancia(d.fila, d.col, bf, bc);
     const esColindante = Math.abs(d.fila - bf) <= 1 && Math.abs(d.col - bc) <= 1;
-    // Aproximación barata: jugador en diagonal/línea recta desde el balón a dist 2-4
     const df = d.fila - bf, dc = d.col - bc;
     const enLineaPase = !esColindante && distBal >= 2 && distBal <= 4 &&
       (df === 0 || dc === 0 || Math.abs(df) === Math.abs(dc));
 
     if (d.equipo === 'visitante') {
       if (enPeligro) {
-        v += Math.max(0, 800 - distBal * 160);
-        if (esColindante) v += 900;
+        v += Math.max(0, 800 - distBal * 160) * E.presionZona;
+        if (esColindante) v += 900 * E.presionZona;
       } else {
-        v += (14 - d.fila) * 28;
-        v += Math.max(0, 200 - distBal * 40);
-        if (esColindante) v += 350;
-        if (d.fila <= 7 && Math.abs(d.col - 6) <= 2) v += 150;
-        if (enLineaPase) v += 180;
-        if (bf <= 6 && d.fila >= 9) v -= 200;
+        v += (14 - d.fila) * 28 * E.avanceJugadores * extraDefensivo;
+        v += Math.max(0, 200 - distBal * 40) * E.cercaniaBalon;
+        if (esColindante) v += 350 * E.cercaniaBalon;
+        if (d.fila <= 7 && Math.abs(d.col - 6) <= 2) v += 150 * E.controlCentro;
+        if (enLineaPase) v += 180 * E.cercaniaBalon;
+        if (bf <= 6 && d.fila >= 9) v -= 200 * E.avanceJugadores;
       }
     } else {
-      v -= Math.max(0, 200 - distBal * 40);
-      if (esColindante) v -= 450;
-      v -= d.fila * 28;
-      if (Math.abs(d.col - bc) <= 2 && d.fila > bf) v -= 250;
-      if (enLineaPase) v -= 150;
+      v -= Math.max(0, 200 - distBal * 40) * E.cercaniaBalon;
+      if (esColindante) v -= 450 * E.cercaniaBalon;
+      v -= d.fila * 28 * E.avanceJugadores;
+      if (Math.abs(d.col - bc) <= 2 && d.fila > bf) v -= 250 * E.cercaniaBalon;
+      if (enLineaPase) v -= 150 * E.cercaniaBalon;
     }
   }
 
