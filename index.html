@@ -324,6 +324,86 @@
       text-align: left;
     }
 
+    /* Trofeos */
+    .trofeos-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      width: 100%;
+      max-width: 560px;
+    }
+    .trofeo-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.04);
+      transition: border-color 0.15s;
+    }
+    .trofeo-card.conseguido {
+      border-color: rgba(255,200,0,0.5);
+      background: rgba(255,200,0,0.07);
+    }
+    .trofeo-icono {
+      font-size: 28px;
+      flex-shrink: 0;
+      filter: grayscale(1) opacity(0.3);
+    }
+    .trofeo-card.conseguido .trofeo-icono { filter: none; }
+    .trofeo-info { flex: 1; min-width: 0; }
+    .trofeo-nombre {
+      font-size: 12px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.4);
+      line-height: 1.2;
+    }
+    .trofeo-card.conseguido .trofeo-nombre { color: white; }
+    .trofeo-desc {
+      font-size: 10px;
+      color: rgba(255,255,255,0.25);
+      margin-top: 2px;
+      line-height: 1.3;
+    }
+    .trofeo-card.conseguido .trofeo-desc { color: rgba(255,255,255,0.5); }
+    .trofeo-fecha {
+      font-size: 9px;
+      color: rgba(255,200,0,0.6);
+      margin-top: 3px;
+    }
+    .trofeo-progreso {
+      font-size: 9px;
+      color: rgba(255,255,255,0.3);
+      margin-top: 2px;
+    }
+
+    /* Notificación trofeo */
+    #trofeo-notif {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: linear-gradient(135deg, #b8860b, #ffd700);
+      color: #1a1000;
+      border-radius: 14px;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 14px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+      z-index: 9999;
+      transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+      pointer-events: none;
+      max-width: 320px;
+    }
+    #trofeo-notif.visible { transform: translateX(-50%) translateY(0); }
+    #trofeo-notif-icono { font-size: 28px; }
+    #trofeo-notif-texto { line-height: 1.3; }
+    #trofeo-notif-sub { font-size: 11px; font-weight: 500; opacity: 0.75; }
+
     .menu-seccion h3 {
       font-size: 11px;
       letter-spacing: 1.5px;
@@ -1289,6 +1369,25 @@
     </div>
   </div>
 
+  <!-- Notificación trofeo -->
+  <div id="trofeo-notif">
+    <div id="trofeo-notif-icono">🏅</div>
+    <div id="trofeo-notif-texto">
+      <div id="trofeo-notif-nombre">Trofeo desbloqueado</div>
+      <div id="trofeo-notif-sub">¡Nuevo logro conseguido!</div>
+    </div>
+  </div>
+
+  <!-- Sala Trofeos -->
+  <div id="trofeos-overlay" class="torneo-overlay">
+    <div class="torneo-content">
+      <div class="torneo-titulo">🏅 Sala de Trofeos</div>
+      <div id="trofeos-resumen" style="font-size:13px;opacity:0.6;margin-bottom:16px;text-align:center;"></div>
+      <div class="trofeos-grid" id="trofeos-grid"></div>
+      <button class="btn-torneo-cerrar" style="margin-top:20px;" onclick="cerrarTrofeos()">Volver al menú</button>
+    </div>
+  </div>
+
   <!-- Menu Inicial (selector de modo) -->
   <div id="menu-inicial" class="menu-overlay">
     <div class="menu-content">
@@ -1311,6 +1410,14 @@
         <button class="inicio-btn" onclick="abrirEquipos()">
           <span class="inicio-btn-icon">✏️</span>
           Edición
+        </button>
+        <button class="inicio-btn disabled">
+          <span class="inicio-btn-icon">⚡</span>
+          Retos
+        </button>
+        <button class="inicio-btn" onclick="abrirTrofeos()">
+          <span class="inicio-btn-icon">🏅</span>
+          Sala Trofeos
         </button>
       </div>
 
@@ -2394,12 +2501,12 @@
       // Filtrar portería propia y córner propio (siempre prohibido)
       dest = dest.filter(d => {
         if (estado.turno === 'local') {
-          if (d.fila === 0) return false; // portería propia
-          if (d.fila === 1 && (d.col === 1 || d.col === 11)) return false; // córner propio
+          if (d.fila === 14) return false; // portería propia (local ataca hacia fila 0)
+          if (d.fila === 13 && (d.col === 1 || d.col === 11)) return false; // córner propio
         }
         if (estado.turno === 'visitante') {
-          if (d.fila === 14) return false; // portería propia
-          if (d.fila === 13 && (d.col === 1 || d.col === 11)) return false; // córner propio
+          if (d.fila === 0) return false; // portería propia (visitante ataca hacia fila 14)
+          if (d.fila === 1 && (d.col === 1 || d.col === 11)) return false; // córner propio
         }
         return true;
       });
@@ -2673,11 +2780,15 @@
     }
 
     // Quien marca gol, saca primero en el siguiente turno
+    let _remontadaFlag = false; // true si el jugador llegó a ir 2 abajo en este partido
+
     function verificarGol() {
       const b = estado.fichas.balon;
       if (b.fila === 0) {
         MARCADOR.visitante++;
         animarGol('visitante');
+        // Comprobar si el jugador (local en vsIA) va 2 abajo
+        if (config.modo === 'vsIA' && MARCADOR.visitante - MARCADOR.local >= 2) _remontadaFlag = true;
         if (verificarVictoria()) return;
         recolocar('visitante');
       } else if (b.fila === 14) {
@@ -4191,6 +4302,7 @@
     function arrancarPartida(equipoQueSaca) {
       MARCADOR.local = 0; MARCADOR.visitante = 0;
       victoria.golDeOro = false;
+      _remontadaFlag = false;
       iaCalculando = false;
       estado.modo = config.modo;
       recolocar(equipoQueSaca);
@@ -4290,6 +4402,21 @@
         if (motivo === 'goldeoro') detalle.textContent = '¡Gol de oro en tiempo extra!';
       }
 
+      // Hook trofeos
+      if (config.modo === 'vsIA' && ganador !== 'empate') {
+        const fueLocal = ganador === 'local';
+        const eqRival = equiposGuardados().find(e => e.id === config.equipoRival);
+        const eqPropio = equiposGuardados().find(e => e.id === config.equipoLocal);
+        trofeosOnFinPartido({
+          golesLocal: MARCADOR.local,
+          golesVisitante: MARCADOR.visitante,
+          fueLocal,
+          nivelIA: config.nivelIA || 'profesional',
+          potencialRival: eqRival?.potencial ?? 3,
+          potencialPropio: eqPropio?.potencial ?? 3,
+        });
+      }
+
       // Hook liga
       if (config._ligaPendiente) {
         config._ligaPendiente = false;
@@ -4301,6 +4428,7 @@
         ligaRecalcularTabla();
         ligaData.jornadaVista = ligaJornadaActual();
         ligaGuardar();
+        if (ligaData.partidos.every(p => p.jugado)) trofeosOnLigaFinalizada();
         const btnRevancha = document.querySelector('.btn-revancha');
         const btnMenu = document.querySelector('.btn-menu-volver');
         if (btnRevancha) btnRevancha.style.display = 'none';
@@ -4639,6 +4767,197 @@
       document.getElementById('eq-lista-panel').style.display = 'block';
       document.getElementById('eq-form-panel').style.display = 'none';
       _eqRenderLista();
+    }
+
+    // ====== TROFEOS ======
+
+    const TROFEOS_DEF = [
+      // Partidos
+      { id: 'primer_gol',       icono: '⚽', nombre: 'Primer gol',           desc: 'Marca tu primer gol',                               cat: 'Partidos'   },
+      { id: 'primera_victoria', icono: '🥊', nombre: 'Primera victoria',      desc: 'Gana tu primer partido',                            cat: 'Partidos'   },
+      { id: 'porteria_cero',    icono: '🧤', nombre: 'Portería a cero',        desc: 'Gana un partido sin encajar ningún gol',            cat: 'Partidos'   },
+      { id: 'manita',           icono: '✋', nombre: 'La manita',              desc: 'Gana un partido 5-0',                               cat: 'Partidos'   },
+      { id: 'remontada',        icono: '🔥', nombre: 'Remontada',              desc: 'Gana yendo 2 goles por debajo en algún momento',    cat: 'Partidos'   },
+      { id: 'mesa_elite',       icono: '👑', nombre: 'Comiendo en la misma mesa', desc: 'Gana jugando en nivel Imbatible',               cat: 'Partidos'   },
+      // Torneo
+      { id: 'campeon_torneo',   icono: '🏆', nombre: 'Campeón de torneo',      desc: 'Gana un torneo eliminatorio',                       cat: 'Torneo'     },
+      { id: 'finalista',        icono: '🥈', nombre: 'Finalista',              desc: 'Llega a la final de un torneo',                     cat: 'Torneo'     },
+      { id: 'torneo_cero',      icono: '🛡️', nombre: 'Campeón sin fisuras',    desc: 'Gana un torneo sin encajar ningún gol',             cat: 'Torneo'     },
+      // Liga
+      { id: 'campeon_liga',     icono: '🥇', nombre: 'Campeón de liga',        desc: 'Gana una liga',                                     cat: 'Liga'       },
+      { id: 'liga_perfecta',    icono: '💎', nombre: 'Temporada perfecta',     desc: 'Gana una liga sin perder ningún partido',           cat: 'Liga'       },
+      { id: 'menos_goleado',    icono: '🔒', nombre: 'El más sólido',          desc: 'Acaba una liga como el equipo menos goleado',        cat: 'Liga'       },
+      // Dificultad
+      { id: 'ganar_leyenda',    icono: '⚔️', nombre: 'En la élite',           desc: 'Gana un partido en nivel Leyenda',                  cat: 'Dificultad' },
+      { id: 'matagigantes',     icono: '🐉', nombre: 'Matagigantes',           desc: 'Gana con potencial 1 a un potencial 5 en Leyenda o Imbatible', cat: 'Dificultad' },
+      // Progresión
+      { id: 'victorias_10',     icono: '🌟', nombre: '10 victorias',           desc: 'Acumula 10 victorias en total',                     cat: 'Progresión', progreso: { actual: 0, objetivo: 10  } },
+      { id: 'victorias_50',     icono: '🌠', nombre: '50 victorias',           desc: 'Acumula 50 victorias en total',                     cat: 'Progresión', progreso: { actual: 0, objetivo: 50  } },
+      { id: 'victorias_100',    icono: '🚀', nombre: '100 victorias',          desc: 'Acumula 100 victorias en total',                    cat: 'Progresión', progreso: { actual: 0, objetivo: 100 } },
+      { id: 'partidos_100',     icono: '📅', nombre: '100 partidos',           desc: 'Juega 100 partidos en total',                       cat: 'Progresión', progreso: { actual: 0, objetivo: 100 } },
+      { id: 'porterias_50',     icono: '🧱', nombre: '50 porterías a cero',    desc: 'Acumula 50 porterías a cero',                       cat: 'Progresión', progreso: { actual: 0, objetivo: 50  } },
+      // Maestro
+      { id: 'todos_trofeos',    icono: '🎖️', nombre: 'Leyenda del MasterGoal', desc: 'Consigue todos los demás trofeos',                 cat: 'Maestro'    },
+    ];
+
+    function trofeosGuardados() {
+      try { return JSON.parse(localStorage.getItem('mg_trofeos') || '{}'); } catch { return {}; }
+    }
+
+    function guardarTrofeos(data) {
+      localStorage.setItem('mg_trofeos', JSON.stringify(data));
+    }
+
+    function trofeosStats() {
+      try { return JSON.parse(localStorage.getItem('mg_stats') || '{}'); } catch { return {}; }
+    }
+
+    function guardarStats(data) {
+      localStorage.setItem('mg_stats', JSON.stringify(data));
+    }
+
+    function incrementarStat(key, cantidad = 1) {
+      const stats = trofeosStats();
+      stats[key] = (stats[key] || 0) + cantidad;
+      guardarStats(stats);
+      return stats[key];
+    }
+
+    let _notifTimeout = null;
+    function mostrarNotifTrofeo(trofeo) {
+      const el = document.getElementById('trofeo-notif');
+      document.getElementById('trofeo-notif-icono').textContent = trofeo.icono;
+      document.getElementById('trofeo-notif-nombre').textContent = trofeo.nombre;
+      document.getElementById('trofeo-notif-sub').textContent = '¡Nuevo trofeo conseguido!';
+      el.classList.add('visible');
+      clearTimeout(_notifTimeout);
+      _notifTimeout = setTimeout(() => el.classList.remove('visible'), 4000);
+    }
+
+    function desbloquearTrofeo(id) {
+      const data = trofeosGuardados();
+      if (data[id]?.conseguido) return false;
+      data[id] = { conseguido: true, fecha: new Date().toLocaleDateString('es-ES') };
+      guardarTrofeos(data);
+      const def = TROFEOS_DEF.find(t => t.id === id);
+      if (def) mostrarNotifTrofeo(def);
+      // Comprobar si se completan todos (excepto el propio)
+      const totalSinMaestro = TROFEOS_DEF.filter(t => t.id !== 'todos_trofeos').length;
+      const conseguidos = TROFEOS_DEF.filter(t => t.id !== 'todos_trofeos' && data[t.id]?.conseguido).length;
+      if (conseguidos === totalSinMaestro) setTimeout(() => desbloquearTrofeo('todos_trofeos'), 1500);
+      return true;
+    }
+
+    function comprobarProgresoTrofeo(id, valorActual) {
+      const def = TROFEOS_DEF.find(t => t.id === id);
+      if (!def?.progreso) return;
+      const data = trofeosGuardados();
+      if (data[id]?.conseguido) return;
+      if (valorActual >= def.progreso.objetivo) desbloquearTrofeo(id);
+    }
+
+    // Hook principal: llamar al terminar cada partido
+    function trofeosOnFinPartido({ golesLocal, golesVisitante, fueLocal, encajados, nivelIA, potencialRival, potencialPropio, torneoGoles }) {
+      const data = trofeosGuardados();
+      const gane = fueLocal ? golesLocal > golesVisitante : golesVisitante > golesLocal;
+      const golesMetidos = fueLocal ? golesLocal : golesVisitante;
+      const golesRecibidos = fueLocal ? golesVisitante : golesLocal;
+
+      // Primer gol
+      if (golesMetidos > 0) desbloquearTrofeo('primer_gol');
+
+      // Estadísticas acumuladas
+      const partidos = incrementarStat('partidos');
+      comprobarProgresoTrofeo('partidos_100', partidos);
+
+      if (gane) {
+        const victorias = incrementarStat('victorias');
+        comprobarProgresoTrofeo('victorias_10', victorias);
+        comprobarProgresoTrofeo('victorias_50', victorias);
+        comprobarProgresoTrofeo('victorias_100', victorias);
+        desbloquearTrofeo('primera_victoria');
+
+        if (golesRecibidos === 0) {
+          desbloquearTrofeo('porteria_cero');
+          const pCero = incrementarStat('porterias_cero');
+          comprobarProgresoTrofeo('porterias_50', pCero);
+        }
+        if (golesMetidos >= 5 && golesRecibidos === 0) desbloquearTrofeo('manita');
+        if (_remontadaFlag) desbloquearTrofeo('remontada');
+        if (nivelIA === 'imbatible') desbloquearTrofeo('mesa_elite');
+        if (nivelIA === 'leyenda') desbloquearTrofeo('ganar_leyenda');
+        if ((nivelIA === 'leyenda' || nivelIA === 'imbatible') && potencialPropio === 1 && potencialRival === 5) desbloquearTrofeo('matagigantes');
+      }
+
+      // Remontada: se comprueba durante el partido (ver trofeosOnRemontada)
+    }
+
+    // Llamar cuando el jugador va 2 abajo y luego gana
+    function trofeosOnRemontada() { desbloquearTrofeo('remontada'); }
+
+    window.abrirTrofeos = function() {
+      _renderTrofeos();
+      document.getElementById('trofeos-overlay').classList.add('visible');
+      document.getElementById('menu-inicial').style.display = 'none';
+    };
+
+    window.cerrarTrofeos = function() {
+      document.getElementById('trofeos-overlay').classList.remove('visible');
+      document.getElementById('menu-inicial').style.display = '';
+    };
+
+    function _renderTrofeos() {
+      const data = trofeosGuardados();
+      const stats = trofeosStats();
+      const grid = document.getElementById('trofeos-grid');
+      const conseguidos = TROFEOS_DEF.filter(t => data[t.id]?.conseguido).length;
+      document.getElementById('trofeos-resumen').textContent = `${conseguidos} / ${TROFEOS_DEF.length} trofeos conseguidos`;
+
+      grid.innerHTML = '';
+      TROFEOS_DEF.forEach(t => {
+        const ok = !!data[t.id]?.conseguido;
+        const card = document.createElement('div');
+        card.className = 'trofeo-card' + (ok ? ' conseguido' : '');
+
+        const icono = document.createElement('div');
+        icono.className = 'trofeo-icono';
+        icono.textContent = t.icono;
+
+        const info = document.createElement('div');
+        info.className = 'trofeo-info';
+
+        const nombre = document.createElement('div');
+        nombre.className = 'trofeo-nombre';
+        nombre.textContent = t.nombre;
+
+        const desc = document.createElement('div');
+        desc.className = 'trofeo-desc';
+        desc.textContent = ok ? t.desc : '???';
+
+        info.appendChild(nombre);
+        info.appendChild(desc);
+
+        if (ok && data[t.id].fecha) {
+          const fecha = document.createElement('div');
+          fecha.className = 'trofeo-fecha';
+          fecha.textContent = data[t.id].fecha;
+          info.appendChild(fecha);
+        } else if (!ok && t.progreso) {
+          const actual = stats[
+            t.id === 'victorias_10' || t.id === 'victorias_50' || t.id === 'victorias_100' ? 'victorias' :
+            t.id === 'partidos_100' ? 'partidos' :
+            t.id === 'porterias_50' ? 'porterias_cero' : ''
+          ] || 0;
+          const prog = document.createElement('div');
+          prog.className = 'trofeo-progreso';
+          prog.textContent = `${Math.min(actual, t.progreso.objetivo)} / ${t.progreso.objetivo}`;
+          info.appendChild(prog);
+        }
+
+        card.appendChild(icono);
+        card.appendChild(info);
+        grid.appendChild(card);
+      });
     }
 
     window.abrirEquipos = function() {
@@ -5092,7 +5411,15 @@
       const partidos = rondas[rondaActual];
       if (partidos.some(p => !p.jugado)) { torneoGuardar(); mostrarBracket(); return; }
       const ganadores = partidos.map(p => p.golLocal > p.golVisitante ? p.local : p.visitante);
-      if (ganadores.length === 1) { mostrarCampeon(ganadores[0]); return; }
+      if (ganadores.length === 1) {
+        // Es la final — el perdedor es finalista
+        const jugadores = torneoData.jugadores || [];
+        const final = partidos[0];
+        const perdedor = final.golLocal > final.golVisitante ? final.visitante : final.local;
+        if (jugadores.includes(perdedor)) desbloquearTrofeo('finalista');
+        mostrarCampeon(ganadores[0]);
+        return;
+      }
       rellenarSiguienteRonda(ganadores);
       torneoData.rondaActual = rondaActual + 1;
       torneoGuardar();
@@ -5112,6 +5439,29 @@
     }
 
     function mostrarCampeon(id) {
+      // Trofeos torneo
+      const jugadores = torneoData.jugadores || [];
+      if (jugadores.includes(id)) {
+        desbloquearTrofeo('campeon_torneo');
+        // Portería a cero: ningún gol encajado en todo el torneo
+        const todosPart = torneoData.rondas.flat();
+        const sincGol = todosPart.every(p => {
+          if (!p.jugado) return true;
+          const soyLocal = jugadores.includes(p.local);
+          const golsRecib = soyLocal ? p.golVisitante : p.golLocal;
+          return golsRecib === 0;
+        });
+        if (sincGol) desbloquearTrofeo('torneo_cero');
+      } else {
+        // El humano perdió la final → finalista
+        const finalRonda = torneoData.rondas[torneoData.rondaActual];
+        if (finalRonda?.length === 1) {
+          const final = finalRonda[0];
+          if (jugadores.includes(final.local) || jugadores.includes(final.visitante)) {
+            desbloquearTrofeo('finalista');
+          }
+        }
+      }
       torneoBorrar(); torneoData = null;
       const equipos = equiposGuardados();
       const eq = equipos.find(e => e.id === id);
@@ -5366,6 +5716,21 @@
       }
     };
 
+    function trofeosOnLigaFinalizada() {
+      if (!ligaData) return;
+      const miId = ligaData.miEquipo;
+      const clasificacion = ligaOrdenarTabla();
+      const miPos = clasificacion.indexOf(miId);
+      const miFila = ligaData.tabla[miId];
+      if (miPos === 0) {
+        desbloquearTrofeo('campeon_liga');
+        if (!miFila.p && !miFila.e) desbloquearTrofeo('liga_perfecta');
+      }
+      // Menos goleado: menor gc
+      const menorGC = Math.min(...clasificacion.map(id => ligaData.tabla[id].gc));
+      if (miFila.gc === menorGC) desbloquearTrofeo('menos_goleado');
+    }
+
     function ligaRecalcularTabla() {
       const todos = ligaData.equipos;
       const tabla = {};
@@ -5568,6 +5933,7 @@
       });
       ligaRecalcularTabla();
       ligaGuardar();
+      if (ligaData.partidos.every(p => p.jugado)) trofeosOnLigaFinalizada();
       ligaRenderFixtures();
     };
 

@@ -292,12 +292,12 @@ function obtenerDestinosBalon(f, c) {
   dest = dest.filter(d => !saltaJugadorEnAreaChica(f, c, d.fila, d.col));
   dest = dest.filter(d => {
     if (estado.turno === 'local') {
-      if (d.fila === 0) return false;
-      if (d.fila === 1 && (d.col === 1 || d.col === 11)) return false;
+      if (d.fila === 14) return false; // portería propia (local ataca hacia fila 0)
+      if (d.fila === 13 && (d.col === 1 || d.col === 11)) return false;
     }
     if (estado.turno === 'visitante') {
-      if (d.fila === 14) return false;
-      if (d.fila === 13 && (d.col === 1 || d.col === 11)) return false;
+      if (d.fila === 0) return false; // portería propia (visitante ataca hacia fila 14)
+      if (d.fila === 1 && (d.col === 1 || d.col === 11)) return false;
     }
     return true;
   });
