@@ -4789,8 +4789,10 @@
           lista.unshift(ep);
           actualizado = true;
         } else {
-          if (!lista[idx].estilo) { lista[idx].estilo = ep.estilo; actualizado = true; }
-          if (lista[idx].potencial !== ep.potencial) { lista[idx].potencial = ep.potencial; actualizado = true; }
+          // Resync all visual/config fields from hardcoded definition, preserving only match stats
+          const stats = { pj: lista[idx].pj, pg: lista[idx].pg, pp: lista[idx].pp, gf: lista[idx].gf, gc: lista[idx].gc };
+          Object.assign(lista[idx], ep, stats);
+          actualizado = true;
         }
       });
       if (actualizado) guardarEquipos(lista);
