@@ -791,8 +791,9 @@ function iaBestBallSequenceLocal(f, c, movRestantes, beta = Infinity) {
       estado.fichas.balon.fila = f; estado.fichas.balon.col = c;
     }
     if (resultado < mejorScore) mejorScore = resultado;
-    // Poda beta: el visitante (nivel superior) ya tiene una opción mejor que esto
-    if (mejorScore <= beta) break;
+    // Poda beta: el visitante (nivel superior) ya tiene una rama mejor,
+    // así que nunca elegiría llegar aquí — podamos el resto
+    if (mejorScore < beta) break;
   }
   estado.fichas.balon.fila = oldF; estado.fichas.balon.col = oldC;
   estado.turno = oldTurno; estado.movimientosBalon = oldMovs;
