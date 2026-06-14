@@ -256,9 +256,12 @@ function obtenerDestinosJugador(f, c, equipo) {
 }
 
 function esDestinoValidoCuartoMovimiento(f, c) {
-  if (esPorteria(f, c)) return true;
-  if (estado.turno === 'local'    && ((f === 1 && c === 1) || (f === 1 && c === 11))) return false;
-  if (estado.turno === 'visitante' && ((f === 13 && c === 1) || (f === 13 && c === 11))) return false;
+  // Local ataca fila 14, visitante ataca fila 0
+  const esGoal = estado.turno === 'local' ? (f === 14 && c >= 4 && c <= 8) : (f === 0 && c >= 4 && c <= 8);
+  if (esGoal) return true;
+  // Local: córner propio en fila 13; Visitante: córner propio en fila 1
+  if (estado.turno === 'local'    && ((f === 13 && c === 1) || (f === 13 && c === 11))) return false;
+  if (estado.turno === 'visitante' && ((f === 1 && c === 1) || (f === 1 && c === 11))) return false;
   if (estado.turno === 'local') {
     if (f >= 1 && f <= 4 && c >= 2 && c <= 10) return false;
   } else {
@@ -290,14 +293,16 @@ function obtenerDestinosBalon(f, c) {
   }
   dest = dest.filter(d => !saltaPorteroContrario(f, c, d.fila, d.col));
   dest = dest.filter(d => !saltaJugadorEnAreaChica(f, c, d.fila, d.col));
+  // Local ataca fila 14, su portería propia es fila 0
+  // Visitante ataca fila 0, su portería propia es fila 14
   dest = dest.filter(d => {
     if (estado.turno === 'local') {
-      if (d.fila === 14) return false; // portería propia (local ataca hacia fila 0)
-      if (d.fila === 13 && (d.col === 1 || d.col === 11)) return false;
+      if (d.fila === 0) return false; // portería propia del local
+      if (d.fila === 1 && (d.col === 1 || d.col === 11)) return false; // córner propio
     }
     if (estado.turno === 'visitante') {
-      if (d.fila === 0) return false; // portería propia (visitante ataca hacia fila 14)
-      if (d.fila === 1 && (d.col === 1 || d.col === 11)) return false;
+      if (d.fila === 14) return false; // portería propia del visitante
+      if (d.fila === 13 && (d.col === 1 || d.col === 11)) return false; // córner propio
     }
     return true;
   });
@@ -305,13 +310,15 @@ function obtenerDestinosBalon(f, c) {
   if (estado.movimientosBalon === 3) {
     return dest.filter(d => esDestinoValidoCuartoMovimiento(d.fila, d.col));
   }
+  const esPorteriaContraria = (f, c) =>
+    estado.turno === 'local' ? (f === 14 && c >= 4 && c <= 8) : (f === 0 && c >= 4 && c <= 8);
   const balonOriginal2 = { ...estado.fichas.balon };
   const pasadorOriginal = estado.ultimoPasador;
   // Calcular el pasador de este movimiento (el único colindante actual, si lo hay)
   const colindantesActuales = obtenerColindantesEquipo(f, c, estado.turno);
   const pasadorEste = colindantesActuales.length === 1 ? colindantesActuales[0] : null;
   dest = dest.filter(d => {
-    if (esPorteria(d.fila, d.col)) return true;
+    if (esPorteriaContraria(d.fila, d.col)) return true;
     estado.fichas.balon.fila = d.fila;
     estado.fichas.balon.col = d.col;
     estado.ultimoPasador = pasadorEste;
@@ -325,7 +332,7 @@ function obtenerDestinosBalon(f, c) {
   if (estado.movimientosBalon < 3) {
     const movsActual = estado.movimientosBalon;
     dest = dest.filter(d => {
-      if (esPorteria(d.fila, d.col)) return true;
+      if (esPorteriaContraria(d.fila, d.col)) return true;
       estado.fichas.balon.fila = d.fila;
       estado.fichas.balon.col = d.col;
       estado.ultimoPasador = pasadorEste;

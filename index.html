@@ -325,6 +325,105 @@
     }
 
     /* Trofeos */
+    /* ====== RETOS ====== */
+    .retos-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      width: 100%;
+    }
+    .reto-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .reto-card:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.25); }
+    .reto-card-header { display: flex; align-items: center; gap: 8px; }
+    .reto-icono { font-size: 22px; flex-shrink: 0; }
+    .reto-nombre { font-weight: 700; font-size: 13px; color: white; }
+    .reto-desc { font-size: 11px; color: rgba(255,255,255,0.55); line-height: 1.4; }
+    .reto-medallas { display: flex; gap: 5px; margin-top: 2px; }
+    .reto-medalla { font-size: 16px; opacity: 0.25; }
+    .reto-medalla.conseguida { opacity: 1; }
+    .reto-card.imbatible { border-color: #f5c518; box-shadow: 0 0 10px rgba(245,197,24,0.35), inset 0 0 0 1px rgba(245,197,24,0.15); }
+
+    /* Pantalla de un reto */
+    .reto-detalle-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.92);
+      z-index: 200;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .reto-detalle-overlay.visible { display: flex; }
+    .reto-detalle-content {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 20px;
+      padding: 28px 24px;
+      max-width: 420px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .reto-detalle-icono { font-size: 40px; text-align: center; }
+    .reto-detalle-nombre { font-size: 22px; font-weight: 800; text-align: center; color: white; }
+    .reto-detalle-desc { font-size: 13px; color: rgba(255,255,255,0.65); text-align: center; line-height: 1.5; }
+    .reto-detalle-medallas { display: flex; justify-content: center; gap: 16px; margin: 4px 0; }
+    .reto-detalle-medalla { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .reto-detalle-medalla span:first-child { font-size: 28px; opacity: 0.25; }
+    .reto-detalle-medalla.conseguida span:first-child { opacity: 1; }
+    .reto-detalle-medalla-label { font-size: 10px; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 1px; }
+    .reto-detalle-medalla.conseguida .reto-detalle-medalla-label { color: rgba(255,255,255,0.7); }
+    .reto-nivel-selector { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+    .reto-nivel-btn {
+      padding: 10px 6px;
+      border-radius: 10px;
+      border: 1.5px solid rgba(255,255,255,0.15);
+      background: transparent;
+      color: rgba(255,255,255,0.6);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    .reto-nivel-btn:hover { border-color: rgba(255,255,255,0.4); color: white; }
+    .reto-nivel-btn.activo { border-color: #4caf50; background: rgba(76,175,80,0.2); color: white; }
+    .reto-nivel-btn.bloqueado { opacity: 0.35; cursor: not-allowed; }
+    .btn-reto-jugar {
+      background: linear-gradient(135deg, #4caf50, #2e7d32);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+    }
+    .btn-reto-jugar:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn-reto-volver {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.2);
+      color: rgba(255,255,255,0.6);
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 13px;
+      cursor: pointer;
+      width: 100%;
+    }
+
     .trofeos-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -378,12 +477,13 @@
       margin-top: 2px;
     }
 
+
     /* Notificación trofeo */
     #trofeo-notif {
       position: fixed;
       bottom: 24px;
       left: 50%;
-      transform: translateX(-50%) translateY(80px);
+      transform: translateX(-50%) translateY(200px);
       background: linear-gradient(135deg, #b8860b, #ffd700);
       color: #1a1000;
       border-radius: 14px;
@@ -1179,14 +1279,7 @@
   <!-- Pantalla configuración torneo -->
   <div id="torneo-overlay" class="torneo-overlay">
     <div class="torneo-content">
-      <div class="torneo-titulo">🏆 Torneo Eliminatorio</div>
-      <div class="torneo-seccion">
-        <h3>Número de equipos</h3>
-        <div class="torneo-tamano-btns">
-          <button class="torneo-tamano-btn activo" id="btn-t8" onclick="torneoSetTamano(8)">8 equipos</button>
-          <button class="torneo-tamano-btn" id="btn-t16" onclick="torneoSetTamano(16)">16 equipos</button>
-        </div>
-      </div>
+      <div class="torneo-titulo">🏆 Copa Eliminatoria</div>
       <div class="torneo-seccion">
         <h3>Jugadores humanos</h3>
         <div class="torneo-jugadores-btns">
@@ -1195,8 +1288,25 @@
           <button class="torneo-tamano-btn" id="btn-j3" onclick="torneoSetJugadores(3)">3 jugadores</button>
           <button class="torneo-tamano-btn" id="btn-j4" onclick="torneoSetJugadores(4)">4 jugadores</button>
         </div>
-        <div id="torneo-jugadores-slots"></div>
       </div>
+      <div class="torneo-seccion">
+        <h3>Nivel de dificultad (IA)</h3>
+        <div class="radio-group" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">
+          <button class="radio-btn" id="t-btn-nivel-cadete"       onclick="seleccionarNivel('cadete')">Cadete</button>
+          <button class="radio-btn" id="t-btn-nivel-juvenil"      onclick="seleccionarNivel('juvenil')">Juvenil</button>
+          <button class="radio-btn activo" id="t-btn-nivel-profesional" onclick="seleccionarNivel('profesional')">Profesional</button>
+          <button class="radio-btn" id="t-btn-nivel-leyenda"      onclick="seleccionarNivel('leyenda')">Leyenda</button>
+          <button class="radio-btn" id="t-btn-nivel-imbatible"    onclick="seleccionarNivel('imbatible')">Imbatible</button>
+        </div>
+      </div>
+      <div class="torneo-seccion">
+        <h3>Número de equipos</h3>
+        <div class="torneo-tamano-btns">
+          <button class="torneo-tamano-btn activo" id="btn-t8" onclick="torneoSetTamano(8)">8 equipos</button>
+          <button class="torneo-tamano-btn" id="btn-t16" onclick="torneoSetTamano(16)">16 equipos</button>
+        </div>
+      </div>
+      <div class="torneo-seccion" id="torneo-jugadores-slots"></div>
       <div class="torneo-seccion">
         <h3>Equipos restantes (IA)</h3>
         <div class="torneo-rivales-contador" id="torneo-rivales-contador"></div>
@@ -1241,16 +1351,6 @@
           </div>
         </div>
       </div>
-      <div class="torneo-seccion">
-        <h3>Nivel de dificultad (IA)</h3>
-        <div class="radio-group" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">
-          <button class="radio-btn" id="t-btn-nivel-cadete"       onclick="seleccionarNivel('cadete')">Cadete</button>
-          <button class="radio-btn" id="t-btn-nivel-juvenil"      onclick="seleccionarNivel('juvenil')">Juvenil</button>
-          <button class="radio-btn activo" id="t-btn-nivel-profesional" onclick="seleccionarNivel('profesional')">Profesional</button>
-          <button class="radio-btn" id="t-btn-nivel-leyenda"      onclick="seleccionarNivel('leyenda')">Leyenda</button>
-          <button class="radio-btn" id="t-btn-nivel-imbatible"    onclick="seleccionarNivel('imbatible')">Imbatible</button>
-        </div>
-      </div>
       <button class="btn-torneo-iniciar" id="btn-torneo-iniciar" onclick="torneoIniciar()" disabled>Sortear y comenzar</button>
       <button class="btn-torneo-cerrar" onclick="cerrarTorneo()">Volver</button>
     </div>
@@ -1259,7 +1359,7 @@
   <!-- Pantalla bracket torneo -->
   <div id="bracket-overlay" class="bracket-overlay">
     <div class="bracket-content">
-      <div class="bracket-titulo">🏆 Torneo</div>
+      <div class="bracket-titulo">🏆 Copa</div>
       <div class="bracket-ronda-label" id="bracket-ronda-label"></div>
       <div class="bracket-rondas" id="bracket-rondas"></div>
       <button class="btn-torneo-simular" id="btn-simular-ia" onclick="torneoSimularSiguienteIA()">Simular partido IA</button>
@@ -1291,7 +1391,7 @@
   <!-- Pantalla campeón -->
   <div id="campeon-overlay" class="campeon-overlay">
     <div class="campeon-trofeo">🏆</div>
-    <div class="campeon-titulo">Campeón del torneo</div>
+    <div class="campeon-titulo">Campeón de la copa</div>
     <div class="campeon-dot" id="campeon-dot"></div>
     <div class="campeon-nombre" id="campeon-nombre"></div>
     <button class="btn-campeon-menu" onclick="torneoTerminar()">Volver al menú</button>
@@ -1309,7 +1409,16 @@
           <button class="torneo-tamano-btn" id="liga-btn-j3" onclick="ligaSetJugadores(3)">3 jugadores</button>
           <button class="torneo-tamano-btn" id="liga-btn-j4" onclick="ligaSetJugadores(4)">4 jugadores</button>
         </div>
-        <div id="liga-jugadores-slots"></div>
+      </div>
+      <div class="torneo-seccion">
+        <h3>Nivel de dificultad (IA)</h3>
+        <div class="radio-group" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">
+          <button class="radio-btn" id="l-btn-nivel-cadete"       onclick="seleccionarNivel('cadete')">Cadete</button>
+          <button class="radio-btn" id="l-btn-nivel-juvenil"      onclick="seleccionarNivel('juvenil')">Juvenil</button>
+          <button class="radio-btn activo" id="l-btn-nivel-profesional" onclick="seleccionarNivel('profesional')">Profesional</button>
+          <button class="radio-btn" id="l-btn-nivel-leyenda"      onclick="seleccionarNivel('leyenda')">Leyenda</button>
+          <button class="radio-btn" id="l-btn-nivel-imbatible"    onclick="seleccionarNivel('imbatible')">Imbatible</button>
+        </div>
       </div>
       <div class="torneo-seccion">
         <h3>Número de equipos</h3>
@@ -1324,6 +1433,7 @@
         </div>
       </div>
       <select id="liga-mi-equipo" style="display:none;"></select>
+      <div class="torneo-seccion" id="liga-jugadores-slots"></div>
       <div class="torneo-seccion">
         <h3>Rivales (IA) — <span id="liga-rivales-contador">Seleccionados: 0 / 9</span></h3>
         <div class="torneo-rivales-grid" id="liga-rivales-grid"></div>
@@ -1334,16 +1444,6 @@
           <button class="chip" onclick="ligaSelChip(event,'turnos',20)">20</button>
           <button class="chip activo" onclick="ligaSelChip(event,'turnos',30)">30</button>
           <button class="chip" onclick="ligaSelChip(event,'turnos',40)">40</button>
-        </div>
-      </div>
-      <div class="torneo-seccion">
-        <h3>Nivel de dificultad (IA)</h3>
-        <div class="radio-group" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">
-          <button class="radio-btn" id="l-btn-nivel-cadete"       onclick="seleccionarNivel('cadete')">Cadete</button>
-          <button class="radio-btn" id="l-btn-nivel-juvenil"      onclick="seleccionarNivel('juvenil')">Juvenil</button>
-          <button class="radio-btn activo" id="l-btn-nivel-profesional" onclick="seleccionarNivel('profesional')">Profesional</button>
-          <button class="radio-btn" id="l-btn-nivel-leyenda"      onclick="seleccionarNivel('leyenda')">Leyenda</button>
-          <button class="radio-btn" id="l-btn-nivel-imbatible"    onclick="seleccionarNivel('imbatible')">Imbatible</button>
         </div>
       </div>
       <button class="btn-torneo-iniciar" id="btn-liga-iniciar" onclick="ligaIniciar()" disabled>Iniciar liga</button>
@@ -1379,6 +1479,41 @@
   </div>
 
   <!-- Sala Trofeos -->
+  <!-- Retos: lista -->
+  <div id="retos-overlay" class="torneo-overlay">
+    <div class="torneo-content">
+      <div class="torneo-titulo">⚡ Retos</div>
+      <div id="retos-resumen" style="font-size:13px;opacity:0.6;margin-bottom:16px;text-align:center;"></div>
+      <div class="retos-grid" id="retos-grid"></div>
+      <button class="btn-torneo-cerrar" style="margin-top:20px;" onclick="cerrarRetos()">Volver al menú</button>
+    </div>
+  </div>
+
+  <!-- Retos: detalle / selector nivel -->
+  <div id="reto-detalle-overlay" class="reto-detalle-overlay">
+    <div class="reto-detalle-content">
+      <div class="reto-detalle-icono" id="reto-det-icono"></div>
+      <div class="reto-detalle-nombre" id="reto-det-nombre"></div>
+      <div class="reto-detalle-desc" id="reto-det-desc"></div>
+      <div class="reto-detalle-medallas" id="reto-det-medallas"></div>
+      <div id="reto-nivel-wrap">
+        <div class="reto-nivel-selector">
+          <button class="reto-nivel-btn" id="reto-btn-profesional" onclick="retoSelNivel('profesional')">
+            🥉 Profesional
+          </button>
+          <button class="reto-nivel-btn" id="reto-btn-leyenda" onclick="retoSelNivel('leyenda')">
+            🥈 Leyenda
+          </button>
+          <button class="reto-nivel-btn" id="reto-btn-imbatible" onclick="retoSelNivel('imbatible')">
+            🥇 Imbatible
+          </button>
+        </div>
+      </div>
+      <button class="btn-reto-jugar" id="btn-reto-jugar" onclick="retoIniciar()" disabled>Jugar reto</button>
+      <button class="btn-reto-volver" onclick="cerrarRetoDetalle()">Volver</button>
+    </div>
+  </div>
+
   <div id="trofeos-overlay" class="torneo-overlay">
     <div class="torneo-content">
       <div class="torneo-titulo">🏅 Sala de Trofeos</div>
@@ -1401,7 +1536,7 @@
         </button>
         <button class="inicio-btn" onclick="abrirTorneo()">
           <span class="inicio-btn-icon">🏆</span>
-          Torneo
+          Copa
         </button>
         <button class="inicio-btn" onclick="abrirLiga()">
           <span class="inicio-btn-icon">🥇</span>
@@ -1411,7 +1546,7 @@
           <span class="inicio-btn-icon">✏️</span>
           Edición
         </button>
-        <button class="inicio-btn disabled">
+        <button class="inicio-btn" onclick="abrirRetos()">
           <span class="inicio-btn-icon">⚡</span>
           Retos
         </button>
@@ -2499,14 +2634,16 @@
       dest = dest.filter(d => !saltaJugadorEnAreaChica(f, c, d.fila, d.col));
       
       // Filtrar portería propia y córner propio (siempre prohibido)
+      // Local ataca fila 14 (portería visitante), su portería propia es fila 0
+      // Visitante ataca fila 0 (portería local), su portería propia es fila 14
       dest = dest.filter(d => {
         if (estado.turno === 'local') {
-          if (d.fila === 14) return false; // portería propia (local ataca hacia fila 0)
-          if (d.fila === 13 && (d.col === 1 || d.col === 11)) return false; // córner propio
+          if (d.fila === 0) return false; // portería propia del local
+          if (d.fila === 1 && (d.col === 1 || d.col === 11)) return false; // córner propio
         }
         if (estado.turno === 'visitante') {
-          if (d.fila === 0) return false; // portería propia (visitante ataca hacia fila 14)
-          if (d.fila === 1 && (d.col === 1 || d.col === 11)) return false; // córner propio
+          if (d.fila === 14) return false; // portería propia del visitante
+          if (d.fila === 13 && (d.col === 1 || d.col === 11)) return false; // córner propio
         }
         return true;
       });
@@ -2521,9 +2658,11 @@
       }
 
       // Filtrar destinos inválidos en movimientos 1-3
+      const esPorteriaContraria = (f, c) =>
+        estado.turno === 'local' ? (f === 14 && c >= 4 && c <= 8) : (f === 0 && c >= 4 && c <= 8);
       const balonOriginal2 = { ...estado.fichas.balon };
       dest = dest.filter(d => {
-        if (esPorteria(d.fila, d.col)) return true;
+        if (esPorteriaContraria(d.fila, d.col)) return true;
         estado.fichas.balon.fila = d.fila;
         estado.fichas.balon.col = d.col;
         const siguePosesion = equipoTienePosesion(estado.turno);
@@ -2538,7 +2677,7 @@
       if (estado.movimientosBalon < 3) {
         const movsActual = estado.movimientosBalon;
         dest = dest.filter(d => {
-          if (esPorteria(d.fila, d.col)) return true; // gol siempre válido
+          if (esPorteriaContraria(d.fila, d.col)) return true; // gol siempre válido
           // Simular balón en destino con movimiento siguiente
           estado.fichas.balon.fila = d.fila;
           estado.fichas.balon.col = d.col;
@@ -2564,12 +2703,15 @@
     
     // Valida que el destino del 4to movimiento sea correcto (regla oficial)
     function esDestinoValidoCuartoMovimiento(f, c) {
-      // 1. No puede ser gol (eso se maneja aparte)
-      if (esPorteria(f, c)) return true; // Gol es siempre válido
+      // 1. Solo portería contraria cuenta como gol válido
+      // Local ataca fila 14, visitante ataca fila 0
+      const esGoal = estado.turno === 'local' ? (f === 14 && c >= 4 && c <= 8) : (f === 0 && c >= 4 && c <= 8);
+      if (esGoal) return true;
 
       // 2. No puede ser el córner propio (prohibido enviar el balón al córner del equipo)
-      if (estado.turno === 'local'    && ((f === 1 && c === 1) || (f === 1 && c === 11))) return false;
-      if (estado.turno === 'visitante' && ((f === 13 && c === 1) || (f === 13 && c === 11))) return false;
+      // Local: córner propio en fila 1; Visitante: córner propio en fila 13
+      if (estado.turno === 'local'    && ((f === 13 && c === 1) || (f === 13 && c === 11))) return false;
+      if (estado.turno === 'visitante' && ((f === 1 && c === 1) || (f === 1 && c === 11))) return false;
 
       // 3. Fuera de area propia (area grande: filas 1-4 cols 2-10 para local, filas 10-13 cols 2-10 para visitante)
       if (estado.turno === 'local') {
@@ -2733,10 +2875,21 @@
         if (equipoTienePosesion(estado.turno)) {
           estado.posesion = true;
           estado.fase = 'MOVER_BALON';
+          // Stats para retos
+          if (config._retoPendiente) {
+            if (estado.turno === 'local') _retoStats.posesionesLocal++;
+            else _retoStats.posesionesVisitante++;
+            _retoStats.movsBalonEnTurno = 0;
+          }
           actualizarUI();
           console.log('POSESION! Mayoria conseguida. Debes mover el balon.');
           if (esMiTurno()) seleccionar('balon');
         } else {
+          // Defensa Numantina: detectar si local cruzó el centro
+          if (config._retoPendiente === 'defensa_numantina' && estado.turno === 'local') {
+            const ficha = estado.fichas[id];
+            if (ficha && ficha.fila >= 7) _retoStats.localCruzoMedio = true;
+          }
           console.log('Sin posesion (casilla neutra o minoria). Fin del turno.');
           pasarTurno();
         }
@@ -2787,13 +2940,24 @@
       if (b.fila === 0) {
         MARCADOR.visitante++;
         animarGol('visitante');
-        // Comprobar si el jugador (local en vsIA) va 2 abajo
         if (config.modo === 'vsIA' && MARCADOR.visitante - MARCADOR.local >= 2) _remontadaFlag = true;
         if (verificarVictoria()) return;
         recolocar('visitante');
       } else if (b.fila === 14) {
         MARCADOR.local++;
         animarGol('local');
+        // Stats retos
+        if (config._retoPendiente) {
+          _retoStats.golesTotal++;
+          // Chilavert: el último jugador que tocó el balón era el portero local
+          if (estado.ultimoPasador === 'l-portero') _retoStats.golConPortero = true;
+          // Francotirador: el gol viene de casilla amarilla (fila 13, cols 1,4-8,11) o más lejos
+          // Consideramos que el balón estaba en una casilla amarilla en el paso anterior
+          // Comprobamos si el origen del último movimiento era fila >=13 con col amarilla
+          const bf = estado.fichas.balon;
+          const esAmarilla = bf && bf.fila === 13 && (bf.col === 1 || (bf.col >= 4 && bf.col <= 8) || bf.col === 11);
+          if (!esAmarilla) _retoStats.golFueraAmarilla = true;
+        }
         if (verificarVictoria()) return;
         recolocar('local');
       }
@@ -2877,7 +3041,7 @@
       } else if (enc === 'turnos') {
         const tb = victoria.turnosRestantes.local;
         const tr = victoria.turnosRestantes.visitante;
-        const total = config.turnos;
+        const total = victoria.turnosTotal || config.turnos;
         if (extraB) extraB.textContent = Math.min(total - tb + 1, total) + '/' + total + (extraSufijo && esB ? '+' : '');
         if (extraR) extraR.textContent = Math.min(total - tr + 1, total) + '/' + total + (extraSufijo && !esB ? '+' : '');
       } else if (enc === 'crono') {
@@ -2923,7 +3087,7 @@
     
     // ====== RECOLOCAR ======
     function recolocar(saca) {
-      estado.fichas = JSON.parse(JSON.stringify(POSICIONES_INICIALES));
+      estado.fichas = JSON.parse(JSON.stringify(_retoFichasIniciales || POSICIONES_INICIALES));
       estado.turno = saca;
       estado.fase = 'MOVER_JUGADOR';
       estado.posesion = false;
@@ -3276,7 +3440,7 @@
         const estadoCopia = JSON.parse(JSON.stringify(estado));
         // Enriquecer con datos que necesita el motor para aplicar estilo
         const eqRival = equiposGuardados().find(e => e.id === config.equipoRival);
-        estadoCopia.estiloVisitante = eqRival?.estilo || 'equilibrado';
+        estadoCopia.estiloVisitante = config._retoEstiloIA || eqRival?.estilo || 'equilibrado';
         estadoCopia.nivelIA = config.nivelIA || 'profesional';
         estadoCopia.potencialRival = eqRival?.potencial ?? 3;
         estadoCopia.marcador = { visitante: MARCADOR.visitante, local: MARCADOR.local };
@@ -3995,6 +4159,7 @@
     // ====== ESTADO DE VICTORIA ======
     const victoria = {
       turnosRestantes: { local: 0, visitante: 0 },
+      turnosTotal: 0,
       tiempoRestante:  { local: 0, visitante: 0 }, // segundos
       intervalo: null,
       golDeOro: false
@@ -4312,6 +4477,7 @@
 
       // Inicializar condición de victoria
       if (config.encuentro === 'turnos') {
+        victoria.turnosTotal               = config.turnos;
         victoria.turnosRestantes.local     = config.turnos;
         victoria.turnosRestantes.visitante = config.turnos;
       } else if (config.encuentro === 'crono') {
@@ -4417,6 +4583,11 @@
         });
       }
 
+      // Hook retos
+      if (config._retoPendiente) {
+        retosOnFinPartida(ganador);
+      }
+
       // Hook liga
       if (config._ligaPendiente) {
         config._ligaPendiente = false;
@@ -4484,6 +4655,7 @@
       MARCADOR.local = 0; MARCADOR.visitante = 0;
       recolocar('local');
       if (config.encuentro === 'turnos') {
+        victoria.turnosTotal               = config.turnos;
         victoria.turnosRestantes.local     = config.turnos;
         victoria.turnosRestantes.visitante = config.turnos;
       } else if (config.encuentro === 'crono') {
@@ -4503,6 +4675,18 @@
       document.getElementById('ui-panel').style.display = 'none';
       document.getElementById('cronometros').style.display = 'none';
       document.getElementById('partido-overlay').classList.remove('visible');
+
+      // Limpiar estado de reto si quedó activo
+      if (_retoFichasIniciales) {
+        _retoFichasIniciales = null;
+        config._retoPendiente = null;
+        config._retoNivel = null;
+        config._retoEstiloIA = null;
+        ['l-portero','l-j1','l-j2','l-j3','l-j4','v-portero','v-j1','v-j2','v-j3','v-j4'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.style.display = '';
+        });
+      }
 
       document.getElementById('menu-inicial').style.display = 'flex';
       MARCADOR.local = 0; MARCADOR.visitante = 0;
@@ -4584,6 +4768,12 @@
       // Iconos de equipo en los dots HTML del HUD
       aplicarMiniJersey(document.getElementById('hud-f-dot-local'),     localKit, 52);
       aplicarMiniJersey(document.getElementById('hud-f-dot-visitante'), rivalKit, 52);
+
+      // Mostrar/ocultar botón de segunda equipación
+      const btnL = document.getElementById('hud-kit-local');
+      const btnR = document.getElementById('hud-kit-visitante');
+      if (btnL) btnL.style.display = localEq?.kit2 ? 'block' : 'none';
+      if (btnR) btnR.style.display = rivalEq?.kit2 ? 'block' : 'none';
     }
 
     function guardarEquipos(lista) {
@@ -4771,33 +4961,323 @@
 
     // ====== TROFEOS ======
 
+    // ====== RETOS ======
+    const RETOS_DEF = [
+      {
+        id: 'tiki_taka',
+        nombre: 'Tiki-taka',
+        desc: 'Completa 4 movimientos de balón sin perder posesión y termina en gol.',
+        icono: '🎯',
+        // fichas: posición estándar pero saca local con posesión ya establecida
+        fichas: null,
+        turno: 'local',
+        marcador: { local: 0, visitante: 0 },
+        encuentro: 'turnos', turnos: 20,
+        validar: 'tiki_taka'
+      },
+      {
+        id: 'defensa_numantina',
+        nombre: 'Defensa Numantina',
+        desc: 'Aguanta 40 turnos sin encajar gol. Ningún jugador local puede cruzar el centro del campo.',
+        icono: '🛡️',
+        fichas: null,
+        turno: 'visitante',
+        marcador: { local: 0, visitante: 0 },
+        encuentro: 'turnos', turnos: 40,
+        validar: 'defensa_numantina',
+        proximamente: true
+      },
+      {
+        id: 'roja_directa',
+        nombre: '¡Roja directa!',
+        desc: 'Vas perdiendo 1-0 en el turno 5 con un jugador menos. Busca el empate contra una IA defensiva.',
+        icono: '🟥',
+        fichas: null,
+        turno: 'local',
+        marcador: { local: 0, visitante: 1 },
+        encuentro: 'turnos', turnos: 20,
+        estiloIA: 'defensivo',
+        validar: 'empatar_o_ganar',
+        proximamente: true
+      },
+      {
+        id: 'resistencia',
+        nombre: 'Resistencia',
+        desc: 'Vas perdiendo 0-2 con 10 turnos restantes. Empata o gana antes de finalizar.',
+        icono: '💪',
+        fichas: null,
+        turno: 'local',
+        marcador: { local: 0, visitante: 2 },
+        encuentro: 'turnos', turnos: 10,
+        validar: 'empatar_o_ganar'
+      },
+      {
+        id: 'abuson',
+        nombre: '¡Abusón!',
+        desc: 'La IA juega con 6 jugadores de campo. Supera la desventaja y vence.',
+        icono: '😤',
+        fichas: null,
+        turno: 'local',
+        marcador: { local: 0, visitante: 0 },
+        encuentro: 'turnos', turnos: 30,
+        validar: 'ganar',
+        proximamente: true
+      },
+      {
+        id: 'sin_huecos',
+        nombre: 'Sin huecos',
+        desc: 'Juegas 4 vs 6 (sin portero). Gana antes de acabar los 20 turnos.',
+        icono: '🧱',
+        fichas: null,
+        turno: 'local',
+        marcador: { local: 0, visitante: 0 },
+        encuentro: 'turnos', turnos: 20,
+        validar: 'ganar',
+        proximamente: true
+      },
+      {
+        id: 'doblete',
+        nombre: 'Doblete',
+        desc: 'Marca 2 goles en un escenario de 20 turnos.',
+        icono: '2️⃣',
+        fichas: null, // posición estándar
+        turno: 'local',
+        marcador: { local: 0, visitante: 0 },
+        encuentro: 'turnos', turnos: 20,
+        validar: 'goles_minimos', golesMinimos: 2
+      },
+      {
+        id: 'doble_doble',
+        nombre: 'Doble-Doble',
+        desc: 'Marca 4 goles en un escenario de 30 turnos.',
+        icono: '4️⃣',
+        fichas: null,
+        turno: 'local',
+        marcador: { local: 0, visitante: 0 },
+        encuentro: 'turnos', turnos: 30,
+        validar: 'goles_minimos', golesMinimos: 4
+      },
+      {
+        id: 'media_docena',
+        nombre: 'Media docena',
+        desc: 'Marca 6 goles en un escenario de 40 turnos.',
+        icono: '6️⃣',
+        fichas: null,
+        turno: 'local',
+        marcador: { local: 0, visitante: 0 },
+        encuentro: 'turnos', turnos: 40,
+        validar: 'goles_minimos', golesMinimos: 6
+      },
+      {
+        id: 'sin_red',
+        nombre: 'Sin red',
+        desc: 'Gana en nivel Imbatible partiendo en desventaja posicional.',
+        icono: '⚡',
+        fichas: {
+          'l-portero': { fila: 2, col: 6, equipo: 'local' },
+          'l-j1':      { fila: 3, col: 4, equipo: 'local' },
+          'l-j2':      { fila: 3, col: 8, equipo: 'local' },
+          'l-j3':      { fila: 5, col: 5, equipo: 'local' },
+          'l-j4':      { fila: 5, col: 7, equipo: 'local' },
+          'v-portero': { fila: 12, col: 6, equipo: 'visitante' },
+          'v-j1':      { fila: 7, col: 3, equipo: 'visitante' },
+          'v-j2':      { fila: 7, col: 5, equipo: 'visitante' },
+          'v-j3':      { fila: 7, col: 7, equipo: 'visitante' },
+          'v-j4':      { fila: 7, col: 9, equipo: 'visitante' },
+          'balon':     { fila: 5, col: 6 }
+        },
+        turno: 'visitante',
+        marcador: { local: 0, visitante: 0 },
+        encuentro: 'turnos', turnos: 30,
+        nivelForzado: 'imbatible',
+        validar: 'ganar'
+      },
+      {
+        id: 'tiempo_extra',
+        nombre: 'Tiempo extra',
+        desc: 'Tus 4 jugadores en área propia, 4 rivales en tu mitad con posesión. Marca el gol de oro.',
+        icono: '⏱️',
+        fichas: {
+          'l-portero': { fila: 2, col: 6, equipo: 'local' },
+          'l-j1':      { fila: 3, col: 3, equipo: 'local' },
+          'l-j2':      { fila: 3, col: 9, equipo: 'local' },
+          'l-j3':      { fila: 5, col: 4, equipo: 'local' },
+          'l-j4':      { fila: 5, col: 8, equipo: 'local' },
+          'v-portero': { fila: 12, col: 6, equipo: 'visitante' },
+          'v-j1':      { fila: 6, col: 3, equipo: 'visitante' },
+          'v-j2':      { fila: 6, col: 9, equipo: 'visitante' },
+          'v-j3':      { fila: 7, col: 5, equipo: 'visitante' },
+          'v-j4':      { fila: 7, col: 7, equipo: 'visitante' },
+          'balon':     { fila: 6, col: 6 }
+        },
+        turno: 'visitante',
+        marcador: { local: 0, visitante: 0 },
+        encuentro: 'turnos', turnos: 30,
+        golDeOro: true,
+        validar: 'ganar'
+      },
+      {
+        id: 'posesion',
+        nombre: 'Posesión',
+        desc: 'Gana un partido donde tomaste posesión del balón al menos 5 veces más que el rival.',
+        icono: '🔄',
+        fichas: null,
+        turno: 'local',
+        marcador: { local: 0, visitante: 0 },
+        encuentro: 'turnos', turnos: 30,
+        validar: 'posesion_dominante', posesionDiff: 5
+      },
+      {
+        id: 'chilavert',
+        nombre: 'Chilavert',
+        desc: 'Arranca en tiempo extra 0-0. Marca el gol de la victoria con tu portero.',
+        icono: '🧤',
+        fichas: {
+          'l-portero': { fila: 2, col: 6, equipo: 'local' },
+          'l-j1':      { fila: 6, col: 4, equipo: 'local' },
+          'l-j2':      { fila: 6, col: 8, equipo: 'local' },
+          'l-j3':      { fila: 8, col: 5, equipo: 'local' },
+          'l-j4':      { fila: 8, col: 7, equipo: 'local' },
+          'v-portero': { fila: 12, col: 6, equipo: 'visitante' },
+          'v-j1':      { fila: 9, col: 3, equipo: 'visitante' },
+          'v-j2':      { fila: 9, col: 9, equipo: 'visitante' },
+          'v-j3':      { fila: 10, col: 5, equipo: 'visitante' },
+          'v-j4':      { fila: 10, col: 7, equipo: 'visitante' },
+          'balon':     { fila: 7, col: 6 }
+        },
+        turno: 'local',
+        marcador: { local: 0, visitante: 0 },
+        encuentro: 'turnos', turnos: 30,
+        golDeOro: true,
+        validar: 'chilavert'
+      },
+      {
+        id: '1v1',
+        nombre: '1 vs 1',
+        desc: 'Gana un partido a 20 turnos sin porteros.',
+        icono: '1️⃣',
+        fichas: null,
+        turno: 'local',
+        marcador: { local: 0, visitante: 0 },
+        encuentro: 'turnos', turnos: 20,
+        validar: 'ganar',
+        proximamente: true
+      },
+      {
+        id: '2v2',
+        nombre: '2 vs 2',
+        desc: 'Gana un partido a 20 turnos sin porteros.',
+        icono: '👥',
+        fichas: null,
+        turno: 'local',
+        marcador: { local: 0, visitante: 0 },
+        encuentro: 'turnos', turnos: 20,
+        validar: 'ganar',
+        proximamente: true
+      },
+      {
+        id: '4v4',
+        nombre: '4 vs 4',
+        desc: 'Gana un partido a 20 turnos sin porteros.',
+        icono: '4️⃣',
+        fichas: null,
+        turno: 'local',
+        marcador: { local: 0, visitante: 0 },
+        encuentro: 'turnos', turnos: 20,
+        validar: 'ganar',
+        proximamente: true
+      },
+      {
+        id: '3v3',
+        nombre: '3 vs 3',
+        desc: 'Gana un partido a 20 turnos con portero.',
+        icono: '3️⃣',
+        fichas: null,
+        turno: 'local',
+        marcador: { local: 0, visitante: 0 },
+        encuentro: 'turnos', turnos: 20,
+        validar: 'ganar',
+        proximamente: true
+      },
+      {
+        id: 'penalti_mls',
+        nombre: 'El penalti MLS',
+        desc: 'Un jugador contra el portero. Saca desde el centro con contrarreloj de 1 minuto.',
+        icono: '🥅',
+        fichas: null,
+        turno: 'local',
+        marcador: { local: 0, visitante: 0 },
+        encuentro: 'crono', cronoTiempo: 1,
+        validar: 'penalti_mls',
+        proximamente: true
+      },
+      {
+        id: 'el_muro',
+        nombre: 'El muro',
+        desc: 'La IA (Getafe) tiene todos sus jugadores replegados. Rompe el bloque y marca.',
+        icono: '🏟️',
+        fichas: {
+          'l-portero': { fila: 2, col: 6, equipo: 'local' },
+          'l-j1':      { fila: 6, col: 3, equipo: 'local' },
+          'l-j2':      { fila: 6, col: 9, equipo: 'local' },
+          'l-j3':      { fila: 8, col: 5, equipo: 'local' },
+          'l-j4':      { fila: 8, col: 7, equipo: 'local' },
+          'v-portero': { fila: 12, col: 6, equipo: 'visitante' },
+          'v-j1':      { fila: 10, col: 3, equipo: 'visitante' },
+          'v-j2':      { fila: 10, col: 5, equipo: 'visitante' },
+          'v-j3':      { fila: 10, col: 7, equipo: 'visitante' },
+          'v-j4':      { fila: 10, col: 9, equipo: 'visitante' },
+          'balon':     { fila: 7, col: 6 }
+        },
+        turno: 'local',
+        marcador: { local: 0, visitante: 0 },
+        encuentro: 'turnos', turnos: 30,
+        estiloIA: 'defensivo',
+        equipoIA: 'getafe',
+        validar: 'ganar'
+      },
+      {
+        id: 'francotirador',
+        nombre: 'Francotirador',
+        desc: 'Gana un partido donde todos tus goles son desde casillas amarillas o más lejos.',
+        icono: '🎯',
+        fichas: null,
+        turno: 'local',
+        marcador: { local: 0, visitante: 0 },
+        encuentro: 'turnos', turnos: 30,
+        validar: 'francotirador'
+      },
+    ];
+
     const TROFEOS_DEF = [
       // Partidos
-      { id: 'primer_gol',       icono: '⚽', nombre: 'Primer gol',           desc: 'Marca tu primer gol',                               cat: 'Partidos'   },
-      { id: 'primera_victoria', icono: '🥊', nombre: 'Primera victoria',      desc: 'Gana tu primer partido',                            cat: 'Partidos'   },
-      { id: 'porteria_cero',    icono: '🧤', nombre: 'Portería a cero',        desc: 'Gana un partido sin encajar ningún gol',            cat: 'Partidos'   },
-      { id: 'manita',           icono: '✋', nombre: 'La manita',              desc: 'Gana un partido 5-0',                               cat: 'Partidos'   },
-      { id: 'remontada',        icono: '🔥', nombre: 'Remontada',              desc: 'Gana yendo 2 goles por debajo en algún momento',    cat: 'Partidos'   },
-      { id: 'mesa_elite',       icono: '👑', nombre: 'Comiendo en la misma mesa', desc: 'Gana jugando en nivel Imbatible',               cat: 'Partidos'   },
-      // Torneo
-      { id: 'campeon_torneo',   icono: '🏆', nombre: 'Campeón de torneo',      desc: 'Gana un torneo eliminatorio',                       cat: 'Torneo'     },
-      { id: 'finalista',        icono: '🥈', nombre: 'Finalista',              desc: 'Llega a la final de un torneo',                     cat: 'Torneo'     },
-      { id: 'torneo_cero',      icono: '🛡️', nombre: 'Campeón sin fisuras',    desc: 'Gana un torneo sin encajar ningún gol',             cat: 'Torneo'     },
+      { id: 'primer_gol',       icono: '⚽', nombre: 'Primer gol',              desc: 'Marca un gol en cualquier partido vs IA',                                                          cat: 'Partidos'   },
+      { id: 'primera_victoria', icono: '✌️', nombre: 'Primera victoria',        desc: 'Gana tu primer partido vs IA en cualquier modo o dificultad',                                     cat: 'Partidos'   },
+      { id: 'porteria_cero',    icono: '🧤', nombre: 'Portería a cero',          desc: 'Gana un partido vs IA sin encajar ningún gol',                                                    cat: 'Partidos'   },
+      { id: 'manita',           icono: '✋', nombre: 'La manita',                desc: 'Gana un partido vs IA con un resultado de 5-0',                                                   cat: 'Partidos'   },
+      { id: 'remontada',        icono: '🔥', nombre: 'Remontada',                desc: 'Gana un partido vs IA habiendo estado perdiendo por 2 o más goles en algún momento',             cat: 'Partidos'   },
+      { id: 'mesa_elite',       icono: '👑', nombre: '¿Imbatible?',              desc: 'Gana un partido vs IA con la dificultad en nivel Imbatible',                                   cat: 'Partidos'   },
+      // Copa
+      { id: 'campeon_torneo',   icono: '🏆', nombre: 'Campeón de copa',          desc: 'Gana la final de una copa eliminatoria jugando la última ronda vs IA',                            cat: 'Copa'       },
+      { id: 'finalista',        icono: '🥈', nombre: 'Finalista',                desc: 'Llega a la final de una copa eliminatoria (gana la semifinal)',                                   cat: 'Copa'       },
+      { id: 'torneo_cero',      icono: '🛡️', nombre: 'Campeón infranqueable',    desc: 'Gana una copa eliminatoria sin encajar ningún gol en todos tus partidos vs IA',                  cat: 'Copa'       },
       // Liga
-      { id: 'campeon_liga',     icono: '🥇', nombre: 'Campeón de liga',        desc: 'Gana una liga',                                     cat: 'Liga'       },
-      { id: 'liga_perfecta',    icono: '💎', nombre: 'Temporada perfecta',     desc: 'Gana una liga sin perder ningún partido',           cat: 'Liga'       },
-      { id: 'menos_goleado',    icono: '🔒', nombre: 'El más sólido',          desc: 'Acaba una liga como el equipo menos goleado',        cat: 'Liga'       },
+      { id: 'campeon_liga',     icono: '🥇', nombre: 'Campeón de liga',          desc: 'Termina una liga en primera posición de la clasificación',                                       cat: 'Liga'       },
+      { id: 'liga_perfecta',    icono: '💎', nombre: 'Temporada perfecta',       desc: 'Gana una liga de 20 equipos terminando primero sin perder ningún partido',                       cat: 'Liga'       },
+      { id: 'menos_goleado',    icono: '🔒', nombre: 'El más sólido',            desc: 'Termina una liga como el equipo que menos goles ha encajado',                                    cat: 'Liga'       },
       // Dificultad
-      { id: 'ganar_leyenda',    icono: '⚔️', nombre: 'En la élite',           desc: 'Gana un partido en nivel Leyenda',                  cat: 'Dificultad' },
-      { id: 'matagigantes',     icono: '🐉', nombre: 'Matagigantes',           desc: 'Gana con potencial 1 a un potencial 5 en Leyenda o Imbatible', cat: 'Dificultad' },
+      { id: 'ganar_leyenda',    icono: '⚔️', nombre: 'En la élite',             desc: 'Gana un partido vs IA con la dificultad en nivel Leyenda',                                       cat: 'Dificultad' },
+      { id: 'matagigantes',     icono: '🐉', nombre: 'Matagigantes',             desc: 'Gana con un equipo de potencial 1 contra un equipo de potencial 5, en nivel Leyenda o Imbatible', cat: 'Dificultad' },
       // Progresión
-      { id: 'victorias_10',     icono: '🌟', nombre: '10 victorias',           desc: 'Acumula 10 victorias en total',                     cat: 'Progresión', progreso: { actual: 0, objetivo: 10  } },
-      { id: 'victorias_50',     icono: '🌠', nombre: '50 victorias',           desc: 'Acumula 50 victorias en total',                     cat: 'Progresión', progreso: { actual: 0, objetivo: 50  } },
-      { id: 'victorias_100',    icono: '🚀', nombre: '100 victorias',          desc: 'Acumula 100 victorias en total',                    cat: 'Progresión', progreso: { actual: 0, objetivo: 100 } },
-      { id: 'partidos_100',     icono: '📅', nombre: '100 partidos',           desc: 'Juega 100 partidos en total',                       cat: 'Progresión', progreso: { actual: 0, objetivo: 100 } },
-      { id: 'porterias_50',     icono: '🧱', nombre: '50 porterías a cero',    desc: 'Acumula 50 porterías a cero',                       cat: 'Progresión', progreso: { actual: 0, objetivo: 50  } },
+      { id: 'victorias_10',     icono: '🌟', nombre: '10 victorias',             desc: 'Acumula 10 victorias en total jugando vs IA en cualquier modo',                                  cat: 'Progresión', progreso: { actual: 0, objetivo: 10  } },
+      { id: 'victorias_50',     icono: '🌠', nombre: '50 victorias',             desc: 'Acumula 50 victorias en total jugando vs IA en cualquier modo',                                  cat: 'Progresión', progreso: { actual: 0, objetivo: 50  } },
+      { id: 'victorias_100',    icono: '🚀', nombre: '100 victorias',            desc: 'Acumula 100 victorias en total jugando vs IA en cualquier modo',                                 cat: 'Progresión', progreso: { actual: 0, objetivo: 100 } },
+      { id: 'partidos_100',     icono: '📅', nombre: '100 partidos',             desc: 'Juega 100 partidos en total vs IA (victorias, derrotas y empates cuentan)',                      cat: 'Progresión', progreso: { actual: 0, objetivo: 100 } },
+      { id: 'porterias_50',     icono: '🧱', nombre: '50 porterías a cero',      desc: 'Acumula 50 partidos ganados sin encajar ningún gol jugando vs IA',                              cat: 'Progresión', progreso: { actual: 0, objetivo: 50  } },
+      // Retos
+      { id: 'todos_retos',      icono: '⚡', nombre: 'El retador',               desc: 'Completa todos los retos en todos los niveles (Profesional, Leyenda e Imbatible)',              cat: 'Retos'      },
       // Maestro
-      { id: 'todos_trofeos',    icono: '🎖️', nombre: 'Leyenda del MasterGoal', desc: 'Consigue todos los demás trofeos',                 cat: 'Maestro'    },
+      { id: 'todos_trofeos',    icono: '🎖️', nombre: 'Leyenda del MasterGoal',  desc: 'Consigue todos los demás trofeos del juego',                                                     cat: 'Maestro'    },
     ];
 
     function trofeosGuardados() {
@@ -4895,6 +5375,344 @@
     // Llamar cuando el jugador va 2 abajo y luego gana
     function trofeosOnRemontada() { desbloquearTrofeo('remontada'); }
 
+    // ====== RETOS ======
+    let _retoActual = null;
+    let _retoFichasIniciales = null;
+    let _retoNivel = null;
+    // Contadores en partida para validaciones
+    const _retoStats = {
+      posesionesLocal: 0,
+      posesionesVisitante: 0,
+      movsBalonEnTurno: 0,
+      golConPortero: false,
+      localCruzoMedio: false,
+      golesDesdeAmarilla: 0,
+      golesTotal: 0,
+      golFueraAmarilla: false, // cualquier gol fuera de casilla amarilla
+    };
+
+    function retosGuardados() {
+      try { return JSON.parse(localStorage.getItem('mg_retos') || '{}'); } catch { return {}; }
+    }
+    function guardarRetos(data) { localStorage.setItem('mg_retos', JSON.stringify(data)); }
+
+    function retoMedalla(id, nivel) {
+      const data = retosGuardados();
+      return data[id]?.[nivel] || false;
+    }
+
+    window.abrirRetos = function() {
+      document.getElementById('menu-inicial').style.display = 'none';
+      document.getElementById('retos-overlay').classList.add('visible');
+      _renderRetos();
+    };
+
+    window.cerrarRetos = function() {
+      document.getElementById('retos-overlay').classList.remove('visible');
+      document.getElementById('menu-inicial').style.display = '';
+    };
+
+    function _renderRetos() {
+      const data = retosGuardados();
+      const grid = document.getElementById('retos-grid');
+      const niveles = ['profesional','leyenda','imbatible'];
+      const iconoMedalla = { profesional: '🥉', leyenda: '🥈', imbatible: '🥇' };
+
+      let conseguidos = 0;
+      grid.innerHTML = '';
+      RETOS_DEF.forEach(r => {
+        const card = document.createElement('div');
+        const logroReto = data[r.id] || {};
+        card.className = 'reto-card' + (logroReto.imbatible ? ' imbatible' : '');
+        card.onclick = r.proximamente ? null : () => abrirRetoDetalle(r.id);
+        if (r.proximamente) card.style.opacity = '0.4';
+        if (r.proximamente) card.style.cursor = 'default';
+
+        const header = document.createElement('div');
+        header.className = 'reto-card-header';
+        const icono = document.createElement('span');
+        icono.className = 'reto-icono';
+        icono.textContent = r.icono;
+        const nombre = document.createElement('span');
+        nombre.className = 'reto-nombre';
+        nombre.textContent = r.nombre;
+        header.appendChild(icono);
+        header.appendChild(nombre);
+
+        const desc = document.createElement('div');
+        desc.className = 'reto-desc';
+        desc.textContent = r.desc;
+
+        const medallas = document.createElement('div');
+        medallas.className = 'reto-medallas';
+        niveles.forEach(n => {
+          const m = document.createElement('span');
+          m.className = 'reto-medalla' + (data[r.id]?.[n] ? ' conseguida' : '');
+          m.textContent = iconoMedalla[n];
+          medallas.appendChild(m);
+          if (data[r.id]?.[n]) conseguidos++;
+        });
+
+        card.appendChild(header);
+        card.appendChild(desc);
+        if (r.proximamente) {
+          const prox = document.createElement('div');
+          prox.style.cssText = 'font-size:10px;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:1px;margin-top:2px;';
+          prox.textContent = 'Próximamente';
+          card.appendChild(prox);
+        } else {
+          card.appendChild(medallas);
+        }
+        grid.appendChild(card);
+      });
+
+      const total = RETOS_DEF.length * 3;
+      document.getElementById('retos-resumen').textContent = `${conseguidos} / ${total} medallas conseguidas`;
+    }
+
+    function abrirRetoDetalle(id) {
+      const r = RETOS_DEF.find(x => x.id === id);
+      if (!r) return;
+      _retoActual = r;
+      _retoNivel = null;
+
+      const data = retosGuardados();
+      const iconoMedalla = { profesional: '🥉', leyenda: '🥈', imbatible: '🥇' };
+      const labelMedalla = { profesional: 'Profesional', leyenda: 'Leyenda', imbatible: 'Imbatible' };
+
+      document.getElementById('reto-det-icono').textContent = r.icono;
+      document.getElementById('reto-det-nombre').textContent = r.nombre;
+      document.getElementById('reto-det-desc').textContent = r.desc;
+
+      // Medallas conseguidas
+      const medallasCont = document.getElementById('reto-det-medallas');
+      medallasCont.innerHTML = '';
+      ['profesional','leyenda','imbatible'].forEach(n => {
+        const ok = data[r.id]?.[n];
+        const div = document.createElement('div');
+        div.className = 'reto-detalle-medalla' + (ok ? ' conseguida' : '');
+        div.innerHTML = `<span>${iconoMedalla[n]}</span><span class="reto-detalle-medalla-label">${labelMedalla[n]}</span>`;
+        medallasCont.appendChild(div);
+      });
+
+      // Selector de nivel (oculto si el reto tiene nivel forzado)
+      const nivelWrap = document.getElementById('reto-nivel-wrap');
+      if (r.nivelForzado) {
+        nivelWrap.style.display = 'none';
+        _retoNivel = r.nivelForzado;
+      } else {
+        nivelWrap.style.display = '';
+        ['profesional','leyenda','imbatible'].forEach(n => {
+          document.getElementById('reto-btn-' + n).classList.remove('activo');
+        });
+      }
+
+      document.getElementById('btn-reto-jugar').disabled = r.nivelForzado ? false : true;
+
+      document.getElementById('reto-detalle-overlay').classList.add('visible');
+    }
+
+    window.cerrarRetoDetalle = function() {
+      document.getElementById('reto-detalle-overlay').classList.remove('visible');
+    };
+
+    window.retoSelNivel = function(nivel) {
+      _retoNivel = nivel;
+      ['profesional','leyenda','imbatible'].forEach(n => {
+        document.getElementById('reto-btn-' + n).classList.toggle('activo', n === nivel);
+      });
+      document.getElementById('btn-reto-jugar').disabled = false;
+    };
+
+    window.retoIniciar = function() {
+      if (!_retoActual || !_retoNivel) return;
+      const r = _retoActual;
+
+      // Ocultar overlays
+      document.getElementById('reto-detalle-overlay').classList.remove('visible');
+      document.getElementById('retos-overlay').classList.remove('visible');
+      document.getElementById('menu-inicial').style.display = 'none';
+
+      // Configurar partida
+      config.modo = 'vsIA';
+      config.encuentro = r.encuentro;
+      config.turnos = r.turnos || 30;
+      config.cronoTiempo = r.cronoTiempo || 1;
+      config.cronoGoles = r.cronoGoles || 1;
+      config.nivelIA = _retoNivel;
+      config._retoPendiente = r.id;
+      config._retoNivel = _retoNivel;
+
+      // Equipo IA: usar Getafe si se especifica, si no uno random
+      const equipos = equiposGuardados();
+      let eqIA;
+      if (r.equipoIA) {
+        eqIA = equipos.find(e => e.id === r.equipoIA || e.nombre.toLowerCase().includes(r.equipoIA));
+      }
+      if (!eqIA) eqIA = equipos[Math.floor(Math.random() * equipos.length)];
+      config.equipoLocal = equipos[0]?.id;
+      config.equipoRival = eqIA?.id;
+
+      // Aplicar estilo IA si se especifica — guardar en config para que ejecutarTurnoIA lo use
+      config._retoEstiloIA = r.estiloIA || null;
+
+      // Reiniciar stats de reto
+      Object.keys(_retoStats).forEach(k => {
+        _retoStats[k] = typeof _retoStats[k] === 'number' ? 0 : false;
+      });
+
+      // Sincronizar nivel en selectores
+      seleccionarNivel(_retoNivel);
+
+      // Arrancar partida con posiciones custom
+      _arrancarRetoPartida(r);
+    };
+
+    function _arrancarRetoPartida(r) {
+      MARCADOR.local = r.marcador?.local || 0;
+      MARCADOR.visitante = r.marcador?.visitante || 0;
+      victoria.golDeOro = r.golDeOro || false;
+      _remontadaFlag = false;
+      iaCalculando = false;
+      estado.modo = 'vsIA';
+
+      // Fichas: solo las que participan en el reto
+      const fichasBase = r.fichas
+        ? JSON.parse(JSON.stringify(r.fichas))
+        : JSON.parse(JSON.stringify(POSICIONES_INICIALES));
+      _retoFichasIniciales = JSON.parse(JSON.stringify(fichasBase));
+
+      estado.fichas = fichasBase;
+      estado.turno = r.turno || 'local';
+      estado.fase = 'MOVER_JUGADOR';
+      estado.posesion = false;
+      estado.movimientosBalon = 0;
+      estado.ultimoPasador = null;
+      estado.turnoExtra = false;
+
+      // Mostrar/ocultar fichas SVG según si participan en el reto
+      const todasFichas = ['l-portero','l-j1','l-j2','l-j3','l-j4','v-portero','v-j1','v-j2','v-j3','v-j4'];
+      todasFichas.forEach(id => {
+        const participa = !!fichasBase[id];
+        if (esPortero(id)) {
+          const g = document.getElementById(id);
+          if (g) g.style.display = participa ? '' : 'none';
+        } else {
+          const el = document.getElementById(id);
+          if (el) el.style.display = participa ? '' : 'none';
+        }
+        if (!participa) return;
+        const d = fichasBase[id];
+        const coords = casillaToSVG(d.fila, d.col);
+        if (esPortero(id)) {
+          const cuerpoEl = document.getElementById(id + '-cuerpo');
+          if (cuerpoEl) { cuerpoEl.setAttribute('cx', coords.cx); cuerpoEl.setAttribute('cy', coords.cy); }
+          actualizarBrazosPortero(id, d.fila, d.col);
+        } else {
+          const el = document.getElementById(id);
+          if (el) {
+            el.setAttribute('cx', coords.cx);
+            el.setAttribute('cy', coords.cy);
+            actualizarPatternFicha(id, coords.cx, coords.cy);
+          }
+        }
+      });
+      // Balón
+      const bCoords = casillaToSVG(fichasBase.balon.fila, fichasBase.balon.col);
+      const bEl = document.getElementById('balon');
+      if (bEl) { bEl.setAttribute('cx', bCoords.cx); bEl.setAttribute('cy', bCoords.cy); }
+
+      // Condición de victoria
+      victoria.turnosTotal = config.turnos;
+      victoria.turnosRestantes = { local: config.turnos, visitante: config.turnos };
+      if (config.encuentro === 'crono') {
+        const segs = config.cronoTiempo * 60;
+        victoria.tiempoRestante = { local: segs, visitante: segs };
+        document.getElementById('cronometros').style.display = 'flex';
+        actualizarCronometrosUI();
+        iniciarCronometro();
+      }
+
+      document.getElementById('game-container').style.display = 'flex';
+      document.getElementById('ui-panel').style.display = 'flex';
+      aplicarEquiposAlHUD();
+      actualizarMarcadorUI();
+      actualizarUI();
+
+      if (estado.turno === 'visitante') ejecutarTurnoIA();
+    }
+
+    // Hook llamado desde finPartida cuando hay reto activo
+    function retosOnFinPartida(ganador) {
+      const r = RETOS_DEF.find(x => x.id === config._retoPendiente);
+      if (!r) return;
+
+      const ganeLocal = ganador === 'local';
+      const empate = ganador === 'empate';
+      const golesLocal = MARCADOR.local;
+      const golesVisitante = MARCADOR.visitante;
+      let superado = false;
+
+      switch (r.validar) {
+        case 'ganar':
+          superado = ganeLocal;
+          break;
+        case 'empatar_o_ganar':
+          superado = ganeLocal || empate;
+          break;
+        case 'goles_minimos':
+          superado = ganeLocal && golesLocal >= r.golesMinimos;
+          break;
+        case 'tiki_taka':
+          superado = ganeLocal; // la validación de 4 movimientos seguidos se registra en _retoStats
+          break;
+        case 'defensa_numantina':
+          superado = !_retoStats.localCruzoMedio && golesVisitante === 0;
+          break;
+        case 'posesion_dominante':
+          superado = ganeLocal && (_retoStats.posesionesLocal - _retoStats.posesionesVisitante) >= r.posesionDiff;
+          break;
+        case 'chilavert':
+          superado = ganeLocal && _retoStats.golConPortero;
+          break;
+        case 'penalti_mls':
+          superado = golesLocal >= 1;
+          break;
+        case 'francotirador':
+          superado = ganeLocal && !_retoStats.golFueraAmarilla && golesLocal > 0;
+          break;
+      }
+
+      if (superado) {
+        const data = retosGuardados();
+        if (!data[r.id]) data[r.id] = {};
+        if (!data[r.id][config._retoNivel]) {
+          data[r.id][config._retoNivel] = true;
+          guardarRetos(data);
+          const iconos = { profesional: '🥉', leyenda: '🥈', imbatible: '🥇' };
+          mostrarNotifTrofeo({ icono: iconos[config._retoNivel], nombre: r.nombre + ' — ' + config._retoNivel });
+          // Comprobar si todos los retos completados en todos los niveles
+          _comprobarTrofeoRetos(data);
+        }
+      }
+
+      config._retoPendiente = null;
+      config._retoNivel = null;
+      config._retoEstiloIA = null;
+      _retoFichasIniciales = null;
+      // Restaurar visibilidad de todas las fichas
+      ['l-portero','l-j1','l-j2','l-j3','l-j4','v-portero','v-j1','v-j2','v-j3','v-j4'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = '';
+      });
+    }
+
+    function _comprobarTrofeoRetos(data) {
+      const niveles = ['profesional','leyenda','imbatible'];
+      const todos = RETOS_DEF.every(r => niveles.every(n => data[r.id]?.[n]));
+      if (todos) desbloquearTrofeo('todos_retos');
+    }
+
     window.abrirTrofeos = function() {
       _renderTrofeos();
       document.getElementById('trofeos-overlay').classList.add('visible');
@@ -4932,7 +5750,7 @@
 
         const desc = document.createElement('div');
         desc.className = 'trofeo-desc';
-        desc.textContent = ok ? t.desc : '???';
+        desc.textContent = t.desc;
 
         info.appendChild(nombre);
         info.appendChild(desc);
@@ -5235,11 +6053,14 @@
       const equipos = equiposGuardados();
       const slots = document.getElementById('torneo-jugadores-slots');
       slots.innerHTML = '';
+      const h3 = document.createElement('h3');
+      h3.textContent = n === 1 ? 'Tu equipo' : 'Tus equipos';
+      slots.appendChild(h3);
       for (let i = 1; i <= n; i++) {
         const wrap = document.createElement('div');
         wrap.className = 'torneo-jugador-slot';
         const label = document.createElement('label');
-        label.textContent = n === 1 ? 'Tu equipo' : `Jugador ${i}`;
+        label.textContent = n === 1 ? '' : `Jugador ${i}`;
         const sel = document.createElement('select');
         sel.className = 'torneo-equipo-select';
         sel.id = `torneo-jugador-${i}`;
@@ -5572,10 +6393,13 @@
       const equipos = equiposGuardados();
       const slots = document.getElementById('liga-jugadores-slots');
       slots.innerHTML = '';
+      const h3 = document.createElement('h3');
+      h3.textContent = n === 1 ? 'Tu equipo' : 'Tus equipos';
+      slots.appendChild(h3);
       for (let i = 1; i <= n; i++) {
         const wrap = document.createElement('div'); wrap.className = 'torneo-jugador-slot';
         const label = document.createElement('label');
-        label.textContent = n === 1 ? 'Tu equipo' : `Jugador ${i}`;
+        label.textContent = n === 1 ? '' : `Jugador ${i}`;
         const sel = document.createElement('select');
         sel.className = 'torneo-equipo-select';
         sel.id = `liga-jugador-${i}`;
