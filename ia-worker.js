@@ -1062,6 +1062,16 @@ function calcularDecisionJugador() {
 
     // ── JUGADORES DE CAMPO ────────────────────────────────────────────────────
 
+    // Pre-calcular si esta pieza ya es colindante al balón antes de moverse
+    const piezaYaEsColindante = Math.abs(pieza.fila - balonF) <= 1 && Math.abs(pieza.col - balonC) <= 1;
+    // Colindantes actuales (sin contar esta pieza si ya es colindante)
+    const visitantesColBase = piezasIA.filter(p =>
+      p.id !== pieza.id && Math.abs(p.fila - balonF) <= 1 && Math.abs(p.col - balonC) <= 1
+    ).length;
+    const localesColBase = Object.values(estado.fichas).filter(d =>
+      d.equipo === 'local' && Math.abs(d.fila - balonF) <= 1 && Math.abs(d.col - balonC) <= 1
+    ).length;
+
     // Preordenar destinos: si no hay posesión, priorizar los más cercanos al balón;
     // si hay posesión, priorizar los que ya son colindantes o que más avanzan.
     const destsOrdenados = destinos.slice().sort((a, b) => {
@@ -1081,7 +1091,12 @@ function calcularDecisionJugador() {
       const distDestBalon      = iaDistancia(dest.fila, dest.col, balonF, balonC);
       const esColindanteDest   = Math.abs(dest.fila - balonF) <= 1 && Math.abs(dest.col - balonC) <= 1;
 
-      let scoreTotal = 0;
+      // Si la pieza ya era colindante y el destino también es colindante,
+      // el número neto de visitantes colindantes no aumenta — turno desperdiciado.
+      // Penalizar muy fuerte a menos que con esto se gane posesión.
+      const esTurnoNulo = piezaYaEsColindante && esColindanteDest && !ganaPosesionAhora;
+
+      let scoreTotal = esTurnoNulo ? -50000 : 0;
 
       // ── ESTRATEGIA 1: MAYORÍA PRIMERO ──────────────────────────────────────
       // Si el visitante no tenía posesión pero con este movimiento la consigue,
