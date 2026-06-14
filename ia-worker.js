@@ -802,13 +802,9 @@ function iaMinimaxTurnoLocal(balonF, balonC) {
   const oldTurno = estado.turno;
   estado.turno = 'local';
 
-  // Solo las 3 piezas locales más cercanas al balón (las más peligrosas)
   const piezasLocal = Object.entries(estado.fichas)
     .filter(([id, d]) => d.equipo === 'local')
-    .map(([id, d]) => ({ id, fila: d.fila, col: d.col,
-      distBal: iaDistancia(d.fila, d.col, balonF, balonC) }))
-    .sort((a, b) => a.distBal - b.distBal)
-    .slice(0, 3);
+    .map(([id, d]) => ({ id, fila: d.fila, col: d.col }));
 
   let peorParaVisitante = Infinity;
 
@@ -816,7 +812,6 @@ function iaMinimaxTurnoLocal(balonF, balonC) {
     const destinos = obtenerDestinosJugador(pieza.fila, pieza.col, 'local')
       .filter(d => !estaOcupada(d.fila, d.col, pieza.id));
 
-    // Top 4 candidatos priorizando posesión
     const scored = destinos.map(d => {
       estado.fichas[pieza.id].fila = d.fila;
       estado.fichas[pieza.id].col  = d.col;
@@ -827,7 +822,7 @@ function iaMinimaxTurnoLocal(balonF, balonC) {
       return { d, h: consiguePosesion * 2000 - distBal * 2 + d.fila };
     });
     scored.sort((a, b) => b.h - a.h);
-    const top = scored.slice(0, 4);
+    const top = scored.slice(0, 6);
 
     for (const { d: dest } of top) {
       estado.fichas[pieza.id].fila = dest.fila;
@@ -835,8 +830,7 @@ function iaMinimaxTurnoLocal(balonF, balonC) {
 
       let scoreFinal;
       if (equipoTienePosesion('local')) {
-        // Profundidad 1 (no 2) para evitar explosión combinatoria
-        scoreFinal = iaBestBallSequenceLocal(balonF, balonC, 1) - 1500;
+        scoreFinal = iaBestBallSequenceLocal(balonF, balonC, 2) - 1500;
       } else {
         scoreFinal = iaEvaluarEstado();
       }
