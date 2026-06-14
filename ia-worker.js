@@ -1124,6 +1124,14 @@ function calcularDecisionJugador() {
         scoreTotal += Math.max(0, 2000 - distDestBalon * 200);
         if (esColindanteDest) scoreTotal += 3000;
 
+        // Balón neutro: si al movernos aquí quedamos colindantes y hay empate,
+        // simular lookahead desde esta posición para valorar la perspectiva real
+        // (qué tan buena es esta casilla para cuando consigamos la posesión)
+        if (esColindanteDest && !rivalTienePosesion) {
+          const resPropio = iaBestBallSequence(balonF, balonC, 4, -Infinity, Infinity);
+          scoreTotal += resPropio.score * 0.4;
+        }
+
         // Quitar posesión al rival es muy valioso aunque no la ganemos nosotros
         const quitaPosesion = rivalTienePosesion && !equipoTienePosesion('local');
         if (quitaPosesion) scoreTotal += 4500;
