@@ -744,7 +744,7 @@ function iaBestBallSequence(f, c, movRestantes, alpha, beta) {
   return { score: mejorScore, seq: mejorSeq };
 }
 
-function iaBestBallSequenceLocal(f, c, movRestantes) {
+function iaBestBallSequenceLocal(f, c, movRestantes, beta = Infinity) {
   _cntBestBallLocal++;
   const oldF = estado.fichas.balon.fila, oldC = estado.fichas.balon.col;
   const oldTurno = estado.turno, oldMovs = estado.movimientosBalon;
@@ -770,8 +770,9 @@ function iaBestBallSequenceLocal(f, c, movRestantes) {
     estado.fichas.balon.fila = f; estado.fichas.balon.col = c;
     return { d, s };
   });
+  // Local es minimizador: ordena de peor a mejor para el visitante (mejor para local primero)
   scored.sort((a, b) => a.s - b.s);
-  let mejorScore = Infinity;
+  let mejorScore = Infinity; // local quiere minimizar
   for (const { d } of scored) {
     if (d.fila === 14) {
       estado.fichas.balon.fila = oldF; estado.fichas.balon.col = oldC;
@@ -783,13 +784,15 @@ function iaBestBallSequenceLocal(f, c, movRestantes) {
     estado.fichas.balon.fila = f; estado.fichas.balon.col = c;
     let resultado;
     if (sigueLocal && movRestantes > 1) {
-      resultado = iaBestBallSequenceLocal(d.fila, d.col, movRestantes - 1);
+      resultado = iaBestBallSequenceLocal(d.fila, d.col, movRestantes - 1, mejorScore);
     } else {
       estado.fichas.balon.fila = d.fila; estado.fichas.balon.col = d.col;
       resultado = iaEvaluarEstado();
       estado.fichas.balon.fila = f; estado.fichas.balon.col = c;
     }
     if (resultado < mejorScore) mejorScore = resultado;
+    // Poda beta: el visitante (nivel superior) ya tiene una opción mejor que esto
+    if (mejorScore <= beta) break;
   }
   estado.fichas.balon.fila = oldF; estado.fichas.balon.col = oldC;
   estado.turno = oldTurno; estado.movimientosBalon = oldMovs;
@@ -830,7 +833,8 @@ function iaMinimaxTurnoLocal(balonF, balonC) {
 
       let scoreFinal;
       if (equipoTienePosesion('local')) {
-        scoreFinal = iaBestBallSequenceLocal(balonF, balonC, 2) - 1500;
+        // Pasar peorParaVisitante como beta: si el local ya encontró algo peor para el visitante, podar
+        scoreFinal = iaBestBallSequenceLocal(balonF, balonC, 2, peorParaVisitante) - 1500;
       } else {
         scoreFinal = iaEvaluarEstado();
       }
