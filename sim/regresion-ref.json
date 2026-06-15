@@ -2,11 +2,6 @@
   {
     "pos": 1,
     "huella": {
-      "piezaId": "v-j3",
-      "dest": {
-        "fila": 8,
-        "col": 6
-      },
       "top5": [
         {
           "piezaId": "v-j3",
@@ -54,11 +49,6 @@
   {
     "pos": 2,
     "huella": {
-      "piezaId": "v-j1",
-      "dest": {
-        "fila": 5,
-        "col": 2
-      },
       "top5": [
         {
           "piezaId": "v-j1",
@@ -106,43 +96,22 @@
   {
     "pos": 3,
     "huella": {
-      "piezaId": "v-portero",
-      "dest": {
-        "fila": 13,
-        "col": 6
-      },
       "top5": [
-        {
-          "piezaId": "v-portero",
-          "dest": {
-            "fila": 13,
-            "col": 6
-          },
-          "score": 19200
-        },
-        {
-          "piezaId": "v-portero",
-          "dest": {
-            "fila": 12,
-            "col": 4
-          },
-          "score": 11931
-        },
-        {
-          "piezaId": "v-portero",
-          "dest": {
-            "fila": 12,
-            "col": 5
-          },
-          "score": 11678
-        },
         {
           "piezaId": "v-j4",
           "dest": {
             "fila": 10,
             "col": 4
           },
-          "score": 7022
+          "score": 31274
+        },
+        {
+          "piezaId": "v-portero",
+          "dest": {
+            "fila": 12,
+            "col": 4
+          },
+          "score": 31002
         },
         {
           "piezaId": "v-j4",
@@ -150,7 +119,23 @@
             "fila": 10,
             "col": 3
           },
-          "score": 6827
+          "score": 30974
+        },
+        {
+          "piezaId": "v-j4",
+          "dest": {
+            "fila": 11,
+            "col": 3
+          },
+          "score": 30946
+        },
+        {
+          "piezaId": "v-portero",
+          "dest": {
+            "fila": 12,
+            "col": 5
+          },
+          "score": 30922
         }
       ]
     }
@@ -158,11 +143,6 @@
   {
     "pos": 4,
     "huella": {
-      "piezaId": "v-j4",
-      "dest": {
-        "fila": 5,
-        "col": 6
-      },
       "top5": [
         {
           "piezaId": "v-j4",
@@ -210,11 +190,6 @@
   {
     "pos": 5,
     "huella": {
-      "piezaId": "v-j4",
-      "dest": {
-        "fila": 8,
-        "col": 3
-      },
       "top5": [
         {
           "piezaId": "v-j4",

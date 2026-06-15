@@ -983,13 +983,22 @@ function calcularDecisionJugador() {
   const hayAmenazaGol = amenazasGolActuales.length > 0;
 
   // ── MODO DEFENSA CRÍTICA ──────────────────────────────────────────────────
-  // Cuando el rival TIENE posesión y el balón está en zona peligrosa (campo de
-  // la IA, fila >= 9), defender por PROXIES (cortar líneas, colindancia) falla:
-  // el rival tiene 4 movimientos para rodear. La defensa correcta se mide por la
-  // AMENAZA RESIDUAL REAL — simular el mejor turno del local tras nuestra defensa
-  // (iaSimularMejorTurnoLocal) y elegir el movimiento que más la reduzca.
-  // Es costoso, así que solo se activa en este modo y sobre candidatos relevantes.
-  const defensaCritica = rivalTienePosesion && balonF >= 9;
+  // Se activa cuando el balón está en zona peligrosa (campo de la IA, fila >= 9)
+  // y el rival amenaza de verdad — ya sea porque TIENE posesión, o porque el
+  // balón está NEUTRO pero el rival lo recuperará en su próximo turno para marcar
+  // (jugada típica: deja el balón neutro cerca del área y al turno siguiente lo
+  // recoge y mete gol). En ambos casos, defender por PROXIES (cortar líneas,
+  // colindancia) falla: hay que medir la AMENAZA RESIDUAL REAL — simular el mejor
+  // turno del local tras nuestra defensa (iaSimularMejorTurnoLocal) y elegir el
+  // movimiento que más la reduzca.
+  const balonNeutro = !rivalTienePosesion && !visitanteTienePosesion;
+  let defensaCritica = rivalTienePosesion && balonF >= 9;
+  if (!defensaCritica && balonNeutro && balonF >= 9) {
+    // Balón neutro en zona peligrosa: ¿el local marca en su próximo turno si no
+    // intervenimos? Si la amenaza es alta, activar defensa crítica.
+    const amenazaSiNoHago = iaSimularMejorTurnoLocal();
+    if (amenazaSiNoHago <= -100000) defensaCritica = true;
+  }
 
   // Líneas de tiro rivales abiertas ANTES de cualquier movimiento
   // Sirve para valorar cuántas cortamos con cada destino (estrategia bloqueo)
