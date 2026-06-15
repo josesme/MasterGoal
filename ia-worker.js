@@ -259,10 +259,9 @@ function esDestinoValidoCuartoMovimiento(f, c) {
   // Local ataca fila 14, visitante ataca fila 0
   const esGoal = estado.turno === 'local' ? (f === 14 && c >= 4 && c <= 8) : (f === 0 && c >= 4 && c <= 8);
   if (esGoal) return true;
-  // Local ataca fila 14, portería propia fila 0 → córner propio en fila 1
-  // Visitante ataca fila 0, portería propia fila 14 → córner propio en fila 13
-  if (estado.turno === 'local'     && ((f === 1  && c === 1) || (f === 1  && c === 11))) return false;
-  if (estado.turno === 'visitante' && ((f === 13 && c === 1) || (f === 13 && c === 11))) return false;
+  // Local: córner propio en fila 13; Visitante: córner propio en fila 1
+  if (estado.turno === 'local'    && ((f === 13 && c === 1) || (f === 13 && c === 11))) return false;
+  if (estado.turno === 'visitante' && ((f === 1 && c === 1) || (f === 1 && c === 11))) return false;
   if (estado.turno === 'local') {
     if (f >= 1 && f <= 4 && c >= 2 && c <= 10) return false;
   } else {
@@ -688,13 +687,9 @@ function iaBestBallSequence(f, c, movRestantes, alpha, beta) {
       estado.ultimoPasador = oldPasador;
       return { score: 500000, seq: [d] };
     }
-    // El pasador de este movimiento es quien envía desde (f,c) — pasadorNivel
-    // El siguiente nivel necesita saber quién tocó en (d), que es pasadorNivel mismo
+    // Actualizar pasador para el siguiente nivel antes de la llamada recursiva
     estado.ultimoPasador = pasadorNivel;
     estado.fichas.balon.fila = d.fila; estado.fichas.balon.col = d.col;
-    // Recalcular el pasador del destino d para que el nivel siguiente filtre autopases correctamente
-    const colindantesDest = obtenerColindantesEquipo(d.fila, d.col, 'visitante');
-    const pasadorDest = colindantesDest.length === 1 ? colindantesDest[0] : null;
     const sigueVisitante = equipoTienePosesion('visitante');
     const scoreAqui = iaEvaluarEstado();
     const localesColindantes    = iaColindantesSimulados(d.fila, d.col, 'local');
@@ -726,8 +721,6 @@ function iaBestBallSequence(f, c, movRestantes, alpha, beta) {
 
     let resultado;
     if (sigueVisitante && movRestantes > 1) {
-      // Antes de entrar en el siguiente nivel, fijar ultimoPasador al receptor en d
-      estado.ultimoPasador = pasadorDest;
       const subRes = iaBestBallSequence(d.fila, d.col, movRestantes - 1, alpha, beta);
       resultado = { score: subRes.score + penalMargenFino + bonusLineasPostPase, seq: [d, ...subRes.seq] };
     } else if (!sigueVisitante && movRestantes > 1) {
@@ -751,7 +744,7 @@ function iaBestBallSequence(f, c, movRestantes, alpha, beta) {
   return { score: mejorScore, seq: mejorSeq };
 }
 
-function iaBestBallSequenceLocal(f, c, movRestantes, beta = Infinity) {
+function iaBestBallSequenceLocal(f, c, movRestantes) {
   _cntBestBallLocal++;
   const oldF = estado.fichas.balon.fila, oldC = estado.fichas.balon.col;
   const oldTurno = estado.turno, oldMovs = estado.movimientosBalon;
@@ -777,9 +770,8 @@ function iaBestBallSequenceLocal(f, c, movRestantes, beta = Infinity) {
     estado.fichas.balon.fila = f; estado.fichas.balon.col = c;
     return { d, s };
   });
-  // Local es minimizador: ordena de peor a mejor para el visitante (mejor para local primero)
   scored.sort((a, b) => a.s - b.s);
-  let mejorScore = Infinity; // local quiere minimizar
+  let mejorScore = Infinity;
   for (const { d } of scored) {
     if (d.fila === 14) {
       estado.fichas.balon.fila = oldF; estado.fichas.balon.col = oldC;
@@ -791,16 +783,13 @@ function iaBestBallSequenceLocal(f, c, movRestantes, beta = Infinity) {
     estado.fichas.balon.fila = f; estado.fichas.balon.col = c;
     let resultado;
     if (sigueLocal && movRestantes > 1) {
-      resultado = iaBestBallSequenceLocal(d.fila, d.col, movRestantes - 1, mejorScore);
+      resultado = iaBestBallSequenceLocal(d.fila, d.col, movRestantes - 1);
     } else {
       estado.fichas.balon.fila = d.fila; estado.fichas.balon.col = d.col;
       resultado = iaEvaluarEstado();
       estado.fichas.balon.fila = f; estado.fichas.balon.col = c;
     }
     if (resultado < mejorScore) mejorScore = resultado;
-    // Poda beta: el visitante (nivel superior) ya tiene una rama mejor,
-    // así que nunca elegiría llegar aquí — podamos el resto
-    if (mejorScore < beta) break;
   }
   estado.fichas.balon.fila = oldF; estado.fichas.balon.col = oldC;
   estado.turno = oldTurno; estado.movimientosBalon = oldMovs;
@@ -841,8 +830,7 @@ function iaMinimaxTurnoLocal(balonF, balonC) {
 
       let scoreFinal;
       if (equipoTienePosesion('local')) {
-        // Pasar peorParaVisitante como beta: si el local ya encontró algo peor para el visitante, podar
-        scoreFinal = iaBestBallSequenceLocal(balonF, balonC, 2, peorParaVisitante) - 1500;
+        scoreFinal = iaBestBallSequenceLocal(balonF, balonC, 2) - 1500;
       } else {
         scoreFinal = iaEvaluarEstado();
       }
@@ -1069,16 +1057,6 @@ function calcularDecisionJugador() {
 
     // ── JUGADORES DE CAMPO ────────────────────────────────────────────────────
 
-    // Pre-calcular si esta pieza ya es colindante al balón antes de moverse
-    const piezaYaEsColindante = Math.abs(pieza.fila - balonF) <= 1 && Math.abs(pieza.col - balonC) <= 1;
-    // Colindantes actuales (sin contar esta pieza si ya es colindante)
-    const visitantesColBase = piezasIA.filter(p =>
-      p.id !== pieza.id && Math.abs(p.fila - balonF) <= 1 && Math.abs(p.col - balonC) <= 1
-    ).length;
-    const localesColBase = Object.values(estado.fichas).filter(d =>
-      d.equipo === 'local' && Math.abs(d.fila - balonF) <= 1 && Math.abs(d.col - balonC) <= 1
-    ).length;
-
     // Preordenar destinos: si no hay posesión, priorizar los más cercanos al balón;
     // si hay posesión, priorizar los que ya son colindantes o que más avanzan.
     const destsOrdenados = destinos.slice().sort((a, b) => {
@@ -1098,12 +1076,7 @@ function calcularDecisionJugador() {
       const distDestBalon      = iaDistancia(dest.fila, dest.col, balonF, balonC);
       const esColindanteDest   = Math.abs(dest.fila - balonF) <= 1 && Math.abs(dest.col - balonC) <= 1;
 
-      // Si la pieza ya era colindante y el destino también es colindante,
-      // el número neto de visitantes colindantes no aumenta — turno desperdiciado.
-      // Penalizar muy fuerte a menos que con esto se gane posesión.
-      const esTurnoNulo = piezaYaEsColindante && esColindanteDest && !ganaPosesionAhora;
-
-      let scoreTotal = esTurnoNulo ? -50000 : 0;
+      let scoreTotal = 0;
 
       // ── ESTRATEGIA 1: MAYORÍA PRIMERO ──────────────────────────────────────
       // Si el visitante no tenía posesión pero con este movimiento la consigue,
@@ -1145,14 +1118,6 @@ function calcularDecisionJugador() {
         scoreTotal = iaEvaluarEstado();
         scoreTotal += Math.max(0, 2000 - distDestBalon * 200);
         if (esColindanteDest) scoreTotal += 3000;
-
-        // Balón neutro: si al movernos aquí quedamos colindantes y hay empate,
-        // simular lookahead desde esta posición para valorar la perspectiva real
-        // (qué tan buena es esta casilla para cuando consigamos la posesión)
-        if (esColindanteDest && !rivalTienePosesion) {
-          const resPropio = iaBestBallSequence(balonF, balonC, 4, -Infinity, Infinity);
-          scoreTotal += resPropio.score * 0.4;
-        }
 
         // Quitar posesión al rival es muy valioso aunque no la ganemos nosotros
         const quitaPosesion = rivalTienePosesion && !equipoTienePosesion('local');
