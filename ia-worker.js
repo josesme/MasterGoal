@@ -1048,11 +1048,12 @@ const LIBRO_APERTURAS = {
     "visitante|MOVER_BALON|2,6;4,4;4,8;6,3;6,9;12,6;6,5;8,9;10,4;10,8;6,6;": { "tipo": "balon", "dest": { "fila": 2, "col": 2 } }
   },
   "defensivo": {
+    // Dictada por el usuario: saca un jugador, deja el balón neutro en la esquina
+    // de campo propio (10,1) — estructura intacta atrás y recuperación garantizada
+    // el próximo turno (v-j1/v-j3 cerca, sin rivales). No regala posesión central.
     "visitante|MOVER_JUGADOR|2,6;4,4;4,8;6,3;6,9;12,6;8,3;8,9;10,4;10,8;7,6;": { "tipo": "pieza", "piezaId": "v-j2", "dest": { "fila": 8, "col": 7 } },
-    "visitante|MOVER_BALON|2,6;4,4;4,8;6,3;6,9;12,6;8,3;8,7;10,4;10,8;7,6;": { "tipo": "balon", "dest": { "fila": 9, "col": 4 } },
-    "visitante|MOVER_BALON|2,6;4,4;4,8;6,3;6,9;12,6;8,3;8,7;10,4;10,8;9,4;": { "tipo": "balon", "dest": { "fila": 9, "col": 3 } },
-    "visitante|MOVER_BALON|2,6;4,4;4,8;6,3;6,9;12,6;8,3;8,7;10,4;10,8;9,3;": { "tipo": "balon", "dest": { "fila": 11, "col": 5 } },
-    "visitante|MOVER_BALON|2,6;4,4;4,8;6,3;6,9;12,6;8,3;8,7;10,4;10,8;11,5;": { "tipo": "balon", "dest": { "fila": 8, "col": 5 } }
+    "visitante|MOVER_BALON|2,6;4,4;4,8;6,3;6,9;12,6;8,3;8,7;10,4;10,8;7,6;": { "tipo": "balon", "dest": { "fila": 10, "col": 3 } },
+    "visitante|MOVER_BALON|2,6;4,4;4,8;6,3;6,9;12,6;8,3;8,7;10,4;10,8;10,3;": { "tipo": "balon", "dest": { "fila": 10, "col": 1 } }
   },
   "presion": {
     "visitante|MOVER_JUGADOR|2,6;4,4;4,8;6,3;6,9;12,6;8,3;8,9;10,4;10,8;7,6;": { "tipo": "pieza", "piezaId": "v-j1", "dest": { "fila": 6, "col": 5 } },
