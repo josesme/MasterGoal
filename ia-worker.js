@@ -184,7 +184,14 @@ function obtenerColindantesEquipo(balonF, balonC, equipo) {
 function esAutopase(filaDest, colDest) {
   const equipo = estado.turno;
   const actuales = obtenerColindantesEquipo(estado.fichas.balon.fila, estado.fichas.balon.col, equipo);
-  const destino  = obtenerColindantesEquipo(filaDest, colDest, equipo);
+  return esAutopaseConOrigen(filaDest, colDest, actuales);
+}
+
+// Variante que recibe los colindantes de origen ya calculados (son idénticos
+// para todos los destinos de una misma llamada a obtenerDestinosBalon).
+function esAutopaseConOrigen(filaDest, colDest, actuales) {
+  const equipo = estado.turno;
+  const destino = obtenerColindantesEquipo(filaDest, colDest, equipo);
 
   // Caso clásico: mismo único colindante en origen y destino
   if (actuales.length === 1 && destino.length === 1 && actuales[0] === destino[0]) return true;
@@ -314,22 +321,26 @@ function obtenerDestinosBalon(f, c) {
       }
     }
   }
-  dest = dest.filter(d => !saltaPorteroContrario(f, c, d.fila, d.col));
-  dest = dest.filter(d => !saltaJugadorEnAreaChica(f, c, d.fila, d.col));
-  // Local ataca fila 14, su portería propia es fila 0
-  // Visitante ataca fila 0, su portería propia es fila 14
+  // Pasada única de filtros independientes (antes eran 4 .filter encadenados que
+  // creaban 3 arrays intermedios). El orden de los AND no altera el resultado.
+  // Local ataca fila 14 (portería propia fila 0); visitante ataca fila 0 (propia 14).
+  const esLocal = estado.turno === 'local';
+  // Colindantes de origen: idénticos para todos los destinos de esta llamada.
+  const colindOrigen = obtenerColindantesEquipo(estado.fichas.balon.fila, estado.fichas.balon.col, estado.turno);
   dest = dest.filter(d => {
-    if (estado.turno === 'local') {
-      if (d.fila === 0) return false; // portería propia del local
-      if (d.fila === 1 && (d.col === 1 || d.col === 11)) return false; // córner propio
+    // portería/córner propios
+    if (esLocal) {
+      if (d.fila === 0) return false;
+      if (d.fila === 1 && (d.col === 1 || d.col === 11)) return false;
+    } else {
+      if (d.fila === 14) return false;
+      if (d.fila === 13 && (d.col === 1 || d.col === 11)) return false;
     }
-    if (estado.turno === 'visitante') {
-      if (d.fila === 14) return false; // portería propia del visitante
-      if (d.fila === 13 && (d.col === 1 || d.col === 11)) return false; // córner propio
-    }
+    if (saltaPorteroContrario(f, c, d.fila, d.col)) return false;
+    if (saltaJugadorEnAreaChica(f, c, d.fila, d.col)) return false;
+    if (esAutopaseConOrigen(d.fila, d.col, colindOrigen)) return false;
     return true;
   });
-  dest = dest.filter(d => !esAutopase(d.fila, d.col));
   if (estado.movimientosBalon === 3) {
     return dest.filter(d => esDestinoValidoCuartoMovimiento(d.fila, d.col));
   }
