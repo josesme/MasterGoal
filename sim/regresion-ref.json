@@ -9,7 +9,7 @@
             "fila": 8,
             "col": 6
           },
-          "score": 6263
+          "score": 6183
         },
         {
           "piezaId": "v-j4",
@@ -36,12 +36,12 @@
           "score": 6086
         },
         {
-          "piezaId": "v-j2",
+          "piezaId": "v-j1",
           "dest": {
             "fila": 8,
-            "col": 7
+            "col": 5
           },
-          "score": 5985
+          "score": 5905
         }
       ]
     }
@@ -72,7 +72,7 @@
             "fila": 10,
             "col": 6
           },
-          "score": 7758
+          "score": 8332
         },
         {
           "piezaId": "v-j3",
@@ -80,15 +80,15 @@
             "fila": 10,
             "col": 5
           },
-          "score": 7565
+          "score": 8002
         },
         {
           "piezaId": "v-j3",
           "dest": {
             "fila": 9,
-            "col": 4
+            "col": 3
           },
-          "score": 7336
+          "score": 7817
         }
       ]
     }
@@ -197,7 +197,7 @@
             "fila": 3,
             "col": 3
           },
-          "score": 503616
+          "score": 504339
         },
         {
           "piezaId": "v-j2",
@@ -205,7 +205,7 @@
             "fila": 5,
             "col": 3
           },
-          "score": 503616
+          "score": 504339
         },
         {
           "piezaId": "v-j2",
@@ -213,7 +213,7 @@
             "fila": 2,
             "col": 2
           },
-          "score": 503006
+          "score": 503729
         },
         {
           "piezaId": "v-j2",
@@ -221,7 +221,7 @@
             "fila": 4,
             "col": 5
           },
-          "score": 502726
+          "score": 503449
         },
         {
           "piezaId": "v-j2",
@@ -229,7 +229,7 @@
             "fila": 4,
             "col": 6
           },
-          "score": 502676
+          "score": 503399
         }
       ]
     }

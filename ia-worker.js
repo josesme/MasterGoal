@@ -879,7 +879,10 @@ function iaMinimaxTurnoLocal(balonF, balonC) {
   return peorParaVisitante === Infinity ? iaEvaluarEstado() : peorParaVisitante;
 }
 
-function iaSimularMejorTurnoLocal() {
+// ampPiezas: nº de destinos por pieza a explorar. 8 = preciso (uso puntual);
+// 3 = rápido pero suficiente para detectar si el local marca (uso en bucle
+// defensivo, donde se llama decenas de veces y prof. 4 sería prohibitiva a 8).
+function iaSimularMejorTurnoLocal(ampPiezas = 8) {
   const piezasLocal = Object.entries(estado.fichas)
     .filter(([id, d]) => d.equipo === 'local')
     .map(([id, d]) => ({ id, fila: d.fila, col: d.col }));
@@ -900,13 +903,17 @@ function iaSimularMejorTurnoLocal() {
       return { d, heuristica: consiguePosesion * 2000 - distBal * 2 + avance };
     });
     scored.sort((a, b) => b.heuristica - a.heuristica);
-    const top = scored.slice(0, 8).map(s => s.d);
+    const top = scored.slice(0, ampPiezas).map(s => s.d);
     for (const dest of top) {
       estado.fichas[pieza.id].fila = dest.fila;
       estado.fichas[pieza.id].col  = dest.col;
       let scoreFinal;
       if (equipoTienePosesion('local')) {
-        scoreFinal = iaBestBallSequenceLocal(balonF, balonC, 2) - 2000;
+        // Profundidad 4: el balón se mueve hasta 4 veces, así que la cadena de
+        // pases del local puede culminar en gol en 3-4 movimientos. Con prof. 2
+        // la simulación era CIEGA a esos goles (subestimaba la amenaza) y la
+        // defensa no se activaba ante jugadas de gol de 3+ pases.
+        scoreFinal = iaBestBallSequenceLocal(balonF, balonC, 4) - 2000;
       } else {
         scoreFinal = iaEvaluarEstado();
       }
@@ -990,12 +997,15 @@ function calcularDecisionJugador() {
   // AMENAZA RESIDUAL medida con iaSimularMejorTurnoLocal: si el local marca seguro
   // (<= -100000) cuando la IA no interviene, defender por proxies (cortar líneas,
   // colindancia) falla — hay que evaluar cada candidato por amenaza real.
-  // Filtro barato previo: solo molestarse en simular si el balón ya no está en
-  // nuestro campo de ataque (fila >= 7) y el rival no está en clara minoría.
+  // NO filtramos por fila del balón: una jugada de gol del local puede cruzar
+  // todo el campo en 3-4 pases (p.ej. balón neutro en fila 4 que acaba en gol en
+  // fila 14). El disparador es la amenaza real, no la posición del balón. La
+  // simulación es barata (~2ms) salvo que la IA tenga posesión clara (su turno
+  // de ataque), caso en que no hay amenaza local que medir.
   const balonNeutro = !rivalTienePosesion && !visitanteTienePosesion;
   let defensaCritica = false;
   let amenazaBaseSinIntervenir = 0; // amenaza del local si la IA no interviene
-  if ((rivalTienePosesion || balonNeutro) && balonF >= 7) {
+  if (rivalTienePosesion || balonNeutro) {
     amenazaBaseSinIntervenir = iaSimularMejorTurnoLocal();
     if (amenazaBaseSinIntervenir <= -100000) defensaCritica = true;
   }
@@ -1025,7 +1035,9 @@ function calcularDecisionJugador() {
       const resPropio = iaBestBallSequence(balonF, balonC, 4, -Infinity, Infinity);
       s = resPropio.score + 30000; // recuperar bajo amenaza es lo mejor posible
     } else {
-      s = iaSimularMejorTurnoLocal();
+      // Amplitud reducida (3): se llama por cada candidato defensivo; mantener
+      // profundidad 4 (detecta el gol) con menos ramas para que sea viable.
+      s = iaSimularMejorTurnoLocal(3);
     }
     estado.fichas[piezaId].fila = oF; estado.fichas[piezaId].col = oC;
     return s;
@@ -1033,6 +1045,19 @@ function calcularDecisionJugador() {
 
   // (amenazaBaseSinIntervenir ya calculado arriba al evaluar defensaCritica —
   // sirve de referencia, en la misma escala, para los candidatos irrelevantes.)
+
+  // Caché de evaluaciones reales por posición-resultante (evita recalcular si dos
+  // candidatos dejan el mismo tablero). La defensa crítica solo se activa con gol
+  // inminente — no en cada turno — así que aceptamos su coste a cambio de defender
+  // bien (decisión de diseño: calidad sobre velocidad en el momento clave).
+  const _cacheDefReal = new Map();
+  const evaluarDefensaRealCache = (piezaId, df, dc) => {
+    const key = piezaId + ',' + df + ',' + dc;
+    if (_cacheDefReal.has(key)) return _cacheDefReal.get(key);
+    const v = evaluarDefensaReal(piezaId, df, dc);
+    _cacheDefReal.set(key, v);
+    return v;
+  };
 
   for (const pieza of piezasIA) {
     const esPorteroIA = esPortero(pieza.id);
@@ -1147,7 +1172,7 @@ function calcularDecisionJugador() {
         // fuera del área no defiende, recibe la amenaza base (misma escala).
         if (defensaCritica) {
           score = enAreaGrande
-            ? evaluarDefensaReal(pieza.id, dest.fila, dest.col)
+            ? evaluarDefensaRealCache(pieza.id, dest.fila, dest.col)
             : amenazaBaseSinIntervenir - 5000; // fuera del área: aún peor
         }
 
@@ -1280,7 +1305,7 @@ function calcularDecisionJugador() {
       // (no intervienen en la disputa) para mantener todos en la misma escala.
       if (defensaCritica) {
         scoreTotal = esColindanteDest
-          ? evaluarDefensaReal(pieza.id, dest.fila, dest.col)
+          ? evaluarDefensaRealCache(pieza.id, dest.fila, dest.col)
           : amenazaBaseSinIntervenir;
       }
 
