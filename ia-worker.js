@@ -1255,6 +1255,21 @@ function calcularDecisionJugador() {
       const distDestBalon      = iaDistancia(dest.fila, dest.col, balonF, balonC);
       const esColindanteDest   = Math.abs(dest.fila - balonF) <= 1 && Math.abs(dest.col - balonC) <= 1;
 
+      // BALÓN AHOGADO: si este movimiento gana posesión pero deja al balón sin
+      // ningún destino legal (todos serían autopase o ilegales — p.ej. ganar el
+      // balón con un jugador solo en una esquina), es una jugada que se atasca y
+      // pierde el turno. Detectarlo aquí para penalizarla y que la IA no se ahogue.
+      let balonAhogado = false;
+      if (ganaPosesionAhora) {
+        const oldMovsAh = estado.movimientosBalon;
+        const oldTurnoAh = estado.turno;
+        estado.movimientosBalon = 0;
+        estado.turno = 'visitante';
+        balonAhogado = obtenerDestinosBalon(balonF, balonC).length === 0;
+        estado.movimientosBalon = oldMovsAh;
+        estado.turno = oldTurnoAh;
+      }
+
       let scoreTotal = 0;
 
       // ── ESTRATEGIA 1: MAYORÍA PRIMERO ──────────────────────────────────────
@@ -1361,6 +1376,10 @@ function calcularDecisionJugador() {
           ? evaluarDefensaRealCache(pieza.id, dest.fila, dest.col)
           : amenazaBaseSinIntervenir;
       }
+
+      // Penalización dominante: ganar el balón para ahogarlo (sin destino legal)
+      // desperdicia el turno. Nunca debe elegirse si hay cualquier alternativa.
+      if (balonAhogado) scoreTotal -= 1000000;
 
       estado.fichas[pieza.id].fila = pieza.fila;
       estado.fichas[pieza.id].col  = pieza.col;

@@ -2115,6 +2115,17 @@
       
       <!-- Capa para mostrar destinos posibles (se rellena con JS) -->
       <g id="destinos"></g>
+
+      <!-- Barra de replay sobre el campo (franja superior, encima de la portería).
+           Como foreignObject escala junto al campo. Solo visual. -->
+      <foreignObject id="replay-fo" x="14" y="-10.5" width="92" height="9" style="display:none;overflow:visible;">
+        <div xmlns="http://www.w3.org/1999/xhtml" id="replay-barra" style="display:flex;justify-content:center;align-items:center;gap:2.5px;height:100%;font-family:inherit;">
+          <button onclick="replayPaso(-1)" title="Anterior" style="height:7px;min-width:9px;border-radius:1.5px;background:rgba(0,0,0,0.45);border:0.3px solid rgba(255,255,255,0.25);color:#fff;font-size:4.5px;cursor:pointer;padding:0 1.5px;line-height:1;">◀</button>
+          <span id="replay-label" style="color:rgba(255,255,255,0.85);font-size:3.6px;min-width:42px;text-align:center;white-space:nowrap;background:rgba(0,0,0,0.4);border-radius:1.5px;padding:1px 2px;line-height:1;">—</span>
+          <button onclick="replayPaso(1)" title="Siguiente" style="height:7px;min-width:9px;border-radius:1.5px;background:rgba(0,0,0,0.45);border:0.3px solid rgba(255,255,255,0.25);color:#fff;font-size:4.5px;cursor:pointer;padding:0 1.5px;line-height:1;">▶</button>
+          <button id="replay-salir" onclick="replaySalir()" title="Volver al presente" style="display:none;height:7px;border-radius:1.5px;background:rgba(80,160,80,0.6);border:0.3px solid rgba(255,255,255,0.25);color:#fff;font-size:3.4px;cursor:pointer;padding:0 2px;line-height:1;">▣ vivo</button>
+        </div>
+      </foreignObject>
     </svg>
 
    </div><!-- /svg-wrapper -->
@@ -2765,6 +2776,9 @@
     
     // ====== SELECCION ======
     function seleccionar(id) {
+      // Si se estaba revisando el historial, volver al presente antes de jugar
+      // (el tablero mostraba un estado pasado; hay que reflejar el real).
+      if (_replayIdx !== null) replaySalir();
       limpiarSeleccion();
       estado.seleccionado = id;
       const el = document.getElementById(id);
@@ -2877,6 +2891,11 @@
         const tipo = id === 'balon' ? `⚽ BALÓN mov${estado.movimientosBalon + 1}` : '🧍 JUGADOR';
         console.log(`👤 HUMANO ${tipo}: ${id} → (${fDest},${cDest})`);
       }
+
+      // Snapshot para el replay paso a paso (visual). Etiqueta con quién movió.
+      const quien = estado.turno === 'local' ? 'L' : 'V';
+      const tipoMov = id === 'balon' ? `balón→(${fDest},${cDest})` : `${id}→(${fDest},${cDest})`;
+      registrarSnapshot(`${quien}: ${tipoMov}`);
 
       limpiarSeleccion();
 
@@ -3157,9 +3176,87 @@
       }
 
       actualizarUI();
+      registrarSnapshot('gol · recolocación, saca ' + saca);
       console.log('Recolocadas fichas. Saca:', saca);
     }
     
+    // ====== HISTORIAL / REPLAY DE JUGADAS ======
+    // Guarda un snapshot de las fichas tras cada movimiento (pieza o balón, de
+    // ambos equipos) para poder revisar la partida paso a paso adelante/atrás.
+    // Es SOLO VISUAL: navegar no altera la partida real (estado), solo repinta.
+    let _historial = [];        // [{ fichas, etiqueta }]
+    let _replayIdx = null;      // índice que se está viendo; null = en vivo
+
+    function registrarSnapshot(etiqueta) {
+      _historial.push({
+        fichas: JSON.parse(JSON.stringify(estado.fichas)),
+        etiqueta: etiqueta || '',
+      });
+      // Si estábamos revisando y ocurre un movimiento nuevo, volver a vivo.
+      if (_replayIdx !== null) { _replayIdx = null; }
+      actualizarReplayUI();
+    }
+
+    function reiniciarHistorial(etiqueta) {
+      _historial = [];
+      _replayIdx = null;
+      registrarSnapshot(etiqueta || 'inicio');
+    }
+
+    // Pinta un conjunto de fichas en el tablero SIN tocar `estado`.
+    function pintarFichas(fichas) {
+      for (const [id, d] of Object.entries(fichas)) {
+        const coords = casillaToSVG(d.fila, d.col);
+        if (esPortero(id)) {
+          const cuerpo = document.getElementById(id + '-cuerpo');
+          if (cuerpo) { cuerpo.setAttribute('cx', coords.cx); cuerpo.setAttribute('cy', coords.cy); }
+          actualizarBrazosPortero(id, d.fila, d.col);
+        } else {
+          const el = document.getElementById(id);
+          if (el) {
+            el.setAttribute('cx', coords.cx);
+            el.setAttribute('cy', coords.cy);
+            actualizarPatternFicha(id, coords.cx, coords.cy);
+          }
+        }
+      }
+    }
+
+    // Navega el historial. dir: -1 atrás, +1 adelante. Solo visual.
+    function replayPaso(dir) {
+      if (_historial.length === 0) return;
+      // Punto de partida: si estamos en vivo, el último snapshot.
+      let idx = (_replayIdx === null) ? _historial.length - 1 : _replayIdx;
+      idx = Math.max(0, Math.min(_historial.length - 1, idx + dir));
+      _replayIdx = idx;
+      pintarFichas(_historial[idx].fichas);
+      limpiarSeleccion();
+      actualizarReplayUI();
+    }
+
+    // Volver al estado en vivo (presente) y reanudar el juego normal.
+    function replaySalir() {
+      _replayIdx = null;
+      pintarFichas(estado.fichas);
+      actualizarReplayUI();
+    }
+
+    function actualizarReplayUI() {
+      const barra = document.getElementById('replay-barra');
+      if (!barra) return;
+      const label = document.getElementById('replay-label');
+      const btnSalir = document.getElementById('replay-salir');
+      const enVivo = _replayIdx === null;
+      const idx = enVivo ? _historial.length - 1 : _replayIdx;
+      const snap = _historial[idx];
+      if (label) {
+        label.textContent = _historial.length === 0
+          ? '—'
+          : `${idx + 1}/${_historial.length}` + (enVivo ? ' (vivo)' : '') + (snap && snap.etiqueta ? ' · ' + snap.etiqueta : '');
+      }
+      if (btnSalir) btnSalir.style.display = enVivo ? 'none' : '';
+    }
+
     // ====== PASAR TURNO ======
     // Volcado de estado completo: posiciones de las 10 fichas + balón + posesión.
     // Permite reconstruir cualquier jugada con exactitud para análisis/depuración
@@ -3185,10 +3282,19 @@
     function pasarTurno() {
       console.log('DEBUG pasarTurno: turnoExtra =', estado.turnoExtra, 'turno =', estado.turno);
 
-      // Validacion defensiva: nunca pasar turno si el balon tiene posesion del equipo actual
+      // Validacion defensiva: nunca pasar turno con posesion activa... SALVO que el
+      // balón esté AHOGADO (posesión pero ningún destino legal: p.ej. un jugador
+      // solo en una esquina cuyos únicos movimientos serían autopase). En ese caso
+      // hay que liberar el turno en vez de colgarse. Reglas: balón ahogado.
       if (estado.fase === 'MOVER_BALON' && equipoTienePosesion(estado.turno)) {
-        console.error('ERROR: pasarTurno con posesion activa — esto no debería ocurrir');
-        return;
+        const sinSalida = obtenerDestinosBalon(estado.fichas.balon.fila, estado.fichas.balon.col).length === 0;
+        if (!sinSalida) {
+          console.error('ERROR: pasarTurno con posesion activa y destinos disponibles — no debería ocurrir');
+          return;
+        }
+        console.warn('Balón ahogado (posesión sin destinos legales): se cede el turno.');
+        estado.posesion = false;
+        estado.ultimoPasador = null;
       }
 
       // Si hay turno extra, el mismo equipo juega de nuevo
@@ -4535,10 +4641,13 @@
       _remontadaFlag = false;
       iaCalculando = false;
       estado.modo = config.modo;
+      _historial = []; _replayIdx = null; // nueva partida: limpiar historial de replay
       recolocar(equipoQueSaca);
       document.getElementById('game-container').style.display = 'flex';
       document.getElementById('ui-panel').style.display = 'flex';
       document.getElementById('btn-coords').style.display = '';
+      document.getElementById('replay-fo').style.display = '';
+      actualizarReplayUI();
 
 
       // Inicializar condición de victoria
@@ -4756,6 +4865,7 @@
 
       document.getElementById('menu-inicial').style.display = 'flex';
       document.getElementById('btn-coords').style.display = 'none';
+      document.getElementById('replay-fo').style.display = 'none';
       _coordsActivo = false;
       document.getElementById('casilla-tooltip').style.display = 'none';
       MARCADOR.local = 0; MARCADOR.visitante = 0;
@@ -5741,6 +5851,8 @@
       document.getElementById('game-container').style.display = 'flex';
       document.getElementById('ui-panel').style.display = 'flex';
       document.getElementById('btn-coords').style.display = '';
+      document.getElementById('replay-fo').style.display = '';
+      reiniciarHistorial('inicio reto');
       aplicarEquiposAlHUD();
       actualizarMarcadorUI();
       actualizarUI();
