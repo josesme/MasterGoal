@@ -2116,16 +2116,29 @@
       <!-- Capa para mostrar destinos posibles (se rellena con JS) -->
       <g id="destinos"></g>
 
-      <!-- Barra de replay sobre el campo (franja superior, encima de la portería).
-           Como foreignObject escala junto al campo. Solo visual. -->
-      <foreignObject id="replay-fo" x="14" y="-10.5" width="92" height="9" style="display:none;overflow:visible;">
-        <div xmlns="http://www.w3.org/1999/xhtml" id="replay-barra" style="display:flex;justify-content:center;align-items:center;gap:2.5px;height:100%;font-family:inherit;">
-          <button onclick="replayPaso(-1)" title="Anterior" style="height:7px;min-width:9px;border-radius:1.5px;background:rgba(0,0,0,0.45);border:0.3px solid rgba(255,255,255,0.25);color:#fff;font-size:4.5px;cursor:pointer;padding:0 1.5px;line-height:1;">◀</button>
-          <span id="replay-label" style="color:rgba(255,255,255,0.85);font-size:3.6px;min-width:42px;text-align:center;white-space:nowrap;background:rgba(0,0,0,0.4);border-radius:1.5px;padding:1px 2px;line-height:1;">—</span>
-          <button onclick="replayPaso(1)" title="Siguiente" style="height:7px;min-width:9px;border-radius:1.5px;background:rgba(0,0,0,0.45);border:0.3px solid rgba(255,255,255,0.25);color:#fff;font-size:4.5px;cursor:pointer;padding:0 1.5px;line-height:1;">▶</button>
-          <button id="replay-salir" onclick="replaySalir()" title="Volver al presente" style="display:none;height:7px;border-radius:1.5px;background:rgba(80,160,80,0.6);border:0.3px solid rgba(255,255,255,0.25);color:#fff;font-size:3.4px;cursor:pointer;padding:0 2px;line-height:1;">▣ vivo</button>
-        </div>
-      </foreignObject>
+      <!-- Barra de replay (SVG nativo, franja superior sobre la portería). Solo visual.
+           Hereda la paleta del marcador: fondo #111, bordes blancos translúcidos,
+           acentos azul (local #4fc3f7) / rojo (visitante #ef5350). -->
+      <g id="replay-g" style="display:none;" font-family="system-ui, -apple-system, sans-serif" text-anchor="middle" dominant-baseline="central">
+        <!-- Caja contenedora (mismo fondo que el HUD del marcador) -->
+        <rect x="40" y="-9.4" width="30" height="6.8" rx="2"
+              fill="#111" stroke="rgba(255,255,255,0.12)" stroke-width="0.3"/>
+        <!-- Separadores verticales sutiles entre zonas -->
+        <line x1="48" y1="-8.6" x2="48" y2="-3.4" stroke="rgba(255,255,255,0.1)" stroke-width="0.25"/>
+        <line x1="62" y1="-8.6" x2="62" y2="-3.4" stroke="rgba(255,255,255,0.1)" stroke-width="0.25"/>
+        <!-- ◀ anterior (zona izquierda, ancho 8: x 40-48, centro 44) -->
+        <g onclick="replayPaso(-1)" style="cursor:pointer;">
+          <rect x="40" y="-9.4" width="8" height="6.8" rx="2" fill="transparent"/>
+          <text x="44" y="-5.9" fill="rgba(255,255,255,0.85)" font-size="3.6">◀</text>
+        </g>
+        <!-- contador (zona central: x 48-62, centro 55). Color según equipo. -->
+        <text id="replay-label" x="55" y="-5.9" fill="#fff" font-size="3.6" font-weight="700" letter-spacing="-0.1">—</text>
+        <!-- ▶ siguiente (zona derecha, ancho 8: x 62-70, centro 66) -->
+        <g onclick="replayPaso(1)" style="cursor:pointer;">
+          <rect x="62" y="-9.4" width="8" height="6.8" rx="2" fill="transparent"/>
+          <text x="66" y="-5.9" fill="rgba(255,255,255,0.85)" font-size="3.6">▶</text>
+        </g>
+      </g>
     </svg>
 
    </div><!-- /svg-wrapper -->
@@ -2892,10 +2905,8 @@
         console.log(`👤 HUMANO ${tipo}: ${id} → (${fDest},${cDest})`);
       }
 
-      // Snapshot para el replay paso a paso (visual). Etiqueta con quién movió.
-      const quien = estado.turno === 'local' ? 'L' : 'V';
-      const tipoMov = id === 'balon' ? `balón→(${fDest},${cDest})` : `${id}→(${fDest},${cDest})`;
-      registrarSnapshot(`${quien}: ${tipoMov}`);
+      // Snapshot para el replay paso a paso (visual).
+      registrarSnapshot(estado.turno);
 
       limpiarSeleccion();
 
@@ -3176,7 +3187,7 @@
       }
 
       actualizarUI();
-      registrarSnapshot('gol · recolocación, saca ' + saca);
+      registrarSnapshot(null); // hito de recolocación tras gol
       console.log('Recolocadas fichas. Saca:', saca);
     }
     
@@ -3184,23 +3195,37 @@
     // Guarda un snapshot de las fichas tras cada movimiento (pieza o balón, de
     // ambos equipos) para poder revisar la partida paso a paso adelante/atrás.
     // Es SOLO VISUAL: navegar no altera la partida real (estado), solo repinta.
-    let _historial = [];        // [{ fichas, etiqueta }]
+    // El nº de turno se toma del propio juego (igual que el marcador) para que
+    // el contador del replay coincida con lo que el jugador ve en pantalla.
+    let _historial = [];        // [{ fichas, turnoNum, equipo }]
     let _replayIdx = null;      // índice que se está viendo; null = en vivo
 
-    function registrarSnapshot(etiqueta) {
+    // Número de turno del equipo según el contador del juego (mismo cálculo que
+    // el marcador: total - restantes + 1). Si no es modo turnos, cuenta movimientos.
+    function _numeroTurnoJuego(equipo) {
+      if (!equipo || config.encuentro !== 'turnos') return null;
+      const total = victoria.turnosTotal || config.turnos;
+      const rest = victoria.turnosRestantes[equipo];
+      return Math.min(total - rest + 1, total);
+    }
+
+    // Registra un snapshot. equipo = quién acaba de mover ('local'/'visitante').
+    function registrarSnapshot(equipo) {
       _historial.push({
         fichas: JSON.parse(JSON.stringify(estado.fichas)),
-        etiqueta: etiqueta || '',
+        turnoNum: _numeroTurnoJuego(equipo),
+        equipo: equipo || null,
       });
-      // Si estábamos revisando y ocurre un movimiento nuevo, volver a vivo.
       if (_replayIdx !== null) { _replayIdx = null; }
       actualizarReplayUI();
     }
 
-    function reiniciarHistorial(etiqueta) {
+    function reiniciarHistorial() {
       _historial = [];
       _replayIdx = null;
-      registrarSnapshot(etiqueta || 'inicio');
+      // Snapshot inicial (posición de salida, sin equipo que haya movido aún).
+      _historial.push({ fichas: JSON.parse(JSON.stringify(estado.fichas)), turnoNum: null, equipo: null });
+      actualizarReplayUI();
     }
 
     // Pinta un conjunto de fichas en el tablero SIN tocar `estado`.
@@ -3242,19 +3267,26 @@
     }
 
     function actualizarReplayUI() {
-      const barra = document.getElementById('replay-barra');
-      if (!barra) return;
       const label = document.getElementById('replay-label');
-      const btnSalir = document.getElementById('replay-salir');
+      if (!label) return;
       const enVivo = _replayIdx === null;
       const idx = enVivo ? _historial.length - 1 : _replayIdx;
       const snap = _historial[idx];
-      if (label) {
-        label.textContent = _historial.length === 0
-          ? '—'
-          : `${idx + 1}/${_historial.length}` + (enVivo ? ' (vivo)' : '') + (snap && snap.etiqueta ? ' · ' + snap.etiqueta : '');
+      // Contador alineado con el juego: "T5 V" (turno 5 del visitante). En la
+      // posición inicial o recolocación, sin turno aún, muestra un guion.
+      let txt = '—', color = '#fff';
+      if (snap) {
+        if (snap.turnoNum == null) txt = '—';
+        else {
+          const eq = snap.equipo === 'local' ? 'L' : snap.equipo === 'visitante' ? 'V' : '';
+          txt = `T${snap.turnoNum}${eq ? ' ' + eq : ''}`;
+        }
+        // Color del contador = acento del equipo que movió (igual que el marcador)
+        if (snap.equipo === 'local') color = '#4fc3f7';
+        else if (snap.equipo === 'visitante') color = '#ef5350';
       }
-      if (btnSalir) btnSalir.style.display = enVivo ? 'none' : '';
+      label.textContent = txt;
+      label.setAttribute('fill', color);
     }
 
     // ====== PASAR TURNO ======
@@ -4641,12 +4673,13 @@
       _remontadaFlag = false;
       iaCalculando = false;
       estado.modo = config.modo;
-      _historial = []; _replayIdx = null; // nueva partida: limpiar historial de replay
+      // Nueva partida: limpiar historial de replay (recolocar añade el 1er snapshot)
+      _historial = []; _replayIdx = null;
       recolocar(equipoQueSaca);
       document.getElementById('game-container').style.display = 'flex';
       document.getElementById('ui-panel').style.display = 'flex';
       document.getElementById('btn-coords').style.display = '';
-      document.getElementById('replay-fo').style.display = '';
+      document.getElementById('replay-g').style.display = '';
       actualizarReplayUI();
 
 
@@ -4865,7 +4898,7 @@
 
       document.getElementById('menu-inicial').style.display = 'flex';
       document.getElementById('btn-coords').style.display = 'none';
-      document.getElementById('replay-fo').style.display = 'none';
+      document.getElementById('replay-g').style.display = 'none';
       _coordsActivo = false;
       document.getElementById('casilla-tooltip').style.display = 'none';
       MARCADOR.local = 0; MARCADOR.visitante = 0;
@@ -5851,8 +5884,8 @@
       document.getElementById('game-container').style.display = 'flex';
       document.getElementById('ui-panel').style.display = 'flex';
       document.getElementById('btn-coords').style.display = '';
-      document.getElementById('replay-fo').style.display = '';
-      reiniciarHistorial('inicio reto');
+      document.getElementById('replay-g').style.display = '';
+      reiniciarHistorial();
       aplicarEquiposAlHUD();
       actualizarMarcadorUI();
       actualizarUI();
