@@ -688,9 +688,13 @@ function iaBestBallSequence(f, c, movRestantes, alpha, beta) {
       estado.ultimoPasador = oldPasador;
       return { score: 500000, seq: [d] };
     }
-    // Actualizar pasador para el siguiente nivel antes de la llamada recursiva
+    // El pasador de este movimiento es quien envía desde (f,c) — pasadorNivel
+    // El siguiente nivel necesita saber quién tocó en (d), que es pasadorNivel mismo
     estado.ultimoPasador = pasadorNivel;
     estado.fichas.balon.fila = d.fila; estado.fichas.balon.col = d.col;
+    // Recalcular el pasador del destino d para que el nivel siguiente filtre autopases correctamente
+    const colindantesDest = obtenerColindantesEquipo(d.fila, d.col, 'visitante');
+    const pasadorDest = colindantesDest.length === 1 ? colindantesDest[0] : null;
     const sigueVisitante = equipoTienePosesion('visitante');
     const scoreAqui = iaEvaluarEstado();
     const localesColindantes    = iaColindantesSimulados(d.fila, d.col, 'local');
@@ -722,6 +726,8 @@ function iaBestBallSequence(f, c, movRestantes, alpha, beta) {
 
     let resultado;
     if (sigueVisitante && movRestantes > 1) {
+      // Antes de entrar en el siguiente nivel, fijar ultimoPasador al receptor en d
+      estado.ultimoPasador = pasadorDest;
       const subRes = iaBestBallSequence(d.fila, d.col, movRestantes - 1, alpha, beta);
       resultado = { score: subRes.score + penalMargenFino + bonusLineasPostPase, seq: [d, ...subRes.seq] };
     } else if (!sigueVisitante && movRestantes > 1) {
