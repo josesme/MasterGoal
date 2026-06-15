@@ -26,6 +26,27 @@ function fichasEntries() {
   return _fichasEntries;
 }
 
+// ── PROFUNDIDAD POR NIVEL ─────────────────────────────────────────────────────
+// La profundidad del lookahead es la palanca principal de FUERZA de la IA:
+//   - profAtaque  = nº de pases que la IA planea al atacar (iaBestBallSequence).
+//   - profDefensa = nº de pases del rival que la IA anticipa al defender
+//                   (iaBestBallSequenceLocal dentro de iaSimularMejorTurnoLocal).
+// Imbatible ve la cadena completa (4/4) — fuerte pero lento en defensa crítica.
+// Los niveles inferiores ven menos: más rápidos y más fáciles de batir. Bajar
+// profDefensa hace que la IA no detecte goles largos (defiende peor, como antes
+// del fix); bajar profAtaque hace que combine peor de cara a portería.
+const IA_PROFUNDIDAD = {
+  imbatible:    { profAtaque: 4, profDefensa: 4 },
+  leyenda:      { profAtaque: 4, profDefensa: 3 },
+  profesional:  { profAtaque: 3, profDefensa: 2 },
+  juvenil:      { profAtaque: 2, profDefensa: 2 },
+  cadete:       { profAtaque: 2, profDefensa: 1 },
+};
+
+function iaGetProfundidad() {
+  return IA_PROFUNDIDAD[estado.nivelIA] || IA_PROFUNDIDAD.imbatible;
+}
+
 // ── ESTILOS DE JUEGO ─────────────────────────────────────────────────────────
 // Cada estilo ajusta multiplicadores sobre los pesos base de iaEvaluarEstado.
 // Los valores son factores (1.0 = sin cambio).
@@ -909,11 +930,10 @@ function iaSimularMejorTurnoLocal(ampPiezas = 8) {
       estado.fichas[pieza.id].col  = dest.col;
       let scoreFinal;
       if (equipoTienePosesion('local')) {
-        // Profundidad 4: el balón se mueve hasta 4 veces, así que la cadena de
-        // pases del local puede culminar en gol en 3-4 movimientos. Con prof. 2
-        // la simulación era CIEGA a esos goles (subestimaba la amenaza) y la
-        // defensa no se activaba ante jugadas de gol de 3+ pases.
-        scoreFinal = iaBestBallSequenceLocal(balonF, balonC, 4) - 2000;
+        // Profundidad de DEFENSA según nivel: cuántos pases del rival anticipa.
+        // 4 = ve goles de 3-4 pases (Imbatible); valores menores = más ciega a
+        // jugadas largas (niveles inferiores defienden peor y calculan más rápido).
+        scoreFinal = iaBestBallSequenceLocal(balonF, balonC, iaGetProfundidad().profDefensa) - 2000;
       } else {
         scoreFinal = iaEvaluarEstado();
       }
@@ -1214,8 +1234,8 @@ function calcularDecisionJugador() {
       const factorRival = 0.8 + Math.max(0, (balonF - 7) / 7) * 0.4; // 0.8 a 1.2
 
       if (!visitanteTienePosesion && ganaPosesionAhora) {
-        // Recién conseguida la posesión: lookahead completo del balón
-        const resPropio  = iaBestBallSequence(balonF, balonC, 4, -Infinity, Infinity);
+        // Recién conseguida la posesión: lookahead ofensivo según nivel
+        const resPropio  = iaBestBallSequence(balonF, balonC, iaGetProfundidad().profAtaque, -Infinity, Infinity);
         const scoreRival = iaSimularMejorTurnoLocal();
         scoreTotal = resPropio.score - scoreRival * factorRival;
         // Bonus por haber conseguido la posesión con este movimiento
@@ -1226,7 +1246,7 @@ function calcularDecisionJugador() {
       } else if (visitanteTienePosesion) {
         // Ya teníamos posesión: evaluar si este movimiento mejora la posición
         // antes de mover el balón (abre líneas de tiro, mejora ángulo)
-        const resPropio  = iaBestBallSequence(balonF, balonC, 4, -Infinity, Infinity);
+        const resPropio  = iaBestBallSequence(balonF, balonC, iaGetProfundidad().profAtaque, -Infinity, Infinity);
         const scoreRival = iaSimularMejorTurnoLocal();
         scoreTotal = resPropio.score - scoreRival * factorRival;
         scoreTotal += Math.max(0, 500 - distDestBalon * 50);
@@ -1332,7 +1352,10 @@ function calcularDecisionBalon(movRestantes) {
   let primero, secuencia = [], scoreElegido = 0;
 
   if (equipoTienePosesion('visitante')) {
-    const res = iaBestBallSequence(balonF, balonC, movRestantes, -Infinity, Infinity);
+    // Acotar la planificación de pases por la profundidad de ataque del nivel:
+    // niveles inferiores miran menos jugadas adelante (combinan peor de cara a gol).
+    const profMov = Math.min(movRestantes, iaGetProfundidad().profAtaque);
+    const res = iaBestBallSequence(balonF, balonC, profMov, -Infinity, Infinity);
     primero = res.seq.length > 0 ? res.seq[0] : null;
     secuencia = res.seq;
     scoreElegido = res.score;
