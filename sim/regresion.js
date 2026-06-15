@@ -96,19 +96,19 @@ const POSICIONES = [
     'v-j4':      { fila: 6,  col: 5, equipo: 'visitante' },
     'balon':     { fila: 4,  col: 5 },
   }}),
-  // 5. Balón en banda
+  // 5. Balón en banda (zona ofensiva visitante: ataque, no defensa)
   base({ fichas: {
     'l-portero': { fila: 2,  col: 6, equipo: 'local' },
     'l-j1':      { fila: 6,  col: 2, equipo: 'local' },
-    'l-j2':      { fila: 7,  col: 4, equipo: 'local' },
+    'l-j2':      { fila: 3,  col: 4, equipo: 'local' },
     'l-j3':      { fila: 5,  col: 6, equipo: 'local' },
     'l-j4':      { fila: 8,  col: 9, equipo: 'local' },
     'v-portero': { fila: 12, col: 6, equipo: 'visitante' },
-    'v-j1':      { fila: 7,  col: 2, equipo: 'visitante' },
-    'v-j2':      { fila: 6,  col: 4, equipo: 'visitante' },
-    'v-j3':      { fila: 9,  col: 7, equipo: 'visitante' },
-    'v-j4':      { fila: 10, col: 5, equipo: 'visitante' },
-    'balon':     { fila: 7,  col: 2 },
+    'v-j1':      { fila: 5,  col: 2, equipo: 'visitante' },
+    'v-j2':      { fila: 4,  col: 4, equipo: 'visitante' },
+    'v-j3':      { fila: 5,  col: 4, equipo: 'visitante' },
+    'v-j4':      { fila: 6,  col: 5, equipo: 'visitante' },
+    'balon':     { fila: 4,  col: 3 },
   }}),
 ];
 

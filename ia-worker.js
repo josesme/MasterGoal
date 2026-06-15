@@ -983,21 +983,21 @@ function calcularDecisionJugador() {
   const hayAmenazaGol = amenazasGolActuales.length > 0;
 
   // ── MODO DEFENSA CRÍTICA ──────────────────────────────────────────────────
-  // Se activa cuando el balón está en zona peligrosa (campo de la IA, fila >= 9)
-  // y el rival amenaza de verdad — ya sea porque TIENE posesión, o porque el
-  // balón está NEUTRO pero el rival lo recuperará en su próximo turno para marcar
-  // (jugada típica: deja el balón neutro cerca del área y al turno siguiente lo
-  // recoge y mete gol). En ambos casos, defender por PROXIES (cortar líneas,
-  // colindancia) falla: hay que medir la AMENAZA RESIDUAL REAL — simular el mejor
-  // turno del local tras nuestra defensa (iaSimularMejorTurnoLocal) y elegir el
-  // movimiento que más la reduzca.
+  // Se activa cuando el rival AMENAZA GOL DE VERDAD en su próximo turno, tenga
+  // posesión o el balón esté neutro (jugada típica: deja el balón neutro y al
+  // turno siguiente lo recoge y marca). El disparador NO es la fila del balón
+  // (la amenaza real puede gestarse desde el medio campo, fila 7-8), sino la
+  // AMENAZA RESIDUAL medida con iaSimularMejorTurnoLocal: si el local marca seguro
+  // (<= -100000) cuando la IA no interviene, defender por proxies (cortar líneas,
+  // colindancia) falla — hay que evaluar cada candidato por amenaza real.
+  // Filtro barato previo: solo molestarse en simular si el balón ya no está en
+  // nuestro campo de ataque (fila >= 7) y el rival no está en clara minoría.
   const balonNeutro = !rivalTienePosesion && !visitanteTienePosesion;
-  let defensaCritica = rivalTienePosesion && balonF >= 9;
-  if (!defensaCritica && balonNeutro && balonF >= 9) {
-    // Balón neutro en zona peligrosa: ¿el local marca en su próximo turno si no
-    // intervenimos? Si la amenaza es alta, activar defensa crítica.
-    const amenazaSiNoHago = iaSimularMejorTurnoLocal();
-    if (amenazaSiNoHago <= -100000) defensaCritica = true;
+  let defensaCritica = false;
+  let amenazaBaseSinIntervenir = 0; // amenaza del local si la IA no interviene
+  if ((rivalTienePosesion || balonNeutro) && balonF >= 7) {
+    amenazaBaseSinIntervenir = iaSimularMejorTurnoLocal();
+    if (amenazaBaseSinIntervenir <= -100000) defensaCritica = true;
   }
 
   // Líneas de tiro rivales abiertas ANTES de cualquier movimiento
@@ -1031,10 +1031,8 @@ function calcularDecisionJugador() {
     return s;
   };
 
-  // Amenaza base si la IA hiciera un movimiento que no afecta a la disputa:
-  // referencia para puntuar (en la misma escala) los candidatos irrelevantes
-  // en modo defensa crítica.
-  const amenazaBaseSinIntervenir = defensaCritica ? iaSimularMejorTurnoLocal() : 0;
+  // (amenazaBaseSinIntervenir ya calculado arriba al evaluar defensaCritica —
+  // sirve de referencia, en la misma escala, para los candidatos irrelevantes.)
 
   for (const pieza of piezasIA) {
     const esPorteroIA = esPortero(pieza.id);

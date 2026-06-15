@@ -192,44 +192,44 @@
     "huella": {
       "top5": [
         {
-          "piezaId": "v-j4",
+          "piezaId": "v-j2",
           "dest": {
-            "fila": 8,
+            "fila": 3,
             "col": 3
           },
-          "score": 21190
+          "score": 503616
         },
         {
           "piezaId": "v-j2",
           "dest": {
-            "fila": 7,
+            "fila": 5,
             "col": 3
           },
-          "score": 20816
+          "score": 503616
         },
         {
           "piezaId": "v-j2",
           "dest": {
-            "fila": 8,
+            "fila": 2,
             "col": 2
           },
-          "score": 20788
+          "score": 503006
         },
         {
           "piezaId": "v-j2",
           "dest": {
-            "fila": 6,
-            "col": 3
+            "fila": 4,
+            "col": 5
           },
-          "score": 20634
+          "score": 502726
         },
         {
-          "piezaId": "v-j1",
+          "piezaId": "v-j2",
           "dest": {
-            "fila": 7,
-            "col": 1
+            "fila": 4,
+            "col": 6
           },
-          "score": 10504
+          "score": 502676
         }
       ]
     }
