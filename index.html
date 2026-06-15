@@ -2851,6 +2851,13 @@
       estado.fichas[id].fila = fDest;
       estado.fichas[id].col = cDest;
 
+      // Log de movimiento del HUMANO (los de la IA ya se loguean con 🤖 ELEGIDO).
+      // Permite reconstruir la secuencia exacta de pases del rival humano.
+      if (estado.turno === 'local') {
+        const tipo = id === 'balon' ? `⚽ BALÓN mov${estado.movimientosBalon + 1}` : '🧍 JUGADOR';
+        console.log(`👤 HUMANO ${tipo}: ${id} → (${fDest},${cDest})`);
+      }
+
       limpiarSeleccion();
 
       if (id === 'balon') {
@@ -3134,6 +3141,27 @@
     }
     
     // ====== PASAR TURNO ======
+    // Volcado de estado completo: posiciones de las 10 fichas + balón + posesión.
+    // Permite reconstruir cualquier jugada con exactitud para análisis/depuración
+    // (sin esto, los logs no muestran las posiciones de los jugadores y obligan a
+    // adivinar). Formato compacto de una línea, copiable a sim/ para reproducir.
+    function logEstadoCompleto(etiqueta) {
+      const f = estado.fichas;
+      const ids = ['l-portero','l-j1','l-j2','l-j3','l-j4','v-portero','v-j1','v-j2','v-j3','v-j4'];
+      const piezas = ids.map(id => `${id}(${f[id].fila},${f[id].col})`).join(' ');
+      const b = f.balon;
+      const pos = equipoTienePosesion('local') ? 'LOCAL'
+                : equipoTienePosesion('visitante') ? 'VISITANTE' : 'NEUTRO';
+      console.log(
+        `📋 ESTADO [${etiqueta}] turno=${estado.turno} balón(${b.fila},${b.col}) posesión=${pos} | ${piezas}`
+      );
+      // JSON reproducible en una línea (para pegar en sim/)
+      const json = {};
+      for (const id of ids) json[id] = { fila: f[id].fila, col: f[id].col, equipo: f[id].equipo };
+      json.balon = { fila: b.fila, col: b.col };
+      console.log('📋 JSON: ' + JSON.stringify(json));
+    }
+
     function pasarTurno() {
       console.log('DEBUG pasarTurno: turnoExtra =', estado.turnoExtra, 'turno =', estado.turno);
 
@@ -3198,6 +3226,7 @@
 
       actualizarUI();
       console.log('Turno de:', estado.turno);
+      logEstadoCompleto('inicio turno ' + estado.turno);
 
       // Si es turno de la IA, ejecutarla
       if (estado.turno === 'visitante' && estado.modo === 'vsIA') {
