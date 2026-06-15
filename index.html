@@ -88,6 +88,7 @@
       flex-shrink: 0;
       display: flex;
       align-items: stretch;
+      position: relative;
       background: #111;
       font-family: system-ui, -apple-system, sans-serif;
     }
@@ -352,6 +353,20 @@
     .reto-medalla { font-size: 16px; opacity: 0.25; }
     .reto-medalla.conseguida { opacity: 1; }
     .reto-card.imbatible { border-color: #f5c518; box-shadow: 0 0 10px rgba(245,197,24,0.35), inset 0 0 0 1px rgba(245,197,24,0.15); }
+    @keyframes eq-check-float {
+      0%   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateX(-50%) translateY(-48px) scale(1.6); }
+    }
+    .eq-check-float {
+      position: absolute;
+      left: 50%;
+      bottom: 100%;
+      transform: translateX(-50%);
+      font-size: 28px;
+      color: #4caf50;
+      pointer-events: none;
+      animation: eq-check-float 0.7s ease-out forwards;
+    }
 
     /* Pantalla de un reto */
     .reto-detalle-overlay {
@@ -1656,8 +1671,8 @@
           </div>
         </div>
 
-        <div style="display:flex;gap:8px;margin-top:16px;">
-          <button class="btn-accion" onclick="eqGuardar()" style="flex:1;">✓ Guardar</button>
+        <div style="display:flex;gap:8px;margin-top:16px;position:relative;">
+          <button id="eq-btn-guardar" class="btn-accion" onclick="eqGuardar()" style="flex:1;">✓ Guardar</button>
           <button id="eq-btn-restaurar" class="btn-accion" onclick="eqRestaurar()" style="background:rgba(255,165,0,0.2);display:none;">↺ Restaurar</button>
           <button class="btn-accion" onclick="eqCancelar()" style="background:rgba(255,255,255,0.08);">Cancelar</button>
         </div>
@@ -1846,6 +1861,7 @@
         <div class="hud-f-goles" id="hud-f-goles-local">0</div>
       </div>
       <div class="hud-f-divisor"></div>
+      <button id="btn-coords" onclick="toggleCoords()" title="Coordenadas" style="display:none;position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.35);font-size:8px;cursor:pointer;padding:0;line-height:1;">#</button>
       <div class="hud-f-equipo hud-f-visitante visitante" id="hud-f-visitante">
         <div style="position:relative;display:inline-block;">
           <div class="hud-f-dot" id="hud-f-dot-visitante"></div>
@@ -1867,7 +1883,8 @@
       </div>
     </div>
 
-    <svg viewBox="-10 -10 130 170" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+    <div id="casilla-tooltip" style="display:none;position:fixed;background:rgba(0,0,0,0.75);color:#fff;font-size:11px;font-family:monospace;padding:2px 6px;border-radius:4px;pointer-events:none;z-index:9999;"></div>
+    <svg id="tablero-svg" viewBox="-10 -10 130 170" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
       <!-- ====== TABLERO (copia de tablero.svg) ====== -->
       <defs>
         <style>
@@ -2708,10 +2725,11 @@
       const esGoal = estado.turno === 'local' ? (f === 14 && c >= 4 && c <= 8) : (f === 0 && c >= 4 && c <= 8);
       if (esGoal) return true;
 
-      // 2. No puede ser el córner propio (prohibido enviar el balón al córner del equipo)
-      // Local: córner propio en fila 1; Visitante: córner propio en fila 13
-      if (estado.turno === 'local'    && ((f === 13 && c === 1) || (f === 13 && c === 11))) return false;
-      if (estado.turno === 'visitante' && ((f === 1 && c === 1) || (f === 1 && c === 11))) return false;
+      // 2. No puede ser el córner propio (cerca de la portería propia de cada equipo)
+      // Local ataca fila 14, portería propia fila 0 → córner propio en fila 1
+      // Visitante ataca fila 0, portería propia fila 14 → córner propio en fila 13
+      if (estado.turno === 'local'     && ((f === 1  && c === 1) || (f === 1  && c === 11))) return false;
+      if (estado.turno === 'visitante' && ((f === 13 && c === 1) || (f === 13 && c === 11))) return false;
 
       // 3. Fuera de area propia (area grande: filas 1-4 cols 2-10 para local, filas 10-13 cols 2-10 para visitante)
       if (estado.turno === 'local') {
@@ -2941,26 +2959,24 @@
         MARCADOR.visitante++;
         animarGol('visitante');
         if (config.modo === 'vsIA' && MARCADOR.visitante - MARCADOR.local >= 2) _remontadaFlag = true;
-        if (verificarVictoria()) return;
+        if (verificarVictoria()) return true;
         recolocar('visitante');
+        return true;
       } else if (b.fila === 14) {
         MARCADOR.local++;
         animarGol('local');
-        // Stats retos
         if (config._retoPendiente) {
           _retoStats.golesTotal++;
-          // Chilavert: el último jugador que tocó el balón era el portero local
           if (estado.ultimoPasador === 'l-portero') _retoStats.golConPortero = true;
-          // Francotirador: el gol viene de casilla amarilla (fila 13, cols 1,4-8,11) o más lejos
-          // Consideramos que el balón estaba en una casilla amarilla en el paso anterior
-          // Comprobamos si el origen del último movimiento era fila >=13 con col amarilla
           const bf = estado.fichas.balon;
           const esAmarilla = bf && bf.fila === 13 && (bf.col === 1 || (bf.col >= 4 && bf.col <= 8) || bf.col === 11);
           if (!esAmarilla) _retoStats.golFueraAmarilla = true;
         }
-        if (verificarVictoria()) return;
+        if (verificarVictoria()) return true;
         recolocar('local');
+        return true;
       }
+      return false;
     }
     
     // ====== CASILLAS ESPECIALES ======
@@ -4473,6 +4489,7 @@
       recolocar(equipoQueSaca);
       document.getElementById('game-container').style.display = 'flex';
       document.getElementById('ui-panel').style.display = 'flex';
+      document.getElementById('btn-coords').style.display = '';
 
 
       // Inicializar condición de victoria
@@ -4689,6 +4706,9 @@
       }
 
       document.getElementById('menu-inicial').style.display = 'flex';
+      document.getElementById('btn-coords').style.display = 'none';
+      _coordsActivo = false;
+      document.getElementById('casilla-tooltip').style.display = 'none';
       MARCADOR.local = 0; MARCADOR.visitante = 0;
       recolocar('local');
     };
@@ -4798,6 +4818,40 @@
       if (actualizado) guardarEquipos(lista);
     }
     inicializarEquiposPredefinidos();
+
+    // ====== TOOLTIP COORDENADAS TABLERO ======
+    let _coordsActivo = false;
+    window.toggleCoords = function() {
+      _coordsActivo = !_coordsActivo;
+      const btn = document.getElementById('btn-coords');
+      if (btn) {
+        btn.style.color    = _coordsActivo ? '#fff' : 'rgba(255,255,255,0.4)';
+        btn.style.background = _coordsActivo ? 'rgba(0,0,0,0.65)' : 'rgba(0,0,0,0.35)';
+      }
+      if (!_coordsActivo) document.getElementById('casilla-tooltip').style.display = 'none';
+    };
+    (function() {
+      const svg = document.getElementById('tablero-svg');
+      const tip = document.getElementById('casilla-tooltip');
+      if (!svg || !tip) return;
+      svg.addEventListener('mousemove', function(e) {
+        if (!_coordsActivo) return;
+        const rect = svg.getBoundingClientRect();
+        const vb = svg.viewBox.baseVal;
+        const scaleX = vb.width  / rect.width;
+        const scaleY = vb.height / rect.height;
+        const svgX = (e.clientX - rect.left)  * scaleX + vb.x;
+        const svgY = (e.clientY - rect.top)   * scaleY + vb.y;
+        const col  = Math.round((svgX - 5) / 10) + 1;
+        const fila = Math.round((svgY - 5) / 10);
+        if (fila < 0 || fila > 14 || col < 1 || col > 11) { tip.style.display = 'none'; return; }
+        tip.textContent = `(${fila},${col})`;
+        tip.style.display = 'block';
+        tip.style.left = (e.clientX + 12) + 'px';
+        tip.style.top  = (e.clientY - 20) + 'px';
+      });
+      svg.addEventListener('mouseleave', () => tip.style.display = 'none');
+    })();
 
     function actualizarSelectoresEquipo() {
       const equipos = equiposGuardados();
@@ -5637,6 +5691,7 @@
 
       document.getElementById('game-container').style.display = 'flex';
       document.getElementById('ui-panel').style.display = 'flex';
+      document.getElementById('btn-coords').style.display = '';
       aplicarEquiposAlHUD();
       actualizarMarcadorUI();
       actualizarUI();
@@ -5873,7 +5928,16 @@
       }
       guardarEquipos(lista);
       actualizarSelectoresEquipo();
-      _eqMostrarLista();
+      _eqRenderLista();
+
+      const btn = document.getElementById('eq-btn-guardar');
+      if (btn) {
+        const check = document.createElement('span');
+        check.className = 'eq-check-float';
+        check.textContent = '✓';
+        btn.parentElement.appendChild(check);
+        check.addEventListener('animationend', () => check.remove());
+      }
     };
 
     window.eqRestaurar = function() {
