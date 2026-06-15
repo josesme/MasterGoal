@@ -2113,6 +2113,21 @@
         </g>
       </g>
       
+      <!-- Velo de atenuación del tablero mientras la IA piensa (bajo el anillo). -->
+      <rect id="ia-velo" x="-10" y="-10" width="130" height="170" fill="rgba(10,20,15,0.28)"
+            style="display:none; transition: opacity 0.25s;" pointer-events="none"/>
+
+      <!-- Anillo "IA pensando" alrededor del balón (oculto por defecto). El arco
+           gira con animación SVG. Se sincroniza su posición con la del balón. -->
+      <g id="ia-pensando" transform="translate(55,75)" style="display:none;" pointer-events="none">
+        <circle r="5.2" fill="none" stroke="rgba(239,83,80,0.25)" stroke-width="0.8"/>
+        <circle r="5.2" fill="none" stroke="#ef5350" stroke-width="0.9"
+                stroke-linecap="round" stroke-dasharray="8 24.7">
+          <animateTransform attributeName="transform" type="rotate"
+                            from="0" to="360" dur="0.9s" repeatCount="indefinite"/>
+        </circle>
+      </g>
+
       <!-- Capa para mostrar destinos posibles (se rellena con JS) -->
       <g id="destinos"></g>
 
@@ -3386,9 +3401,13 @@
       console.log('Turno de:', estado.turno);
       logEstadoCompleto('inicio turno ' + estado.turno);
 
-      // Si es turno de la IA, ejecutarla
+      // Si es turno de la IA, ejecutarla; si es del humano, quitar el indicador
+      // "IA pensando" (el turno de la IA terminó).
       if (estado.turno === 'visitante' && estado.modo === 'vsIA') {
+        _pensandoYaEjecuto = false; // nuevo turno IA: vuelve a poder mostrar "pensando"
         ejecutarTurnoIA();
+      } else {
+        ocultarPensando();
       }
     }
 
@@ -3522,6 +3541,7 @@
         });
         console.groupEnd();
         console.log(`%c🤖 ELEGIDO: ${decision.piezaId} → (${decision.dest.fila},${decision.dest.col})`, 'color:#a5d6a7;font-weight:bold');
+        finPensar(); // la IA decidió: quitar indicador antes de mover
         const exito = mover(decision.piezaId, decision.dest.fila, decision.dest.col);
         if (exito && estado.fase === 'MOVER_BALON' && estado.modo === 'vsIA') {
           ejecutarTurnoIA();
@@ -3550,6 +3570,7 @@
         console.log(`%c🤖 IA BALÓN mov${estado.movimientosBalon+1} | balón(${balonF},${balonC}) | posesión:${equipoTienePosesion('visitante')?'VISITANTE':'NADIE'}`, 'color:#ffcc80;font-weight:bold');
         console.log(`   secuencia: ${seqStr || '(ninguna)'} | score:${Math.round(decision.score)}`);
         console.log(`   primer paso: (${decision.dest.fila},${decision.dest.col})`);
+        finPensar(); // por si el turno empezó en fase de balón
         const exito = mover('balon', decision.dest.fila, decision.dest.col);
         if (exito && estado.fase === 'MOVER_BALON' && estado.movimientosBalon < 4 && estado.modo === 'vsIA') {
           ejecutarTurnoIA();
@@ -3575,12 +3596,57 @@
       }, 500);
     };
 
+    // ── INDICADOR "IA PENSANDO" ──────────────────────────────────────────────
+    // Anillo girando alrededor del balón + velo de atenuación, SOLO mientras la IA
+    // PIENSA su jugada (antes de su primer movimiento). En cuanto empieza a mover,
+    // el feedback es el propio movimiento del balón, así que el indicador se quita
+    // y NO reaparece durante los pases encadenados del mismo turno. Tiene un
+    // retardo de gracia: las jugadas instantáneas no llegan a mostrarlo.
+    let _pensandoTimer = null;
+    let _pensandoVisible = false;
+    let _pensandoYaEjecuto = false; // la IA ya hizo su primer movimiento este turno
+
+    function _posicionarAnillo() {
+      const b = estado.fichas.balon;
+      const c = casillaToSVG(b.fila, b.col);
+      document.getElementById('ia-pensando').setAttribute('transform', `translate(${c.cx},${c.cy})`);
+    }
+
+    function mostrarPensando() {
+      if (_pensandoYaEjecuto) return;         // ya está ejecutando: no reaparecer
+      if (_pensandoVisible || _pensandoTimer) return;
+      _pensandoTimer = setTimeout(() => {
+        _pensandoTimer = null;
+        _pensandoVisible = true;
+        _posicionarAnillo();
+        document.getElementById('ia-pensando').style.display = '';
+        document.getElementById('ia-velo').style.display = '';
+      }, 220);
+    }
+
+    function ocultarPensando() {
+      if (_pensandoTimer) { clearTimeout(_pensandoTimer); _pensandoTimer = null; }
+      if (_pensandoVisible) {
+        _pensandoVisible = false;
+        document.getElementById('ia-pensando').style.display = 'none';
+        document.getElementById('ia-velo').style.display = 'none';
+      }
+    }
+
+    // Llamar cuando la IA va a EJECUTAR su primer movimiento: quita el indicador
+    // y bloquea que reaparezca durante el resto del turno (pases encadenados).
+    function finPensar() {
+      _pensandoYaEjecuto = true;
+      ocultarPensando();
+    }
+
     // La IA se calcula SIEMPRE en el worker del navegador (ia-worker.js), igual
     // que en producción (GitHub Pages es estático y no puede usar un servidor).
     // El worker corre en un hilo aparte: calcula sin congelar la interfaz.
     function ejecutarTurnoIA() {
       if (estado.turno !== 'visitante' || estado.modo !== 'vsIA') return;
       iaCalculando = true;
+      mostrarPensando();
       setTimeout(() => {
         const estadoCopia = JSON.parse(JSON.stringify(estado));
         // Enriquecer con datos que necesita el motor para aplicar estilo/nivel
@@ -4152,6 +4218,7 @@
       document.getElementById('menu-inicial').style.display = 'flex';
       document.getElementById('btn-coords').style.display = 'none';
       document.getElementById('replay-g').style.display = 'none';
+      ocultarPensando();
       _coordsActivo = false;
       document.getElementById('casilla-tooltip').style.display = 'none';
       MARCADOR.local = 0; MARCADOR.visitante = 0;
