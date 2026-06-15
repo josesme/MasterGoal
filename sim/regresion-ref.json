@@ -1,0 +1,262 @@
+[
+  {
+    "pos": 1,
+    "huella": {
+      "piezaId": "v-j3",
+      "dest": {
+        "fila": 8,
+        "col": 6
+      },
+      "top5": [
+        {
+          "piezaId": "v-j3",
+          "dest": {
+            "fila": 8,
+            "col": 6
+          },
+          "score": 6263
+        },
+        {
+          "piezaId": "v-j4",
+          "dest": {
+            "fila": 8,
+            "col": 6
+          },
+          "score": 6183
+        },
+        {
+          "piezaId": "v-j1",
+          "dest": {
+            "fila": 6,
+            "col": 5
+          },
+          "score": 6086
+        },
+        {
+          "piezaId": "v-j2",
+          "dest": {
+            "fila": 6,
+            "col": 7
+          },
+          "score": 6086
+        },
+        {
+          "piezaId": "v-j2",
+          "dest": {
+            "fila": 8,
+            "col": 7
+          },
+          "score": 5985
+        }
+      ]
+    }
+  },
+  {
+    "pos": 2,
+    "huella": {
+      "piezaId": "v-j1",
+      "dest": {
+        "fila": 5,
+        "col": 2
+      },
+      "top5": [
+        {
+          "piezaId": "v-j1",
+          "dest": {
+            "fila": 5,
+            "col": 2
+          },
+          "score": 499596
+        },
+        {
+          "piezaId": "v-j2",
+          "dest": {
+            "fila": 5,
+            "col": 10
+          },
+          "score": 499596
+        },
+        {
+          "piezaId": "v-j3",
+          "dest": {
+            "fila": 10,
+            "col": 6
+          },
+          "score": 7758
+        },
+        {
+          "piezaId": "v-j3",
+          "dest": {
+            "fila": 10,
+            "col": 5
+          },
+          "score": 7565
+        },
+        {
+          "piezaId": "v-j3",
+          "dest": {
+            "fila": 9,
+            "col": 4
+          },
+          "score": 7336
+        }
+      ]
+    }
+  },
+  {
+    "pos": 3,
+    "huella": {
+      "piezaId": "v-portero",
+      "dest": {
+        "fila": 13,
+        "col": 6
+      },
+      "top5": [
+        {
+          "piezaId": "v-portero",
+          "dest": {
+            "fila": 13,
+            "col": 6
+          },
+          "score": 19200
+        },
+        {
+          "piezaId": "v-portero",
+          "dest": {
+            "fila": 12,
+            "col": 4
+          },
+          "score": 11931
+        },
+        {
+          "piezaId": "v-portero",
+          "dest": {
+            "fila": 12,
+            "col": 5
+          },
+          "score": 11678
+        },
+        {
+          "piezaId": "v-j4",
+          "dest": {
+            "fila": 10,
+            "col": 4
+          },
+          "score": 7022
+        },
+        {
+          "piezaId": "v-j4",
+          "dest": {
+            "fila": 10,
+            "col": 3
+          },
+          "score": 6827
+        }
+      ]
+    }
+  },
+  {
+    "pos": 4,
+    "huella": {
+      "piezaId": "v-j4",
+      "dest": {
+        "fila": 5,
+        "col": 6
+      },
+      "top5": [
+        {
+          "piezaId": "v-j4",
+          "dest": {
+            "fila": 5,
+            "col": 6
+          },
+          "score": 504256
+        },
+        {
+          "piezaId": "v-j1",
+          "dest": {
+            "fila": 2,
+            "col": 4
+          },
+          "score": 504101
+        },
+        {
+          "piezaId": "v-j2",
+          "dest": {
+            "fila": 3,
+            "col": 6
+          },
+          "score": 504056
+        },
+        {
+          "piezaId": "v-j1",
+          "dest": {
+            "fila": 3,
+            "col": 5
+          },
+          "score": 503916
+        },
+        {
+          "piezaId": "v-j1",
+          "dest": {
+            "fila": 3,
+            "col": 6
+          },
+          "score": 503866
+        }
+      ]
+    }
+  },
+  {
+    "pos": 5,
+    "huella": {
+      "piezaId": "v-j4",
+      "dest": {
+        "fila": 8,
+        "col": 3
+      },
+      "top5": [
+        {
+          "piezaId": "v-j4",
+          "dest": {
+            "fila": 8,
+            "col": 3
+          },
+          "score": 21190
+        },
+        {
+          "piezaId": "v-j2",
+          "dest": {
+            "fila": 7,
+            "col": 3
+          },
+          "score": 20816
+        },
+        {
+          "piezaId": "v-j2",
+          "dest": {
+            "fila": 8,
+            "col": 2
+          },
+          "score": 20788
+        },
+        {
+          "piezaId": "v-j2",
+          "dest": {
+            "fila": 6,
+            "col": 3
+          },
+          "score": 20634
+        },
+        {
+          "piezaId": "v-j1",
+          "dest": {
+            "fila": 7,
+            "col": 1
+          },
+          "score": 10504
+        }
+      ]
+    }
+  }
+]
