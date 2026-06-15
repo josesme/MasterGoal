@@ -4,44 +4,12 @@
     "huella": {
       "top5": [
         {
-          "piezaId": "v-j3",
-          "dest": {
-            "fila": 8,
-            "col": 6
-          },
-          "score": 6183
-        },
-        {
-          "piezaId": "v-j4",
-          "dest": {
-            "fila": 8,
-            "col": 6
-          },
-          "score": 6183
-        },
-        {
           "piezaId": "v-j1",
           "dest": {
             "fila": 6,
             "col": 5
           },
-          "score": 6086
-        },
-        {
-          "piezaId": "v-j2",
-          "dest": {
-            "fila": 6,
-            "col": 7
-          },
-          "score": 6086
-        },
-        {
-          "piezaId": "v-j1",
-          "dest": {
-            "fila": 8,
-            "col": 5
-          },
-          "score": 5905
+          "score": 0
         }
       ]
     }

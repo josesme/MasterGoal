@@ -1020,9 +1020,86 @@ function iaJugadoresLocalesPorPeligro() {
     .sort((a, b) => b.fila - a.fila);
 }
 
+// ====== LIBRO DE APERTURAS ══════════════════════════════════════════════════
+// Jugadas predefinidas para posiciones reconocibles (p.ej. saque de centro), que
+// la IA siempre resolvería igual pero a un coste enorme (el saque de centro son
+// ~38s y 4.7M evaluaciones para elegir SIEMPRE lo mismo). Si la posición está en
+// el libro, se devuelve el movimiento guardado al instante.
+//
+// Diseño STATELESS (el worker no guarda estado entre mensajes): cada movimiento
+// se indexa por la FIRMA de la posición en la que se aplica. Una apertura es una
+// cadena de firmas: la pieza tiene su firma; tras moverla, la posición resultante
+// tiene otra firma que mapea al 1er pase de balón; etc. Así cada llamada
+// (calcularDecisionJugador / calcularDecisionBalon) consulta su firma actual y,
+// si hay match, sirve el movimiento sin calcular.
+//
+// Estructura: LIBRO_APERTURAS[estilo][firma] = { tipo:'pieza'|'balon', ... }
+//   tipo 'pieza': { piezaId, dest:{fila,col} }
+//   tipo 'balon': { dest:{fila,col} }
+// Se genera con sim/generar-libro.js (captura lo que la IA ya calcula).
+// Generado por sim/generar-libro.js (captura la jugada que la IA calcula en
+// imbatible para el saque de centro, por estilo). Regenerar si cambia el motor.
+const LIBRO_APERTURAS = {
+  "equilibrado": {
+    "visitante|MOVER_JUGADOR|2,6;4,4;4,8;6,3;6,9;12,6;8,3;8,9;10,4;10,8;7,6;": { "tipo": "pieza", "piezaId": "v-j1", "dest": { "fila": 6, "col": 5 } },
+    "visitante|MOVER_BALON|2,6;4,4;4,8;6,3;6,9;12,6;6,5;8,9;10,4;10,8;7,6;": { "tipo": "balon", "dest": { "fila": 9, "col": 8 } },
+    "visitante|MOVER_BALON|2,6;4,4;4,8;6,3;6,9;12,6;6,5;8,9;10,4;10,8;9,8;": { "tipo": "balon", "dest": { "fila": 9, "col": 9 } },
+    "visitante|MOVER_BALON|2,6;4,4;4,8;6,3;6,9;12,6;6,5;8,9;10,4;10,8;9,9;": { "tipo": "balon", "dest": { "fila": 6, "col": 6 } },
+    "visitante|MOVER_BALON|2,6;4,4;4,8;6,3;6,9;12,6;6,5;8,9;10,4;10,8;6,6;": { "tipo": "balon", "dest": { "fila": 2, "col": 2 } }
+  },
+  "defensivo": {
+    "visitante|MOVER_JUGADOR|2,6;4,4;4,8;6,3;6,9;12,6;8,3;8,9;10,4;10,8;7,6;": { "tipo": "pieza", "piezaId": "v-j2", "dest": { "fila": 8, "col": 7 } },
+    "visitante|MOVER_BALON|2,6;4,4;4,8;6,3;6,9;12,6;8,3;8,7;10,4;10,8;7,6;": { "tipo": "balon", "dest": { "fila": 9, "col": 4 } },
+    "visitante|MOVER_BALON|2,6;4,4;4,8;6,3;6,9;12,6;8,3;8,7;10,4;10,8;9,4;": { "tipo": "balon", "dest": { "fila": 9, "col": 3 } },
+    "visitante|MOVER_BALON|2,6;4,4;4,8;6,3;6,9;12,6;8,3;8,7;10,4;10,8;9,3;": { "tipo": "balon", "dest": { "fila": 11, "col": 5 } },
+    "visitante|MOVER_BALON|2,6;4,4;4,8;6,3;6,9;12,6;8,3;8,7;10,4;10,8;11,5;": { "tipo": "balon", "dest": { "fila": 8, "col": 5 } }
+  },
+  "presion": {
+    "visitante|MOVER_JUGADOR|2,6;4,4;4,8;6,3;6,9;12,6;8,3;8,9;10,4;10,8;7,6;": { "tipo": "pieza", "piezaId": "v-j1", "dest": { "fila": 6, "col": 5 } },
+    "visitante|MOVER_BALON|2,6;4,4;4,8;6,3;6,9;12,6;6,5;8,9;10,4;10,8;7,6;": { "tipo": "balon", "dest": { "fila": 9, "col": 8 } },
+    "visitante|MOVER_BALON|2,6;4,4;4,8;6,3;6,9;12,6;6,5;8,9;10,4;10,8;9,8;": { "tipo": "balon", "dest": { "fila": 9, "col": 9 } },
+    "visitante|MOVER_BALON|2,6;4,4;4,8;6,3;6,9;12,6;6,5;8,9;10,4;10,8;9,9;": { "tipo": "balon", "dest": { "fila": 6, "col": 6 } },
+    "visitante|MOVER_BALON|2,6;4,4;4,8;6,3;6,9;12,6;6,5;8,9;10,4;10,8;6,6;": { "tipo": "balon", "dest": { "fila": 2, "col": 2 } }
+  },
+  "contraataque": {
+    "visitante|MOVER_JUGADOR|2,6;4,4;4,8;6,3;6,9;12,6;8,3;8,9;10,4;10,8;7,6;": { "tipo": "pieza", "piezaId": "v-j3", "dest": { "fila": 8, "col": 6 } },
+    "visitante|MOVER_BALON|2,6;4,4;4,8;6,3;6,9;12,6;8,3;8,9;8,6;10,8;7,6;": { "tipo": "balon", "dest": { "fila": 9, "col": 8 } },
+    "visitante|MOVER_BALON|2,6;4,4;4,8;6,3;6,9;12,6;8,3;8,9;8,6;10,8;9,8;": { "tipo": "balon", "dest": { "fila": 9, "col": 7 } },
+    "visitante|MOVER_BALON|2,6;4,4;4,8;6,3;6,9;12,6;8,3;8,9;8,6;10,8;9,7;": { "tipo": "balon", "dest": { "fila": 7, "col": 7 } },
+    "visitante|MOVER_BALON|2,6;4,4;4,8;6,3;6,9;12,6;8,3;8,9;8,6;10,8;7,7;": { "tipo": "balon", "dest": { "fila": 3, "col": 11 } }
+  }
+};
+
+// Firma determinista de la posición actual: turno + fase + posición de cada ficha
+// en orden fijo. Coincidencia exacta.
+function firmaPosicion() {
+  const ids = ['l-portero','l-j1','l-j2','l-j3','l-j4','v-portero','v-j1','v-j2','v-j3','v-j4','balon'];
+  let s = estado.turno + '|' + estado.fase + '|';
+  for (const id of ids) {
+    const d = estado.fichas[id];
+    s += d.fila + ',' + d.col + ';';
+  }
+  return s;
+}
+
+// Busca el movimiento del libro para la posición+estilo actuales, o null.
+function consultarLibro() {
+  const estilo = estado.estiloVisitante || 'equilibrado';
+  const porEstilo = LIBRO_APERTURAS[estilo] || LIBRO_APERTURAS.equilibrado;
+  if (!porEstilo) return null;
+  return porEstilo[firmaPosicion()] || null;
+}
+
 // ====== DECISIÓN MOVER JUGADOR ======
 
 function calcularDecisionJugador() {
+  // Libro de aperturas: si esta posición tiene movimiento de pieza predefinido,
+  // devolverlo al instante.
+  const _libro = consultarLibro();
+  if (_libro && _libro.tipo === 'pieza') {
+    return { piezaId: _libro.piezaId, dest: _libro.dest, top5: [{ piezaId: _libro.piezaId, dest: _libro.dest, score: 0 }] };
+  }
+
   _resetCacheLineas();
   const balonF = estado.fichas.balon.fila;
   const balonC = estado.fichas.balon.col;
@@ -1395,6 +1472,16 @@ function calcularDecisionJugador() {
 // ====== DECISIÓN MOVER BALÓN ======
 
 function calcularDecisionBalon(movRestantes) {
+  // Libro de aperturas: si esta posición tiene un paso de balón predefinido,
+  // servirlo al instante (validando que sigue siendo un destino legal).
+  const _libro = consultarLibro();
+  if (_libro && _libro.tipo === 'balon') {
+    const dests0 = obtenerDestinosBalon(estado.fichas.balon.fila, estado.fichas.balon.col);
+    const ok = dests0.some(d => d.fila === _libro.dest.fila && d.col === _libro.dest.col);
+    if (ok) return { dest: _libro.dest, secuencia: [_libro.dest], score: 0 };
+    // si por lo que sea no es legal, caer al cálculo normal
+  }
+
   _resetCacheLineas();
   const balonF = estado.fichas.balon.fila;
   const balonC = estado.fichas.balon.col;
@@ -1508,5 +1595,8 @@ if (typeof module !== 'undefined' && module.exports) {
     iaEvaluarEstado,
     iaSimularMejorTurnoLocal,
     iaDetectarAmenazaGol,
+    // libro de aperturas (para el generador sim/generar-libro.js)
+    firmaPosicion,
+    LIBRO_APERTURAS,
   };
 }
