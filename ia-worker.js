@@ -1,7 +1,30 @@
 // Web Worker para el cálculo de la IA de MasterGoal
 // Recibe el estado serializado y devuelve la decisión sin bloquear el hilo principal
 
+// Guard para entorno Node (harness de simulación): el navegador define `self`
+// globalmente; en Node lo emulamos para que `self.onmessage = ...` no falle.
+if (typeof self === 'undefined') {
+  globalThis.self = { onmessage: null, postMessage: function () {} };
+}
+
 let estado = null;
+
+// ── CACHÉ DE ENTRADAS DE FICHAS ──────────────────────────────────────────────
+// Object.entries(estado.fichas) se llama decenas de miles de veces por decisión
+// y reconstruye un array nuevo cada vez (coste + presión de GC + accesos
+// megamórficos). Las CLAVES de estado.fichas nunca cambian durante una decisión
+// (solo mutan fila/col); el objeto solo se REEMPLAZA en recolocar()/setEstado.
+// Cacheamos las entradas por identidad del objeto: si estado.fichas es el mismo
+// objeto, devolvemos el array cacheado. 100% equivalente, sin invalidación frágil.
+let _fichasRef = null;
+let _fichasEntries = null;
+function fichasEntries() {
+  if (estado.fichas !== _fichasRef) {
+    _fichasRef = estado.fichas;
+    _fichasEntries = Object.entries(estado.fichas);
+  }
+  return _fichasEntries;
+}
 
 // ── ESTILOS DE JUEGO ─────────────────────────────────────────────────────────
 // Cada estilo ajusta multiplicadores sobre los pesos base de iaEvaluarEstado.
@@ -91,7 +114,7 @@ function esPorteria(f, c) {
 }
 
 function estaOcupada(f, c, exceptoId) {
-  for (const [id, d] of Object.entries(estado.fichas)) {
+  for (const [id, d] of fichasEntries()) {
     if (id === exceptoId) continue;
     if (d.fila === f && d.col === c) return true;
   }
@@ -120,7 +143,7 @@ function equipoConBalonEnBrazo() {
 function contarColindantes() {
   const b = estado.fichas.balon;
   let local = 0, visitante = 0;
-  for (const [id, d] of Object.entries(estado.fichas)) {
+  for (const [id, d] of fichasEntries()) {
     if (id === 'balon') continue;
     if (esColindanteAlBalon(d.fila, d.col)) {
       if (id === 'l-portero' || id === 'v-portero') {
@@ -149,7 +172,7 @@ function esPortero(id) {
 
 function obtenerColindantesEquipo(balonF, balonC, equipo) {
   const colindantes = [];
-  for (const [id, d] of Object.entries(estado.fichas)) {
+  for (const [id, d] of fichasEntries()) {
     if (id === 'balon') continue;
     if (d.equipo === equipo && Math.abs(d.fila - balonF) <= 1 && Math.abs(d.col - balonC) <= 1 && !(d.fila === balonF && d.col === balonC)) {
       colindantes.push(id);
@@ -213,7 +236,7 @@ function saltaJugadorEnAreaChica(fOrigen, cOrigen, fDest, cDest) {
                         (cf >= 12 && cf <= 13 && cc >= 3 && cc <= 9);
     if (enAreaChica) {
       const equipoRival = estado.turno === 'local' ? 'visitante' : 'local';
-      for (const [id, d] of Object.entries(estado.fichas)) {
+      for (const [id, d] of fichasEntries()) {
         if (id === 'balon') continue;
         if (d.equipo !== equipoRival) continue;
         if (d.fila === cf && d.col === cc) return true;
@@ -390,7 +413,7 @@ function iaLineasAPorteria(bf, bc, equipoAtacante) {
       if (!esCasillaValida(nf, nc) && nf !== filaPorteria) break;
       // Bloqueada por jugador (no portero)
       if (estaOcupada(nf, nc, 'balon')) {
-        const bloqueador = Object.entries(estado.fichas).find(([id, d]) => d.fila === nf && d.col === nc);
+        const bloqueador = fichasEntries().find(([id, d]) => d.fila === nf && d.col === nc);
         if (bloqueador) {
           const [bid] = bloqueador;
           if (bid === porteroRivalId) {
@@ -480,7 +503,7 @@ function iaAmenazaPotencialEnDest(jf, jc, piezaId) {
 
 function iaColindantesSimulados(bf, bc, equipo) {
   let n = 0;
-  for (const [id, d] of Object.entries(estado.fichas)) {
+  for (const [id, d] of fichasEntries()) {
     if (id === 'balon' || d.equipo !== equipo) continue;
     if (Math.abs(d.fila - bf) <= 1 && Math.abs(d.col - bc) <= 1) n++;
   }
@@ -598,7 +621,7 @@ function iaEvaluarEstado() {
 
   // ── 6. CONTROL DEL CENTRO DEL CAMPO ──────────────────────────────────────
   let controlCentroVisitante = 0, controlCentroLocal = 0;
-  for (const [id, d] of Object.entries(estado.fichas)) {
+  for (const [id, d] of fichasEntries()) {
     if (id === 'balon' || esPortero(id)) continue;
     if (d.equipo === 'visitante' && d.fila >= 4 && d.fila <= 9 && Math.abs(d.col - 6) <= 2) controlCentroVisitante++;
     if (d.equipo === 'local'     && d.fila >= 5 && d.fila <= 10 && Math.abs(d.col - 6) <= 2) controlCentroLocal++;
@@ -613,7 +636,7 @@ function iaEvaluarEstado() {
   const vaGanando = marcador.visitante > marcador.local;
   const extraDefensivo = (estado.estiloVisitante === 'defensivo' && vaGanando) ? 1.4 : 1.0;
 
-  for (const [id, d] of Object.entries(estado.fichas)) {
+  for (const [id, d] of fichasEntries()) {
     if (id === 'balon' || esPortero(id)) continue;
     const distBal      = iaDistancia(d.fila, d.col, bf, bc);
     const esColindante = Math.abs(d.fila - bf) <= 1 && Math.abs(d.col - bc) <= 1;
@@ -1276,3 +1299,24 @@ self.onmessage = function(e) {
     else self.postMessage({ tipo: 'DECISION_BALON', decision: null });
   }
 };
+
+// ====== EXPORTACIONES PARA HARNESS NODE ======
+// No afecta al Worker del navegador (module no existe allí).
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    // setter/getter del estado interno (el harness inyecta el tablero)
+    setEstado: (e) => { estado = e; },
+    getEstado: () => estado,
+    // decisiones de la IA
+    calcularDecisionJugador,
+    calcularDecisionBalon,
+    // reglas puras reutilizables por el harness
+    equipoTienePosesion,
+    obtenerDestinosBalon,
+    obtenerDestinosJugador,
+    esPorteria,
+    esPortero,
+    esCasillaValida,
+    iaEvaluarEstado,
+  };
+}
