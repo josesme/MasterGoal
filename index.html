@@ -2467,16 +2467,29 @@
       return colindantes;
     }
     
-    // Verifica si un movimiento de balon es autopase
-    // Regla: un jugador no puede pasar el balón a una casilla donde él mismo
-    // sigue siendo el único colindante — el balón no ha cambiado de poseedor.
-    // Solo aplica cuando hay un único colindante en el origen (posesión exclusiva).
+    // Verifica si un movimiento de balon es autopase.
+    // Regla (con casillas compartidas): el balón lo mueve un "pasador efectivo" —
+    // el jugador colindante que SÍ puede tocarlo. Si el último que tocó
+    // (ultimoPasador) está entre los colindantes del origen, NO puede repetir, así
+    // que el pasador efectivo es OTRO colindante. Es autopase si el destino
+    // pertenece EXCLUSIVAMENTE a ese pasador efectivo (de una casilla suya a otra
+    // suya). Si el destino es de un compañero o compartido, es pase válido.
     function esAutopase(filaDest, colDest) {
       const equipo = estado.turno;
       const actuales = obtenerColindantesEquipo(estado.fichas.balon.fila, estado.fichas.balon.col, equipo);
       const destino  = obtenerColindantesEquipo(filaDest, colDest, equipo);
 
-      // Solo hay autopase si el mismo jugador único sigue siendo el único colindante
+      // Pasadores posibles: colindantes de origen que no son el último pasador.
+      const posiblesPasadores = estado.ultimoPasador
+        ? actuales.filter(id => id !== estado.ultimoPasador)
+        : actuales.slice();
+
+      // Un único pasador efectivo: autopase si el destino es exclusivamente suyo.
+      if (posiblesPasadores.length === 1) {
+        return destino.length === 1 && destino[0] === posiblesPasadores[0];
+      }
+
+      // Caso clásico: origen y destino pertenecen al mismo y único jugador.
       if (actuales.length === 1 && destino.length === 1 && actuales[0] === destino[0]) return true;
 
       return false;
@@ -2842,10 +2855,17 @@
         actualizarPatternFicha(id, coords.cx, coords.cy);
       }
 
-      // Capturar pasador ANTES de mover el balón
+      // Capturar pasador ANTES de mover el balón. El pasador efectivo es el
+      // colindante de origen que NO era el último pasador (el anterior no puede
+      // repetir). Si tras excluirlo queda uno solo, ese movió; si quedan varios
+      // (casilla compartida sin restricción), no se puede atribuir con certeza
+      // y se deja null (no impondrá restricción de autopase en el siguiente).
       if (id === 'balon') {
         const colindantesOrigen = obtenerColindantesEquipo(estado.fichas.balon.fila, estado.fichas.balon.col, estado.turno);
-        estado.ultimoPasador = colindantesOrigen.length === 1 ? colindantesOrigen[0] : null;
+        const efectivos = estado.ultimoPasador
+          ? colindantesOrigen.filter(pid => pid !== estado.ultimoPasador)
+          : colindantesOrigen;
+        estado.ultimoPasador = efectivos.length === 1 ? efectivos[0] : null;
       }
 
       estado.fichas[id].fila = fDest;

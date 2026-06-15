@@ -210,15 +210,38 @@ function esAutopase(filaDest, colDest) {
 
 // Variante que recibe los colindantes de origen ya calculados (son idénticos
 // para todos los destinos de una misma llamada a obtenerDestinosBalon).
+//
+// Regla de autopase (con casillas compartidas):
+//   - El balón lo mueve un "pasador efectivo": el jugador del equipo colindante
+//     al balón que SÍ puede tocarlo. Si el último que tocó (ultimoPasador) está
+//     entre los colindantes de origen, NO puede repetir, así que el pasador
+//     efectivo es OTRO colindante distinto.
+//   - Es autopase si el destino pertenece EXCLUSIVAMENTE a ese pasador efectivo
+//     (mover de una casilla suya a otra suya). Si el destino también pertenece a
+//     otro compañero (casilla compartida) o es exclusiva de otro, es pase válido.
 function esAutopaseConOrigen(filaDest, colDest, actuales) {
   const equipo = estado.turno;
   const destino = obtenerColindantesEquipo(filaDest, colDest, equipo);
 
-  // Caso clásico: mismo único colindante en origen y destino
-  if (actuales.length === 1 && destino.length === 1 && actuales[0] === destino[0]) return true;
+  // Pasadores posibles en origen: los colindantes que NO son el último pasador
+  // (el último no puede mover de nuevo en este movimiento).
+  const posiblesPasadores = estado.ultimoPasador
+    ? actuales.filter(id => id !== estado.ultimoPasador)
+    : actuales.slice();
 
-  // Caso extendido: el último pasador no puede ser el único responsable del siguiente pase
-  if (estado.ultimoPasador && destino.length === 1 && destino[0] === estado.ultimoPasador) return true;
+  // Si tras excluir al último pasador queda exactamente UN pasador efectivo,
+  // el balón lo mueve él. Es autopase si el destino es exclusivamente suyo.
+  if (posiblesPasadores.length === 1) {
+    const pasador = posiblesPasadores[0];
+    if (destino.length === 1 && destino[0] === pasador) return true;
+    return false;
+  }
+
+  // Si hay varios pasadores posibles (casilla compartida sin restricción de
+  // último pasador aplicable), solo es autopase si el destino tiene un único
+  // colindante y coincide con el único colindante de origen (caso clásico:
+  // ambos extremos pertenecen al mismo y único jugador).
+  if (actuales.length === 1 && destino.length === 1 && actuales[0] === destino[0]) return true;
 
   return false;
 }
@@ -369,9 +392,15 @@ function obtenerDestinosBalon(f, c) {
     estado.turno === 'local' ? (f === 14 && c >= 4 && c <= 8) : (f === 0 && c >= 4 && c <= 8);
   const balonOriginal2 = { ...estado.fichas.balon };
   const pasadorOriginal = estado.ultimoPasador;
-  // Calcular el pasador de este movimiento (el único colindante actual, si lo hay)
+  // Pasador efectivo de este movimiento: el colindante que NO era el último
+  // pasador (el anterior no repite). Si queda uno solo, ese mueve; si quedan
+  // varios (casilla compartida sin restricción), null. Misma lógica que mover()
+  // en index.html para que ambos motores propaguen el pasador igual.
   const colindantesActuales = obtenerColindantesEquipo(f, c, estado.turno);
-  const pasadorEste = colindantesActuales.length === 1 ? colindantesActuales[0] : null;
+  const efectivosEste = pasadorOriginal
+    ? colindantesActuales.filter(id => id !== pasadorOriginal)
+    : colindantesActuales;
+  const pasadorEste = efectivosEste.length === 1 ? efectivosEste[0] : null;
   dest = dest.filter(d => {
     if (esPorteriaContraria(d.fila, d.col)) return true;
     estado.fichas.balon.fila = d.fila;
@@ -708,9 +737,13 @@ function iaBestBallSequence(f, c, movRestantes, alpha, beta) {
   estado.fichas.balon.fila = f; estado.fichas.balon.col = c;
   estado.turno = 'visitante';
   estado.movimientosBalon = 4 - movRestantes;
-  // Calcular el pasador de este nivel (único colindante en f,c)
+  // Pasador efectivo de este nivel: colindante que no era el último pasador
+  // (coherente con obtenerDestinosBalon y mover()).
   const colindantesNivel = obtenerColindantesEquipo(f, c, 'visitante');
-  const pasadorNivel = colindantesNivel.length === 1 ? colindantesNivel[0] : null;
+  const efectivosNivel = oldPasador
+    ? colindantesNivel.filter(id => id !== oldPasador)
+    : colindantesNivel;
+  const pasadorNivel = efectivosNivel.length === 1 ? efectivosNivel[0] : null;
 
   if (movRestantes === 0) {
     const s = iaEvaluarEstado();
