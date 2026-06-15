@@ -12,8 +12,10 @@ const PORT = 3001;
 const workerPath = path.join(__dirname, 'ia-worker.js');
 let workerCode = fs.readFileSync(workerPath, 'utf8');
 
-// Quitar el bloque self.onmessage (todo lo que viene después)
-workerCode = workerCode.replace(/\bself\.onmessage\s*=[\s\S]*$/, '');
+// Quitar el bloque self.onmessage (todo lo que viene después). El ancla ^ con
+// flag multilinea exige que 'self.onmessage' esté al INICIO de una línea (código
+// real), no dentro de un comentario que mencione el texto.
+workerCode = workerCode.replace(/^self\.onmessage\s*=[\s\S]*$/m, '');
 // Eliminar cualquier referencia residual a 'self'
 workerCode = workerCode.replace(/\bself\b/g, 'globalThis');
 
