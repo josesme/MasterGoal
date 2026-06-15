@@ -982,6 +982,15 @@ function calcularDecisionJugador() {
   }
   const hayAmenazaGol = amenazasGolActuales.length > 0;
 
+  // ── MODO DEFENSA CRÍTICA ──────────────────────────────────────────────────
+  // Cuando el rival TIENE posesión y el balón está en zona peligrosa (campo de
+  // la IA, fila >= 9), defender por PROXIES (cortar líneas, colindancia) falla:
+  // el rival tiene 4 movimientos para rodear. La defensa correcta se mide por la
+  // AMENAZA RESIDUAL REAL — simular el mejor turno del local tras nuestra defensa
+  // (iaSimularMejorTurnoLocal) y elegir el movimiento que más la reduzca.
+  // Es costoso, así que solo se activa en este modo y sobre candidatos relevantes.
+  const defensaCritica = rivalTienePosesion && balonF >= 9;
+
   // Líneas de tiro rivales abiertas ANTES de cualquier movimiento
   // Sirve para valorar cuántas cortamos con cada destino (estrategia bloqueo)
   const lineasRivalesActuales = iaLineasRivalesAbiertas(balonF, balonC);
@@ -992,6 +1001,31 @@ function calcularDecisionJugador() {
     .filter(l => !l.bloqueadaPorPortero).length;
 
   let candidatos = [];
+
+  // Evalúa la amenaza residual REAL de mover `piezaId` a (df,dc): aplica el
+  // movimiento, simula el mejor turno de ataque del local y devuelve ese score
+  // (perspectiva visitante: más alto = menos amenaza = mejor defensa). Restaura
+  // el tablero. Caro — usar solo en defensa crítica.
+  const evaluarDefensaReal = (piezaId, df, dc) => {
+    const oF = estado.fichas[piezaId].fila, oC = estado.fichas[piezaId].col;
+    estado.fichas[piezaId].fila = df; estado.fichas[piezaId].col = dc;
+    // Si recuperamos posesión, el valor lo da nuestra propia jugada; si no,
+    // lo que el local pueda hacer en su turno.
+    let s;
+    if (equipoTienePosesion('visitante')) {
+      const resPropio = iaBestBallSequence(balonF, balonC, 4, -Infinity, Infinity);
+      s = resPropio.score + 30000; // recuperar bajo amenaza es lo mejor posible
+    } else {
+      s = iaSimularMejorTurnoLocal();
+    }
+    estado.fichas[piezaId].fila = oF; estado.fichas[piezaId].col = oC;
+    return s;
+  };
+
+  // Amenaza base si la IA hiciera un movimiento que no afecta a la disputa:
+  // referencia para puntuar (en la misma escala) los candidatos irrelevantes
+  // en modo defensa crítica.
+  const amenazaBaseSinIntervenir = defensaCritica ? iaSimularMejorTurnoLocal() : 0;
 
   for (const pieza of piezasIA) {
     const esPorteroIA = esPortero(pieza.id);
@@ -1070,8 +1104,17 @@ function calcularDecisionJugador() {
             if (rivalTienePosesion) {
               score += 20000 + Math.max(0, (balonF - 7)) * 4000; // hasta +44000 en fila 14
             }
-          } else if (esColindanteBalon) {
+          } else if (esColindanteBalon && !rivalTienePosesion) {
+            // Colindante con balón neutro/propio: posición útil (puede atrapar).
             score += 15000;
+            score -= Math.abs(dest.col - 6) * 80;
+          } else if (esColindanteBalon) {
+            // Colindante PERO el rival mantiene posesión (no se la quitamos):
+            // el portero se queda pegado al balón sin recuperarlo — NO defiende,
+            // deja al rival su jugada. No premiar como antes (era +15000, falso
+            // positivo que hacía al portero ignorar a un jugador de campo que sí
+            // neutralizaba). Valor neutro/bajo: que compita un compañero mejor.
+            score += 500;
             score -= Math.abs(dest.col - 6) * 80;
           } else {
             score -= Math.abs(dest.col - balonC) * 30;
@@ -1091,6 +1134,15 @@ function calcularDecisionJugador() {
         // Bloqueo de líneas rivales también aplica al portero
         const lineasCortadas = iaLineasCortadasEnDest(dest.fila, dest.col, lineasRivalesActuales, balonF, balonC);
         score += lineasCortadas * 600;
+
+        // DEFENSA CRÍTICA: sobreescribir con amenaza residual real. El portero
+        // dentro del área grande es candidato relevante (puede recuperar o tapar);
+        // fuera del área no defiende, recibe la amenaza base (misma escala).
+        if (defensaCritica) {
+          score = enAreaGrande
+            ? evaluarDefensaReal(pieza.id, dest.fila, dest.col)
+            : amenazaBaseSinIntervenir - 5000; // fuera del área: aún peor
+        }
 
         candidatos.push({ piezaId: pieza.id, dest, score });
       }
@@ -1213,6 +1265,16 @@ function calcularDecisionJugador() {
           const urgencia = Math.max(1, balonF - 6);
           scoreTotal += lineasCortadas * 500 * (urgencia / 7);
         }
+      }
+
+      // DEFENSA CRÍTICA: para jugadores de campo, sobreescribir con amenaza
+      // residual real. Los candidatos colindantes al balón (pueden romper la
+      // mayoría local) se evalúan de verdad; el resto recibe la amenaza base
+      // (no intervienen en la disputa) para mantener todos en la misma escala.
+      if (defensaCritica) {
+        scoreTotal = esColindanteDest
+          ? evaluarDefensaReal(pieza.id, dest.fila, dest.col)
+          : amenazaBaseSinIntervenir;
       }
 
       estado.fichas[pieza.id].fila = pieza.fila;
