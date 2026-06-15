@@ -1062,6 +1062,14 @@ function calcularDecisionJugador() {
             estado.fichas[pieza.id].fila = pieza.fila;
             estado.fichas[pieza.id].col  = pieza.col;
             score = resPropio.score - scoreRival * (0.8 + Math.max(0, (balonF - 7) / 7) * 0.4) + 8000;
+            // RECUPERACIÓN DEFENSIVA: si el rival tenía posesión y el portero se la
+            // arrebata (incluso atrapando el balón con el brazo en minoría), es la
+            // jugada defensiva más valiosa posible — evita la jugada de ataque rival.
+            // El bonus escala con la cercanía del balón a nuestra portería (fila 14):
+            // cuanto más cerca, más gol evitamos. Debe dominar cualquier heurística.
+            if (rivalTienePosesion) {
+              score += 20000 + Math.max(0, (balonF - 7)) * 4000; // hasta +44000 en fila 14
+            }
           } else if (esColindanteBalon) {
             score += 15000;
             score -= Math.abs(dest.col - 6) * 80;
@@ -1329,5 +1337,7 @@ if (typeof module !== 'undefined' && module.exports) {
     esPortero,
     esCasillaValida,
     iaEvaluarEstado,
+    iaSimularMejorTurnoLocal,
+    iaDetectarAmenazaGol,
   };
 }
