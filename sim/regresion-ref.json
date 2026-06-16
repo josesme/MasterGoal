@@ -6,7 +6,7 @@
         {
           "piezaId": "v-j1",
           "dest": {
-            "fila": 6,
+            "fila": 8,
             "col": 5
           },
           "score": 0
@@ -22,41 +22,41 @@
           "piezaId": "v-j1",
           "dest": {
             "fila": 5,
-            "col": 2
+            "col": 4
           },
-          "score": 499596
+          "score": 1019
         },
         {
-          "piezaId": "v-j2",
+          "piezaId": "v-j1",
           "dest": {
-            "fila": 5,
-            "col": 10
+            "fila": 6,
+            "col": 4
           },
-          "score": 499596
+          "score": 903
         },
         {
-          "piezaId": "v-j3",
+          "piezaId": "v-j1",
           "dest": {
-            "fila": 10,
-            "col": 6
-          },
-          "score": 8332
-        },
-        {
-          "piezaId": "v-j3",
-          "dest": {
-            "fila": 10,
-            "col": 5
-          },
-          "score": 8002
-        },
-        {
-          "piezaId": "v-j3",
-          "dest": {
-            "fila": 9,
+            "fila": 6,
             "col": 3
           },
-          "score": 7817
+          "score": 798
+        },
+        {
+          "piezaId": "v-j1",
+          "dest": {
+            "fila": 7,
+            "col": 2
+          },
+          "score": 770
+        },
+        {
+          "piezaId": "v-j1",
+          "dest": {
+            "fila": 5,
+            "col": 6
+          },
+          "score": 764
         }
       ]
     }
@@ -66,44 +66,44 @@
     "huella": {
       "top5": [
         {
-          "piezaId": "v-j4",
-          "dest": {
-            "fila": 10,
-            "col": 4
-          },
-          "score": 31274
-        },
-        {
-          "piezaId": "v-portero",
-          "dest": {
-            "fila": 12,
-            "col": 4
-          },
-          "score": 31002
-        },
-        {
-          "piezaId": "v-j4",
-          "dest": {
-            "fila": 10,
-            "col": 3
-          },
-          "score": 30974
-        },
-        {
-          "piezaId": "v-j4",
-          "dest": {
-            "fila": 11,
-            "col": 3
-          },
-          "score": 30946
-        },
-        {
           "piezaId": "v-portero",
           "dest": {
             "fila": 12,
             "col": 5
           },
           "score": 30922
+        },
+        {
+          "piezaId": "v-portero",
+          "dest": {
+            "fila": 12,
+            "col": 4
+          },
+          "score": 30702
+        },
+        {
+          "piezaId": "v-portero",
+          "dest": {
+            "fila": 11,
+            "col": 6
+          },
+          "score": -502000
+        },
+        {
+          "piezaId": "v-portero",
+          "dest": {
+            "fila": 10,
+            "col": 6
+          },
+          "score": -502000
+        },
+        {
+          "piezaId": "v-portero",
+          "dest": {
+            "fila": 11,
+            "col": 7
+          },
+          "score": -502000
         }
       ]
     }
@@ -113,28 +113,12 @@
     "huella": {
       "top5": [
         {
-          "piezaId": "v-j4",
-          "dest": {
-            "fila": 5,
-            "col": 6
-          },
-          "score": 504256
-        },
-        {
           "piezaId": "v-j1",
           "dest": {
             "fila": 2,
             "col": 4
           },
-          "score": 504101
-        },
-        {
-          "piezaId": "v-j2",
-          "dest": {
-            "fila": 3,
-            "col": 6
-          },
-          "score": 504056
+          "score": 504591
         },
         {
           "piezaId": "v-j1",
@@ -151,6 +135,22 @@
             "col": 6
           },
           "score": 503866
+        },
+        {
+          "piezaId": "v-j1",
+          "dest": {
+            "fila": 6,
+            "col": 6
+          },
+          "score": 503691
+        },
+        {
+          "piezaId": "v-j1",
+          "dest": {
+            "fila": 5,
+            "col": 5
+          },
+          "score": 503676
         }
       ]
     }
@@ -160,44 +160,44 @@
     "huella": {
       "top5": [
         {
-          "piezaId": "v-j2",
+          "piezaId": "v-j1",
           "dest": {
-            "fila": 3,
-            "col": 3
+            "fila": 4,
+            "col": 1
           },
-          "score": 504339
+          "score": 496994
         },
         {
-          "piezaId": "v-j2",
+          "piezaId": "v-j1",
+          "dest": {
+            "fila": 4,
+            "col": 2
+          },
+          "score": 495060
+        },
+        {
+          "piezaId": "v-j1",
           "dest": {
             "fila": 5,
             "col": 3
           },
-          "score": 504339
+          "score": 494850
         },
         {
-          "piezaId": "v-j2",
+          "piezaId": "v-j1",
           "dest": {
-            "fila": 2,
+            "fila": 3,
             "col": 2
           },
-          "score": 503729
+          "score": 494849
         },
         {
-          "piezaId": "v-j2",
+          "piezaId": "v-j1",
           "dest": {
-            "fila": 4,
-            "col": 5
+            "fila": 5,
+            "col": 1
           },
-          "score": 503449
-        },
-        {
-          "piezaId": "v-j2",
-          "dest": {
-            "fila": 4,
-            "col": 6
-          },
-          "score": 503399
+          "score": 3044
         }
       ]
     }

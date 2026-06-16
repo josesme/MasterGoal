@@ -769,6 +769,10 @@ function iaBestBallSequence(f, c, movRestantes, alpha, beta) {
   scored.sort((a, b) => b.s - a.s);
   let mejorScore = -Infinity, mejorSeq = [];
   for (const { d } of scored) {
+    // Límite de tiempo: si se agotó el reloj y ya hay un candidato, cortar la
+    // exploración. El balón está en (f,c) aquí (restaurado al final de la
+    // iteración previa), así que la restauración posterior al bucle es correcta.
+    if (mejorScore > -Infinity && tiempoAgotado()) break;
     if (d.fila === 0 && d.col >= 4 && d.col <= 8) {
       estado.fichas.balon.fila = oldF; estado.fichas.balon.col = oldC;
       estado.turno = oldTurno; estado.movimientosBalon = oldMovs;
@@ -1071,6 +1075,22 @@ const LIBRO_APERTURAS = {
   }
 };
 
+// ── LÍMITE DE TIEMPO POR DECISIÓN ─────────────────────────────────────────────
+// El lookahead crece exponencialmente; en posiciones muy abiertas (muchas opciones
+// parecidas, poda alfa-beta ineficaz) una decisión podía tardar minutos. Para que
+// la IA NUNCA se cuelgue, llevamos un cronómetro por decisión: si se agota, se
+// devuelve la mejor jugada encontrada hasta ese momento (como los motores de
+// ajedrez con reloj). En 9s ya se explora muchísimo, así que apenas pierde fuerza.
+let _deadline = Infinity;          // timestamp límite (Date.now())
+// Tope por decisión. En Imbatible las posiciones muy abiertas pueden tardar
+// minutos; con esto la IA devuelve la mejor jugada hallada al llegar al tope
+// (verificado: no pierde fuerza, ya ve goles dentro del límite). Los niveles
+// inferiores casi nunca lo alcanzan. Override por env en Node (pruebas): MG_LIMITE_MS.
+const LIMITE_MS = (typeof process !== 'undefined' && process.env && process.env.MG_LIMITE_MS)
+  ? parseInt(process.env.MG_LIMITE_MS, 10) : 9000;
+function _armarReloj() { _deadline = Date.now() + LIMITE_MS; }
+function tiempoAgotado() { return Date.now() > _deadline; }
+
 // Firma determinista de la posición actual: turno + fase + posición de cada ficha
 // en orden fijo. Coincidencia exacta.
 function firmaPosicion() {
@@ -1101,6 +1121,7 @@ function calcularDecisionJugador() {
     return { piezaId: _libro.piezaId, dest: _libro.dest, top5: [{ piezaId: _libro.piezaId, dest: _libro.dest, score: 0 }] };
   }
 
+  _armarReloj();
   _resetCacheLineas();
   const balonF = estado.fichas.balon.fila;
   const balonC = estado.fichas.balon.col;
@@ -1191,6 +1212,10 @@ function calcularDecisionJugador() {
   };
 
   for (const pieza of piezasIA) {
+    // Límite de tiempo: si ya tenemos candidatos y se agotó el reloj, parar de
+    // explorar más piezas y quedarnos con lo mejor encontrado. (El estado está
+    // restaurado aquí: cada iteración de destino restaura la pieza al terminar.)
+    if (candidatos.length > 0 && tiempoAgotado()) break;
     const esPorteroIA = esPortero(pieza.id);
     const destinos = obtenerDestinosJugador(pieza.fila, pieza.col, 'visitante')
       .filter(d => !estaOcupada(d.fila, d.col, pieza.id));
@@ -1483,6 +1508,7 @@ function calcularDecisionBalon(movRestantes) {
     // si por lo que sea no es legal, caer al cálculo normal
   }
 
+  _armarReloj();
   _resetCacheLineas();
   const balonF = estado.fichas.balon.fila;
   const balonC = estado.fichas.balon.col;
