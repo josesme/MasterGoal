@@ -3999,6 +3999,7 @@
       document.getElementById('ui-panel').style.display = 'flex';
       document.getElementById('btn-coords').style.display = '';
       document.getElementById('replay-g').style.display = '';
+      if (window.actualizarIaDebug) actualizarIaDebug();
       actualizarReplayUI();
 
 
@@ -4219,6 +4220,7 @@
       document.getElementById('btn-coords').style.display = 'none';
       document.getElementById('replay-g').style.display = 'none';
       ocultarPensando();
+      document.getElementById('ia-debug').style.display = 'none';
       _coordsActivo = false;
       document.getElementById('casilla-tooltip').style.display = 'none';
       MARCADOR.local = 0; MARCADOR.visitante = 0;
@@ -5205,6 +5207,7 @@
       document.getElementById('ui-panel').style.display = 'flex';
       document.getElementById('btn-coords').style.display = '';
       document.getElementById('replay-g').style.display = '';
+      if (window.actualizarIaDebug) actualizarIaDebug();
       reiniciarHistorial();
       aplicarEquiposAlHUD();
       actualizarMarcadorUI();
@@ -6095,7 +6098,9 @@
       // Inicializar tabla
       const tabla = {};
       todos.forEach(id => { tabla[id] = { pj:0, g:0, e:0, p:0, gf:0, gc:0, pts:0 }; });
-      ligaData = { miEquipo: miId, jugadores: jugadorIds, equipos: todos, partidos, tabla, config: { ...ligaConfig }, jornadaVista: 1 };
+      // Guardar tambien el nivel de IA elegido (el selector de nivel setea
+      // config.nivelIA via seleccionarNivel) para que se mantenga en toda la liga.
+      ligaData = { miEquipo: miId, jugadores: jugadorIds, equipos: todos, partidos, tabla, config: { ...ligaConfig, nivelIA: config.nivelIA || 'profesional' }, jornadaVista: 1 };
       ligaGuardar();
       document.getElementById('liga-crear-overlay').classList.remove('visible');
       ligaMostrar();
@@ -6311,6 +6316,9 @@
       config.encuentro  = ligaData.config.encuentro;
       config.turnos     = ligaData.config.turnos;
       config.cronoTiempo = ligaData.config.cronoTiempo;
+      // Mantener el nivel de IA elegido al crear la liga (fallback si ligas antiguas
+      // no lo guardaron).
+      config.nivelIA    = ligaData.config.nivelIA || config.nivelIA || 'profesional';
       config._ligaPartido = p;
       config._ligaPendiente = true;
       actualizarSelectoresEquipo();
@@ -6355,6 +6363,35 @@
 
     // Inicializar UI (pero oculto hasta que elija modo)
     actualizarUI();
+  </script>
+
+  <!-- Indicador discreto de config de IA (esquina inferior). Formato: N5-D4/A4-P3 -->
+  <div id="ia-debug" style="display:none;position:fixed;bottom:3px;right:5px;z-index:50;
+       font-family:monospace;font-size:10px;color:rgba(255,255,255,0.3);
+       pointer-events:none;user-select:none;letter-spacing:0.5px;"></div>
+  <script>
+    // Muestra nivel / profundidad / potencial de la partida en curso vs IA.
+    (function () {
+      const NIVEL_NUM = { imbatible: 5, leyenda: 4, profesional: 3, juvenil: 2, cadete: 1 };
+      const PROF = {
+        imbatible: { a: 4, d: 4 }, leyenda: { a: 4, d: 3 }, profesional: { a: 3, d: 2 },
+        juvenil: { a: 2, d: 2 }, cadete: { a: 2, d: 1 },
+      };
+      window.actualizarIaDebug = function () {
+        const el = document.getElementById('ia-debug');
+        if (!el) return;
+        // Solo en partidas contra la IA
+        if (!config || config.modo !== 'vsIA') { el.style.display = 'none'; return; }
+        const nivel = config.nivelIA || 'profesional';
+        const n = NIVEL_NUM[nivel] ?? '?';
+        const p = PROF[nivel] || { a: '?', d: '?' };
+        const eqRival = (typeof equiposGuardados === 'function')
+          ? equiposGuardados().find(e => e.id === config.equipoRival) : null;
+        const pot = eqRival?.potencial ?? 3;
+        el.textContent = `N${n}-D${p.d}/A${p.a}-P${pot}`;
+        el.style.display = '';
+      };
+    })();
   </script>
 </body>
 </html>
