@@ -5731,7 +5731,8 @@
         rondas.push(partidos);
         actuales = new Array(actuales.length / 2).fill(null);
       }
-      torneoData = { jugadores, tamano, rondas, rondaActual: 0, config: { ...torneoConfig } };
+      // Guardar tambien el nivel de IA elegido para que se mantenga toda la copa.
+      torneoData = { jugadores, tamano, rondas, rondaActual: 0, config: { ...torneoConfig, nivelIA: config.nivelIA || 'profesional' } };
       torneoGuardar();
       document.getElementById('torneo-overlay').classList.remove('visible');
       mostrarBracket();
@@ -5919,6 +5920,9 @@
       config.turnos = torneoData.config.turnos;
       config.cronoTiempo = torneoData.config.cronoTiempo;
       config.cronoGoles = torneoData.config.cronoGoles;
+      // Mantener el nivel de IA elegido al crear la copa (fallback si copas
+      // antiguas no lo guardaron).
+      config.nivelIA = torneoData.config.nivelIA || config.nivelIA || 'profesional';
       config._torneoRonda = ronda;
       config._torneoPartido = partido;
       config._torneoPendiente = true;
