@@ -1041,11 +1041,11 @@ function iaJugadoresLocalesPorPeligro() {
 // imbatible para el saque de centro, por estilo). Regenerar si cambia el motor.
 const LIBRO_APERTURAS = {
   "equilibrado": {
-    "visitante|MOVER_JUGADOR|2,6;4,4;4,8;6,3;6,9;12,6;8,3;8,9;10,4;10,8;7,6;": { "tipo": "pieza", "piezaId": "v-j1", "dest": { "fila": 6, "col": 5 } },
-    "visitante|MOVER_BALON|2,6;4,4;4,8;6,3;6,9;12,6;6,5;8,9;10,4;10,8;7,6;": { "tipo": "balon", "dest": { "fila": 9, "col": 8 } },
-    "visitante|MOVER_BALON|2,6;4,4;4,8;6,3;6,9;12,6;6,5;8,9;10,4;10,8;9,8;": { "tipo": "balon", "dest": { "fila": 9, "col": 9 } },
-    "visitante|MOVER_BALON|2,6;4,4;4,8;6,3;6,9;12,6;6,5;8,9;10,4;10,8;9,9;": { "tipo": "balon", "dest": { "fila": 6, "col": 6 } },
-    "visitante|MOVER_BALON|2,6;4,4;4,8;6,3;6,9;12,6;6,5;8,9;10,4;10,8;6,6;": { "tipo": "balon", "dest": { "fila": 2, "col": 2 } }
+    // Dictada por el usuario: saca v-j1, deja el balón neutro en la esquina propia
+    // (10,11) con recuperación garantizada el próximo turno (v-j2 a 2, v-j4 a 3).
+    "visitante|MOVER_JUGADOR|2,6;4,4;4,8;6,3;6,9;12,6;8,3;8,9;10,4;10,8;7,6;": {"tipo":"pieza","piezaId":"v-j1","dest":{"fila":8,"col":5}},
+    "visitante|MOVER_BALON|2,6;4,4;4,8;6,3;6,9;12,6;8,5;8,9;10,4;10,8;7,6;": {"tipo":"balon","dest":{"fila":10,"col":9}},
+    "visitante|MOVER_BALON|2,6;4,4;4,8;6,3;6,9;12,6;8,5;8,9;10,4;10,8;10,9;": {"tipo":"balon","dest":{"fila":10,"col":11}}
   },
   "defensivo": {
     // Dictada por el usuario: saca un jugador, deja el balón neutro en la esquina
