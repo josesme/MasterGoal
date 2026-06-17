@@ -2172,6 +2172,20 @@
           <text x="66" y="-5.9" fill="rgba(255,255,255,0.85)" font-size="3.6">▶</text>
         </g>
       </g>
+
+      <!-- Etiquetas de esquina ancladas a CASILLAS (coordenadas SVG): viven en el
+           sistema del campo, así quedan fijas en cualquier resolución (PC y móvil).
+           Versión: empieza en casilla (fila15,col1) -> x desde 0, alineada izq.
+           Nivel IA: termina en casilla (fila15,col11) -> hasta x=110, alineada dcha.
+           Fila 15 = borde inferior (zona portería). Casilla=10u; fila15 -> y 150..160. -->
+      <foreignObject x="0" y="150" width="55" height="10">
+        <div xmlns="http://www.w3.org/1999/xhtml" id="version-tag"
+             style="font-family:monospace;font-size:2.5px;line-height:10px;color:rgba(255,255,255,0.55);text-shadow:0 0.3px 0.6px rgba(0,0,0,0.6);user-select:none;white-space:nowrap;text-align:left;"></div>
+      </foreignObject>
+      <foreignObject x="55" y="150" width="55" height="10">
+        <div xmlns="http://www.w3.org/1999/xhtml" id="ia-debug"
+             style="display:none;font-family:monospace;font-size:2.5px;line-height:10px;color:rgba(255,255,255,0.55);text-shadow:0 0.3px 0.6px rgba(0,0,0,0.6);user-select:none;white-space:nowrap;text-align:right;"></div>
+      </foreignObject>
     </svg>
 
     <!-- Ajuste de encuadre del campo según orientación.
@@ -2196,16 +2210,6 @@
       })();
     </script>
 
-    <!-- Indicador discreto de config de IA. position:fixed anclado al viewport
-         (esquina inf. dcha.) para que sea visible siempre, en PC y en móvil,
-         independientemente del encuadre del campo. Formato: N5-D4/A4-P3.
-         safe-area-inset por si hay barra de gestos en móvil. -->
-    <div id="ia-debug" style="display:none;position:fixed;
-         bottom:calc(6px + env(safe-area-inset-bottom));
-         right:calc(8px + env(safe-area-inset-right));z-index:120;
-         font-family:monospace;font-size:10px;color:rgba(255,255,255,0.55);
-         text-shadow:0 1px 2px rgba(0,0,0,0.6);
-         pointer-events:none;user-select:none;letter-spacing:0.5px;"></div>
 
    </div><!-- /svg-wrapper -->
   </div>
@@ -6672,8 +6676,18 @@
   </script>
 
   <script>
+    // ── VERSIÓN DE LA APP ─────────────────────────────────────────────────────
+    // Subir el 1er nº en cambios grandes; el 2º en commits/mejoras pequeñas.
+    // Se muestra en la esquina inf. izquierda DEL CAMPO (foreignObject #version-tag).
+    // Sirve para verificar que localhost/producción = lo commiteado.
+    const APP_VERSION = '1.0';
+    (function () {
+      const vt = document.getElementById('version-tag');
+      if (vt) vt.textContent = 'v' + APP_VERSION;
+    })();
+
     // Muestra nivel / profundidad / potencial de la partida en curso vs IA.
-    // (El elemento #ia-debug es position:fixed en la esquina inf. dcha. del viewport.)
+    // (El elemento #ia-debug es un foreignObject en la esquina inf. dcha. del campo.)
     (function () {
       const NIVEL_NUM = { imbatible: 5, leyenda: 4, profesional: 3, juvenil: 2, cadete: 1 };
       const PROF = {
