@@ -2171,7 +2171,7 @@
         const svg = document.getElementById('tablero-svg');
         if (!svg) return;
         const VB_PC     = '-10 -10 130 170';
-        const VB_MOVIL  = '-3 -18 116 186';   // colchón lateral 3u, centrado en y=75
+        const VB_MOVIL  = '-1 -18 112 186';   // colchón lateral 1u (fichas en col 1/11 respiran sin desperdicio), centrado en y=75
         function ajustarEncuadre() {
           const portrait = window.matchMedia('(max-aspect-ratio: 3/4)').matches;
           svg.setAttribute('viewBox', portrait ? VB_MOVIL : VB_PC);
