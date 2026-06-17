@@ -1901,6 +1901,16 @@
           .punto-verde { fill: #90ee90; }
           .corner { fill: #ffeb3b; opacity: 0.3; }
         </style>
+        <!-- Volumen de las fichas: brillo especular (arriba-izq) y oclusión (abajo). -->
+        <radialGradient id="fichaSpec" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#fff" stop-opacity="0.85"/>
+          <stop offset="60%" stop-color="#fff" stop-opacity="0.12"/>
+          <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="fichaOcc" cx="50%" cy="100%" r="60%">
+          <stop offset="0%" stop-color="#000" stop-opacity="0.42"/>
+          <stop offset="100%" stop-color="#000" stop-opacity="0"/>
+        </radialGradient>
       </defs>
       
       <!-- FONDO (muy extendido: cubre cualquier viewBox, también el de móvil, sin dejar gris) -->
@@ -2392,6 +2402,19 @@
           sep.setAttribute('x2', String(d)); sep.setAttribute('y2', String(corte));
           sep.setAttribute('stroke','rgba(0,0,0,0.3)'); sep.setAttribute('stroke-width','0.4');
           pattern.appendChild(sep);
+
+          // Capa 5: VOLUMEN (brillo especular arriba-izq + oclusión inferior).
+          // Va dentro del pattern, así se reposiciona junto a la ficha sin tocar
+          // la lógica de movimiento. Coords locales del pattern (0..d).
+          const mkEllipse = (cx2, cy2, rx, ry, fill) => {
+            const e = document.createElementNS('http://www.w3.org/2000/svg','ellipse');
+            e.setAttribute('cx', cx2); e.setAttribute('cy', cy2);
+            e.setAttribute('rx', rx); e.setAttribute('ry', ry);
+            e.setAttribute('fill', fill);
+            return e;
+          };
+          pattern.appendChild(mkEllipse(d*0.36, d*0.30, d*0.30, d*0.24, 'url(#fichaSpec)'));
+          pattern.appendChild(mkEllipse(d*0.50, d*0.80, d*0.44, d*0.28, 'url(#fichaOcc)'));
 
           defsEl.appendChild(pattern);
 
