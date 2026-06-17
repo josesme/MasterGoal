@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MasterGoal · Ajuste de campo en móvil</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#0a0c0f; color:#e8e8ea; font-family:system-ui,-apple-system,sans-serif; }
+  header { padding:18px 20px 6px; text-align:center; }
+  header h1 { margin:0 0 4px; font-size:19px; }
+  header p { margin:0 auto; font-size:12.5px; opacity:0.55; max-width:620px; line-height:1.5; }
+  .row { display:flex; gap:24px; justify-content:center; flex-wrap:wrap; padding:18px; }
+  .phone-wrap { text-align:center; }
+  .phone-wrap h2 { font-size:13px; opacity:0.8; margin:0 0 8px; font-weight:600; }
+  .phone-wrap .sub { font-size:11px; opacity:0.45; margin:0 0 10px; }
+  /* simulación de móvil 390x780 */
+  .phone {
+    width:300px; height:600px; border-radius:26px; overflow:hidden;
+    border:6px solid #2a2a2e; background:#2e2e2e; position:relative;
+    box-shadow:0 18px 50px rgba(0,0,0,0.55);
+  }
+  .hud { height:54px; background:#111; display:flex; align-items:center; }
+  .hud .half { flex:1; display:flex; align-items:center; gap:8px; padding:0 12px; font-size:12px; font-weight:800; }
+  .hud .half.r { flex-direction:row-reverse; }
+  .hud .dot { width:30px; height:30px; border-radius:50%; flex-shrink:0; }
+  .hud .g { font-size:26px; font-weight:900; }
+  .field { height:calc(100% - 54px); display:flex; align-items:center; justify-content:center; background:#2c8537; overflow:hidden; }
+  .field svg { display:block; }
+  code { background:rgba(255,255,255,0.08); padding:1px 5px; border-radius:4px; font-size:11px; }
+  .legend { max-width:680px; margin:0 auto; padding:0 24px 40px; font-size:12.5px; opacity:0.6; line-height:1.7; }
+</style>
+</head>
+<body>
+<header>
+  <h1>MasterGoal · Ajuste del campo en móvil</h1>
+  <p>Simulación de un móvil (proporción ~1:2). Izquierda = <strong>como está hoy</strong> (ajuste por
+     altura, sobran laterales). Derecha = <strong>propuesta</strong>: el campo llena el ancho, margen
+     mínimo para no cortar porterías.</p>
+</header>
+
+<div class="row" id="row"></div>
+
+<div class="legend">
+  <strong>Qué cambia:</strong> hoy el SVG usa <code>height: calc(100vh - HUD); width:auto</code> → al ser el
+  tablero alto, se ajusta por altura y deja banda verde a los lados. La propuesta usa <code>width:100vw; height:auto</code>
+  con un viewBox que recorta casi todo el margen lateral, dejando solo un colchón arriba/abajo para las redes de portería.
+  <br><br>El motor no cambia: mismas coordenadas lógicas, solo cómo se encuadra el SVG.
+</div>
+
+<script>
+function esClara(c,f){ return (c+f)%2===0; }
+const EQ_L={p:'#ffffff',s:'#1e63b0',pa:'#13315f'}, EQ_V={p:'#e23b3b',s:'#ffffff',pa:'#7d1818'};
+const POS={ local:[[35,45],[75,45],[25,65],[85,65]], localPort:[55,25],
+  visit:[[25,85],[85,85],[35,105],[75,105]], visitPort:[55,125], balon:[55,75] };
+
+function campo(){
+  let dG='';
+  for(let f=0;f<13;f++)for(let c=0;c<11;c++){const x=c*10,y=10+f*10;
+    dG+=`<rect x="${x}" y="${y}" width="10" height="10" fill="${esClara(c,f)?'rgba(255,255,255,0.05)':'rgba(0,40,15,0.17)'}"/>`;}
+  let rej='<g stroke="rgba(255,255,255,0.07)" stroke-width="0.12">';
+  for(let c=1;c<11;c++)rej+=`<line x1="${c*10}" y1="10" x2="${c*10}" y2="140"/>`;
+  for(let f=1;f<13;f++)rej+=`<line x1="0" y1="${10+f*10}" x2="110" y2="${10+f*10}"/>`;
+  rej+='</g>';
+  const port=(y0,d)=>{
+    let net='';
+    for(let x=32;x<80;x+=2.5) net+=`<line x1="${x}" y1="${y0}" x2="${x}" y2="${y0+10*d}"/>`;
+    for(let k=1;k<8;k++){const yy=y0+(10*k/8)*d; net+=`<line x1="30" y1="${yy}" x2="80" y2="${yy}"/>`;}
+    return `<g stroke="#fff" stroke-opacity="0.3" stroke-width="0.18">${net}</g>
+            <path d="M 30 ${y0} L 30 ${y0+10*d} L 80 ${y0+10*d} L 80 ${y0}" fill="none" stroke="#fff" stroke-width="1.1"/>`;
+  };
+  const lin=`<g fill="none" stroke="#f4fff4" stroke-opacity="0.9">
+     <rect x="0" y="10" width="110" height="130" stroke-width="0.45"/><line x1="0" y1="75" x2="110" y2="75" stroke-width="0.45"/>
+     <circle cx="55" cy="75" r="15" stroke-width="0.4"/>
+     <rect x="10" y="10" width="90" height="40" stroke-width="0.45"/><rect x="20" y="10" width="70" height="20" stroke-width="0.45"/>
+     <rect x="10" y="100" width="90" height="40" stroke-width="0.45"/><rect x="20" y="120" width="70" height="20" stroke-width="0.45"/>
+   </g><circle cx="55" cy="75" r="0.9" fill="#f4fff4"/>`;
+  // Fondo verde MUY extendido: cubre cualquier zona del SVG, sin importar el encuadre
+  return `<rect x="-200" y="-200" width="510" height="550" fill="#2c8537"/>
+   <rect x="-200" y="-200" width="510" height="550" fill="url(#cespFull)"/>
+   ${dG}${rej}${port(10,-1)}${port(140,1)}${lin}`;
+}
+let _u=0;
+function disco(x,y,eq){
+  const R=3.6,id='d'+(_u++),d=2*R,corte=d*0.675;
+  return `<g transform="translate(${x},${y})">
+    <ellipse cx="0.5" cy="1.8" rx="3.9" ry="1.5" fill="rgba(0,0,0,0.3)"/>
+    <clipPath id="${id}"><circle r="${R}"/></clipPath>
+    <g filter="url(#sb)"><circle r="${R}" fill="${eq.pa}"/></g>
+    <g clip-path="url(#${id})"><g transform="translate(${-R},${-R})">
+      <rect width="${d}" height="${d}" fill="${eq.pa}"/><rect width="${d}" height="${corte}" fill="${eq.p}"/>
+      <line x1="0" y1="${corte}" x2="${d}" y2="${corte}" stroke="rgba(0,0,0,0.3)" stroke-width="0.25"/></g>
+      <ellipse cx="-1" cy="-1.5" rx="2" ry="1.6" fill="url(#spec)"/>
+    </g><circle r="${R}" fill="none" stroke="rgba(0,0,0,0.45)" stroke-width="0.25"/></g>`;
+}
+function fichas(){
+  let s='';
+  POS.visit.forEach(([x,y])=>s+=disco(x,y,EQ_V)); s+=disco(POS.visitPort[0],POS.visitPort[1],EQ_V);
+  POS.local.forEach(([x,y])=>s+=disco(x,y,EQ_L)); s+=disco(POS.localPort[0],POS.localPort[1],EQ_L);
+  return s;
+}
+const DEFS=`<defs>
+  <filter id="sb" x="-80%" y="-80%" width="260%" height="260%"><feDropShadow dx="0" dy="0.7" stdDeviation="0.7" flood-color="#000" flood-opacity="0.55"/></filter>
+  <radialGradient id="spec" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#fff" stop-opacity="0.85"/><stop offset="60%" stop-color="#fff" stop-opacity="0.12"/><stop offset="100%" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  <radialGradient id="cespFull" cx="50%" cy="40%" r="75%"><stop offset="0%" stop-color="#3aa046"/><stop offset="100%" stop-color="#2c8537"/></radialGradient>
+</defs>`;
+function balon(){const[x,y]=POS.balon;return `<circle cx="${x}" cy="${y}" r="3" fill="#fff" filter="url(#sb)"/><circle cx="${x}" cy="${y}" r="2.6" fill="none" stroke="#222" stroke-width="0.3"/><path d="M${x} ${y-1.6} l1.5 1.1 -0.57 1.78 -1.86 0 -0.57 -1.78z" fill="#222"/>`;}
+
+const FIELD = DEFS + campo() + fichas() + balon();
+
+/* HOY: viewBox completo -10..120 (130 ancho), ajustado por ALTURA → sobran lados.
+   Lo simulamos dando al SVG height:100% y width:auto. */
+const SVG_HOY = `<svg viewBox="-10 -10 130 170" preserveAspectRatio="xMidYMid meet"
+   style="height:100%;width:auto;max-width:100%">${FIELD}</svg>`;
+
+/* PROPUESTA (con 'meet', que NUNCA recorta el campo):
+   - viewBox ANCHO = campo 0..110 + colchón 3u a cada lado = -3..113 (ancho 116).
+     'meet' garantiza que todas las columnas (1 a 11) y las dos líneas de banda se ven.
+   - Como el móvil es más alto que el viewBox, 'meet' ajusta por ANCHO y sobra alto:
+     ese sobrante lo rellena el fondo de césped extendido (nada de gris).
+   - Vertical CENTRADO en y=75 (centro del campo): viewBox simétrico.
+   El alto del viewBox se elige para que NO domine: lo hacemos alto (186) y centrado. */
+const SVG_NEW = `<svg viewBox="-3 -18 116 186" preserveAspectRatio="xMidYMid meet"
+   style="width:100%;height:100%;display:block">${FIELD}</svg>`;
+
+function phone(titulo,sub,svg){
+  return `<div class="phone-wrap"><h2>${titulo}</h2><div class="sub">${sub}</div>
+    <div class="phone">
+      <div class="hud">
+        <div class="half"><div class="dot" style="background:#1e63b0"></div><span>Alavés</span><span class="g" style="margin-left:auto">0</span></div>
+        <div class="half r"><div class="dot" style="background:#e23b3b"></div><span>Osasuna</span><span class="g" style="margin-right:auto">0</span></div>
+      </div>
+      <div class="field">${svg}</div>
+    </div></div>`;
+}
+document.getElementById('row').innerHTML =
+  phone('Hoy', 'ajuste por altura · sobran laterales', SVG_HOY) +
+  phone('Propuesta', 'ajuste por ancho · campo más grande', SVG_NEW);
+</script>
+</body>
+</html>

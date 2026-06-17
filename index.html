@@ -1025,9 +1025,12 @@
     .eq-patron-btn {
       width: 100%; aspect-ratio: 1; border-radius: 50%; border: 2px solid transparent;
       cursor: pointer; overflow: hidden; padding: 0; background: none;
-      transition: border-color 0.12s;
+      transition: border-color 0.12s, box-shadow 0.12s, border-width 0.12s;
     }
-    .eq-patron-btn.activo { border-color: #4caf50; }
+    .eq-patron-btn.activo {
+      border-color: #4caf50; border-width: 3px;
+      box-shadow: 0 0 0 2px rgba(76,175,80,0.35), 0 0 10px rgba(76,175,80,0.5);
+    }
     .eq-patron-btn img, .eq-patron-btn svg { width: 100%; height: 100%; display: block; }
     .eq-copy-btn {
       padding: 4px 8px; border-radius: 5px; border: 1px solid rgba(255,255,255,0.15);
@@ -1615,7 +1618,11 @@
                 <div style="font-size:10px;opacity:0.5;">2ª</div>
               </div>
             </div>
-            <div id="eq-equipacion-label" style="font-size:11px;opacity:0.6;">Editando 1ª</div>
+            <!-- Dot de portero: centrado bajo 1ª/2ª. Color único por equipo. -->
+            <div style="text-align:center;cursor:pointer;margin-top:6px;" onclick="eqSeleccionarPortero()">
+              <div id="eq-preview-portero" style="width:56px;height:56px;border-radius:50%;overflow:hidden;border:2px solid rgba(255,255,255,0.2);margin:0 auto 4px;transition:border-color 0.15s;"></div>
+              <div style="font-size:10px;opacity:0.5;">Portero</div>
+            </div>
           </div>
           <!-- Campos -->
           <div style="flex:1;display:flex;flex-direction:column;gap:10px;">
@@ -1626,7 +1633,7 @@
             <div style="display:flex;flex-direction:column;gap:8px;">
               <div style="display:flex;align-items:center;gap:8px;">
                 <input id="eq-c1" type="color" style="width:36px;height:36px;border:none;border-radius:6px;cursor:pointer;background:none;flex-shrink:0;">
-                <span style="font-size:12px;opacity:0.6;min-width:90px;">Principal</span>
+                <span id="eq-lbl-principal" style="font-size:12px;opacity:0.6;min-width:90px;">Principal</span>
                 <button class="eq-copy-btn" onclick="eqCopiarColor('eq-c1','eq-c2')">→ Sec.</button>
                 <button class="eq-copy-btn" onclick="eqCopiarColor('eq-c1','eq-cp')">→ Pant.</button>
               </div>
@@ -2284,32 +2291,102 @@
       { id: 'hombros',  nombre: 'Hombros',           gen: (c1,c2,s,h) => `<rect width="${s}" height="${h}" fill="${c1}"/><rect width="${s}" height="${h*0.245}" fill="${c2}"/>` },
     ];
 
+    // Dot de equipación: idéntico a la ficha del campo (camiseta+pantalón+patrón
+    // + volumen: brillo especular arriba-izq y oclusión inferior). Los gradientes
+    // llevan ID ÚNICO por instancia: si no, los SVG insertados inline (botones de
+    // patrón) comparten IDs y el navegador solo respeta el primero → se ven distinto
+    // a los dots base64. Con ID único cada SVG referencia su propio gradiente.
+    let _miniUid = 0;
     function miniJerseySVG(eq, size) {
       if (!eq) return '';
+      const uid = 'm' + (_miniUid++);
+      const s = size;
+      // El <svg> lleva style width/height 100% inline para llenar SIEMPRE su
+      // contenedor (sea cual sea), sin depender de CSS externo por contenedor.
+      const svgOpen = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${s} ${s}" preserveAspectRatio="none" style="width:100%;height:100%;display:block">`;
+      // Modo portero: color único sólido (sin pantalón diferenciado ni patrón).
+      if (eq.portero) {
+        return `${svgOpen}
+          ${_miniDefs(uid)}
+          <rect width="${s}" height="${s}" fill="${eq.colorPrincipal}"/>
+          ${_miniVolumen(s, uid)}
+        </svg>`;
+      }
       const pat = PATRONES_EQUIPO.find(p => p.id === eq.patron) || PATRONES_EQUIPO[0];
-      const s = size; const corte = Math.round(s * 0.675);
+      const corte = Math.round(s * 0.675);
       const jerseyInner = pat.gen(eq.colorPrincipal, eq.colorSecundario, s, corte);
-      return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+      return `${svgOpen}
+        ${_miniDefs(uid)}
         <rect width="${s}" height="${s}" fill="${eq.colorPantalon}"/>
         ${jerseyInner}
         <line x1="0" y1="${corte}" x2="${s}" y2="${corte}" stroke="rgba(0,0,0,0.25)" stroke-width="1"/>
+        ${_miniVolumen(s, uid)}
       </svg>`;
+    }
+    // Gradientes de volumen para el dot (mismos que fichaSpec/fichaOcc del campo).
+    function _miniDefs(uid) {
+      return `<defs>
+        <radialGradient id="ds_${uid}" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#fff" stop-opacity="0.85"/>
+          <stop offset="60%" stop-color="#fff" stop-opacity="0.12"/>
+          <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="do_${uid}" cx="50%" cy="100%" r="60%">
+          <stop offset="0%" stop-color="#000" stop-opacity="0.42"/>
+          <stop offset="100%" stop-color="#000" stop-opacity="0"/>
+        </radialGradient>
+      </defs>`;
+    }
+    function _miniVolumen(s, uid) {
+      return `<ellipse cx="${s*0.36}" cy="${s*0.30}" rx="${s*0.30}" ry="${s*0.24}" fill="url(#ds_${uid})"/>
+        <ellipse cx="${s*0.50}" cy="${s*0.80}" rx="${s*0.44}" ry="${s*0.28}" fill="url(#do_${uid})"/>`;
     }
 
     function aplicarMiniJersey(el, eq, size) {
       if (!el) return;
-      el.innerHTML = '';
+      // SVG inline (igual que los botones de patrón) para que llene el dot sin
+      // huecos: con el CSS de abajo, el <svg> ocupa el 100% del contenedor.
+      // (Antes iba como background-image base64 y dejaba márgenes en las esquinas.)
+      el.style.removeProperty('background-image');
+      el.style.removeProperty('background-size');
       if (!eq) {
+        el.innerHTML = '';
         el.style.background = 'rgba(255,255,255,0.15)';
         return;
       }
-      const svgStr = miniJerseySVG(eq, 100);
-      const b64 = btoa(unescape(encodeURIComponent(svgStr)));
-      el.style.setProperty('background-image', `url("data:image/svg+xml;base64,${b64}")`);
-      el.style.setProperty('background-size', '100% 100%');
-      el.style.setProperty('background-position', '0 0');
-      el.style.setProperty('background-repeat', 'no-repeat');
-      el.style.setProperty('background-color', 'transparent');
+      el.style.background = 'transparent';
+      el.innerHTML = miniJerseySVG(eq, 100);
+    }
+
+    // Mezcla un color hex con blanco (t>0) o negro (t<0). t en [-1,1].
+    function _mezclarColor(hex, t) {
+      const h = hex.replace('#','');
+      const n = h.length === 3 ? h.split('').map(c=>c+c).join('') : h;
+      let r = parseInt(n.slice(0,2),16), g = parseInt(n.slice(2,4),16), b = parseInt(n.slice(4,6),16);
+      const mix = (c) => t >= 0 ? Math.round(c + (255 - c) * t) : Math.round(c * (1 + t));
+      r = mix(r); g = mix(g); b = mix(b);
+      return '#' + [r,g,b].map(c => c.toString(16).padStart(2,'0')).join('');
+    }
+
+    // Crea/actualiza un radialGradient de volumen para el cuerpo del portero,
+    // derivado del color elegido (highlight claro arriba-izq → color → sombra).
+    function _crearGradientePortero(defsEl, id, color) {
+      let g = defsEl.querySelector('#' + id);
+      if (g) g.remove();
+      g = document.createElementNS('http://www.w3.org/2000/svg', 'radialGradient');
+      g.id = id;
+      g.setAttribute('cx', '38%'); g.setAttribute('cy', '30%'); g.setAttribute('r', '75%');
+      const stops = [
+        ['0%',   _mezclarColor(color, 0.55)],
+        ['55%',  color],
+        ['100%', _mezclarColor(color, -0.35)],
+      ];
+      stops.forEach(([off, col]) => {
+        const s = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+        s.setAttribute('offset', off); s.setAttribute('stop-color', col);
+        g.appendChild(s);
+      });
+      defsEl.appendChild(g);
     }
 
     const svg = document.querySelector('svg');
@@ -2450,13 +2527,16 @@
           el.setAttribute('stroke-width', '0.3');
         });
 
-        // Portero: brazos en color fijo amarillo de contraste; el cuerpo mantiene su
-        // gradiente de volumen del markup (url(#porteroBody)) — no lo sobrescribimos.
-        // (De momento color fijo; pendiente selector "color portero" por equipo.)
+        // Portero: color por equipo (editable). Brazos en color plano; el cuerpo
+        // usa un gradiente de volumen generado a partir de ese color.
         const colorPortero = eq.colorPortero || COLOR_PORTERO;
+        const gradId = 'porteroBody_' + lado;
+        _crearGradientePortero(defsEl, gradId, colorPortero);
         [porteroId+'-brazo-izq', porteroId+'-brazo-der'].forEach(b => {
           const el = document.getElementById(b); if (el) el.setAttribute('fill', colorPortero);
         });
+        const cuerpo = document.getElementById(porteroId+'-cuerpo');
+        if (cuerpo) cuerpo.setAttribute('fill', `url(#${gradId})`);
       });
     }
 
@@ -4523,6 +4603,9 @@
     let _eqEditandoId = null;
     let _eqPatronActual = 'solido';
     let _eqEquipacionActual = 1; // 1 = primera, 2 = segunda
+    let _eqEditandoPortero = false; // true cuando se está editando el dot del portero
+    let _eqColorPortero = COLOR_PORTERO; // color del portero del equipo en edición
+    let _eqEquipacionPrevia = 1; // equipación a la que volver al salir del modo portero
 
     function _eqEquipoActualEnForm() {
       return {
@@ -4536,12 +4619,23 @@
     }
 
     function _eqActualizarPreview() {
+      // En modo portero, el campo "principal" es el color del portero.
+      if (_eqEditandoPortero) {
+        _eqColorPortero = document.getElementById('eq-c1').value;
+      }
+      // Dot del portero: color único sólido con volumen.
+      const elPortero = document.getElementById('eq-preview-portero');
+      if (elPortero) aplicarMiniJersey(elPortero, { portero: true, colorPrincipal: _eqColorPortero }, 56);
+
       const eq = _eqEquipoActualEnForm();
-      // Actualizar el dot activo y el otro con datos guardados
-      const elActivo = document.getElementById(`eq-preview-${_eqEquipacionActual}`);
-      if (elActivo) aplicarMiniJersey(elActivo, eq, 56);
-      // El dot inactivo muestra la otra equipación guardada
-      const otraNum = _eqEquipacionActual === 1 ? 2 : 1;
+      // El dot de la equipación que se está editando (1ª o 2ª) refleja el form.
+      // En modo portero NO se reescribe con el color del portero: mantiene su diseño.
+      const numEdit = _eqEditandoPortero ? _eqEquipacionPrevia : _eqEquipacionActual;
+      const elActivo = document.getElementById(`eq-preview-${numEdit}`);
+      if (elActivo && !_eqEditandoPortero) aplicarMiniJersey(elActivo, eq, 56);
+
+      // El otro dot de equipación muestra su versión guardada.
+      const otraNum = numEdit === 1 ? 2 : 1;
       const elOtro = document.getElementById(`eq-preview-${otraNum}`);
       if (elOtro && _eqEditandoId) {
         const eqGuardado = equiposGuardados().find(e => e.id === _eqEditandoId);
@@ -4550,10 +4644,22 @@
           : eqGuardado;
         aplicarMiniJersey(elOtro, otraEq, 56);
       }
-      // Resaltar dot activo
-      document.getElementById('eq-preview-1').style.borderColor = _eqEquipacionActual === 1 ? '#4caf50' : 'rgba(255,255,255,0.2)';
-      document.getElementById('eq-preview-2').style.borderColor = _eqEquipacionActual === 2 ? '#4caf50' : 'rgba(255,255,255,0.2)';
-      document.getElementById('eq-equipacion-label').textContent = `Editando ${_eqEquipacionActual}ª`;
+      // Resaltar dot activo (1ª/2ª o portero): borde verde grueso + glow.
+      _eqResaltarDot();
+    }
+
+    // Aplica el resalte al dot seleccionado (1ª, 2ª o portero) y apaga los demás.
+    function _eqResaltarDot() {
+      const dots = ['eq-preview-1', 'eq-preview-2', 'eq-preview-portero'];
+      const activoId = _eqEditandoPortero ? 'eq-preview-portero' : `eq-preview-${_eqEquipacionActual}`;
+      dots.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const on = id === activoId;
+        el.style.borderColor = on ? '#4caf50' : 'rgba(255,255,255,0.2)';
+        el.style.borderWidth = on ? '3px' : '2px';
+        el.style.boxShadow = on ? '0 0 0 2px rgba(76,175,80,0.35), 0 0 10px rgba(76,175,80,0.5)' : 'none';
+      });
     }
 
     function _eqActualizarPatrones() {
@@ -5474,6 +5580,22 @@
     }
 
     window.eqSeleccionarEquipacion = function(num) {
+      // Si veníamos del modo portero, guardamos su color y salimos de ese modo.
+      if (_eqEditandoPortero) {
+        _eqColorPortero = document.getElementById('eq-c1').value;
+        _eqEditandoPortero = false;
+        _eqAplicarModoPortero(false);
+        // Recargar la equipación destino (los campos tenían el color del portero).
+        const eqP = equiposGuardados().find(e => e.id === _eqEditandoId);
+        _eqEquipacionActual = num;
+        if (eqP) {
+          if (num === 1) _eqCargarEquipacionEnForm(eqP);
+          else _eqCargarEquipacionEnForm(null, eqP.kit2 || { colorPrincipal: '#ffffff', colorSecundario: '#ffffff', colorPantalon: '#212121', patron: 'solido' });
+        }
+        _eqActualizarPatrones();
+        _eqActualizarPreview();
+        return;
+      }
       if (_eqEquipacionActual === num) return;
       // Guardar campos actuales en memoria temporal antes de cambiar
       const eq = equiposGuardados().find(e => e.id === _eqEditandoId);
@@ -5486,9 +5608,38 @@
       _eqActualizarPreview();
     };
 
+    // Selecciona el dot del portero: el form pasa a editar su color único.
+    window.eqSeleccionarPortero = function() {
+      if (_eqEditandoPortero) return;
+      _eqEquipacionPrevia = _eqEquipacionActual;
+      _eqEditandoPortero = true;
+      // El "color principal" del form pasa a ser el color del portero.
+      document.getElementById('eq-c1').value = _eqColorPortero;
+      _eqAplicarModoPortero(true);
+      _eqActualizarPreview();
+    };
+
+    // Habilita/deshabilita controles según el modo portero (color único, sin
+    // secundario/pantalón/patrón). 'on' = entrar en modo portero.
+    function _eqAplicarModoPortero(on) {
+      const c2 = document.getElementById('eq-c2');
+      const cp = document.getElementById('eq-cp');
+      [c2, cp].forEach(el => { if (el) { el.disabled = on; el.style.opacity = on ? '0.3' : '1'; el.style.pointerEvents = on ? 'none' : ''; } });
+      // Atenuar las etiquetas/botones de copia y el selector de patrones.
+      const patrones = document.getElementById('eq-patrones');
+      if (patrones) { patrones.style.opacity = on ? '0.3' : '1'; patrones.style.pointerEvents = on ? 'none' : ''; }
+      document.querySelectorAll('.eq-copy-btn').forEach(b => { b.style.opacity = on ? '0.3' : '1'; b.style.pointerEvents = on ? 'none' : ''; });
+      // La etiqueta de "Principal" pasa a significar el color del portero.
+      const lblPrincipal = document.getElementById('eq-lbl-principal');
+      if (lblPrincipal) lblPrincipal.textContent = on ? 'Color portero' : 'Principal';
+    }
+
     window.eqNuevo = function() {
       _eqEditandoId = null;
       _eqEquipacionActual = 1;
+      _eqEditandoPortero = false;
+      _eqAplicarModoPortero(false);
+      _eqColorPortero = COLOR_PORTERO;
       _eqPatronActual = 'solido';
       document.getElementById('eq-nombre').value = '';
       document.getElementById('eq-c1').value = '#e53935';
@@ -5505,6 +5656,9 @@
       if (!eq) return;
       _eqEditandoId = id;
       _eqEquipacionActual = 1;
+      _eqEditandoPortero = false;
+      _eqAplicarModoPortero(false);
+      _eqColorPortero = eq.colorPortero || COLOR_PORTERO;
       document.getElementById('eq-nombre').value = eq.nombre;
       document.getElementById('eq-estilo').value = eq.estilo || 'equilibrado';
       document.getElementById('eq-potencial').value = eq.potencial || 3;
@@ -5519,29 +5673,40 @@
     window.eqGuardar = function() {
       const nombre = document.getElementById('eq-nombre').value.trim();
       if (!nombre) { alert('El equipo necesita un nombre.'); return; }
-      const kitActual = {
+      // Color del portero: si estamos en modo portero, vive en eq-c1; si no, en _eqColorPortero.
+      const colorPortero = _eqEditandoPortero ? document.getElementById('eq-c1').value : _eqColorPortero;
+      // En modo portero NO debemos sobrescribir la equipación con el color del portero:
+      // tomamos el kit guardado (no los campos del form, que ahora muestran el portero).
+      const eqGuardadoActual = _eqEditandoId ? equiposGuardados().find(e => e.id === _eqEditandoId) : null;
+      const kitDesdeForm = {
         colorPrincipal:  document.getElementById('eq-c1').value,
         colorSecundario: document.getElementById('eq-c2').value,
         colorPantalon:   document.getElementById('eq-cp').value,
         patron: _eqPatronActual,
       };
+      const kitActual = _eqEditandoPortero
+        ? (_eqEquipacionPrevia === 2
+            ? (eqGuardadoActual?.kit2 || kitDesdeForm)
+            : { colorPrincipal: eqGuardadoActual?.colorPrincipal, colorSecundario: eqGuardadoActual?.colorSecundario, colorPantalon: eqGuardadoActual?.colorPantalon, patron: eqGuardadoActual?.patron })
+        : kitDesdeForm;
+      const equipacionEditada = _eqEditandoPortero ? _eqEquipacionPrevia : _eqEquipacionActual;
       const lista = equiposGuardados();
       if (_eqEditandoId) {
         const idx = lista.findIndex(e => e.id === _eqEditandoId);
         if (idx !== -1) {
           const estilo = document.getElementById('eq-estilo').value;
           const potencial = parseInt(document.getElementById('eq-potencial').value);
-          if (_eqEquipacionActual === 1) {
-            lista[idx] = { ...lista[idx], nombre, estilo, potencial, ...kitActual };
+          if (equipacionEditada === 1) {
+            lista[idx] = { ...lista[idx], nombre, estilo, potencial, colorPortero, ...kitActual };
           } else {
-            lista[idx] = { ...lista[idx], nombre, estilo, potencial, kit2: kitActual };
+            lista[idx] = { ...lista[idx], nombre, estilo, potencial, colorPortero, kit2: kitActual };
           }
         }
       } else {
         const nuevoId = 'custom_' + Date.now();
         const estilo = document.getElementById('eq-estilo').value;
         const potencial = parseInt(document.getElementById('eq-potencial').value);
-        lista.push({ id: nuevoId, pj:0, pg:0, pp:0, gf:0, gc:0, nombre, estilo, potencial, ...kitActual });
+        lista.push({ id: nuevoId, pj:0, pg:0, pp:0, gf:0, gc:0, nombre, estilo, potencial, colorPortero, ...kitActual });
       }
       guardarEquipos(lista);
       actualizarSelectoresEquipo();
