@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MasterGoal · Rediseño del portero</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#0a0c0f; color:#e8e8ea; font-family:system-ui,-apple-system,sans-serif; }
+  header { padding:20px 20px 6px; text-align:center; }
+  header h1 { margin:0 0 4px; font-size:20px; }
+  header p { margin:0 auto; font-size:12.5px; opacity:0.55; max-width:640px; line-height:1.5; }
+  .controls { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; padding:12px 16px; }
+  .controls label { display:inline-flex; align-items:center; gap:6px; font-size:12px; opacity:0.85;
+    background:#1c2026; padding:6px 12px; border-radius:20px; border:1px solid rgba(255,255,255,0.08); cursor:pointer; }
+  .controls input { accent-color:#4caf50; cursor:pointer; }
+
+  .grid { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; padding:16px 20px 40px; max-width:900px; margin:0 auto; }
+  @media (max-width:720px){ .grid{ grid-template-columns:1fr; max-width:420px; } }
+  .card { background:#12151a; border:1px solid rgba(255,255,255,0.07); border-radius:14px; overflow:hidden; }
+  .card h2 { margin:0; padding:12px 14px 2px; font-size:14.5px; }
+  .card .d { padding:0 14px 8px; font-size:11.5px; opacity:0.5; line-height:1.4; min-height:46px; }
+  .card svg { width:100%; height:auto; display:block; background:radial-gradient(circle at 50% 42%,#3da349,#2c8537); }
+  code { background:rgba(255,255,255,0.08); padding:1px 5px; border-radius:4px; font-size:11px; }
+  .legend { max-width:900px; margin:0 auto; padding:0 24px 40px; font-size:12px; opacity:0.5; line-height:1.6; }
+</style>
+</head>
+<body>
+<header>
+  <h1>MasterGoal · Rediseño del portero</h1>
+  <p>El portero = cuerpo + dos brazos laterales <strong>funcionales</strong> (marcan las casillas
+     contiguas que bloquea). Aquí dos direcciones, con color de contraste. Se muestran 3 escenarios:
+     ambos brazos, solo izquierdo, sin brazos.</p>
+</header>
+
+<div class="controls">
+  <label><input type="checkbox" id="cb-vol" checked> Volumen</label>
+  <label>Color contraste
+    <input type="color" id="col" value="#ffd23f" style="width:32px;height:24px;border:none;background:none;cursor:pointer">
+  </label>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="legend">
+  Recuerda: los brazos NO son decorativos — indican qué casillas laterales bloquea el portero (regla del juego).
+  Por eso deben leerse como "alcance", no solo como adorno. Mantienen los IDs
+  <code>*-brazo-izq/der</code> y <code>*-cuerpo</code> y el posicionamiento dinámico actual.
+</div>
+
+<script>
+/* casilla del portero local ≈ (55,25). Brazos a izq (col-1) y der (col+1). */
+const CX=55, CY=25, R=3.6;
+
+function defs(){return `
+  <radialGradient id="spec" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#fff" stop-opacity="0.85"/><stop offset="60%" stop-color="#fff" stop-opacity="0.12"/><stop offset="100%" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  <radialGradient id="occ" cx="50%" cy="100%" r="60%"><stop offset="0%" stop-color="#000" stop-opacity="0.42"/><stop offset="100%" stop-color="#000" stop-opacity="0"/></radialGradient>
+  <filter id="sb" x="-80%" y="-80%" width="260%" height="260%"><feDropShadow dx="0" dy="0.7" stdDeviation="0.7" flood-color="#000" flood-opacity="0.55"/></filter>`;}
+
+function volumen(cx,cy){
+  return `<ellipse cx="${cx-1}" cy="${cy-1.5}" rx="2" ry="1.6" fill="url(#spec)"/>
+          <ellipse cx="${cx}" cy="${cy+2.2}" rx="3.2" ry="2" fill="url(#occ)"/>`;
+}
+
+/* cuerpo común: disco con volumen y color de contraste */
+function cuerpo(cx,cy,col,vol){
+  return `<g transform="translate(${cx},${cy})"><circle r="${R}" fill="${col}" stroke="rgba(0,0,0,0.4)" stroke-width="0.3" filter="url(#sb)"/></g>
+    <clipPath id="cp${cx}_${cy}"><circle cx="${cx}" cy="${cy}" r="${R}"/></clipPath>
+    ${vol?`<g clip-path="url(#cp${cx}_${cy})">${volumen(cx,cy)}</g>`:''}`;
+}
+
+/* ===== OPCIÓN A: guantes/manoplas redondeados ===== */
+function guante(cx,cy,col,lado){ // lado: -1 izq, +1 der
+  const gx = cx + lado*5.6;
+  return `<g transform="translate(${gx},${cy})">
+     <rect x="-1.8" y="-1.6" width="3.6" height="3.2" rx="1.5" fill="${col}" stroke="rgba(0,0,0,0.35)" stroke-width="0.25" filter="url(#sb)"/>
+     <ellipse cx="-0.4" cy="-0.6" rx="0.9" ry="0.6" fill="rgba(255,255,255,0.45)"/>
+     <!-- conector con el cuerpo -->
+     <rect x="${lado<0?1.2:-2.6}" y="-0.7" width="1.4" height="1.4" fill="${col}" opacity="0.85"/>
+   </g>`;
+}
+function porteroA(cx,cy,col,vol,brazos){
+  let s='';
+  if(brazos.includes('izq')) s+=guante(cx,cy,col,-1);
+  if(brazos.includes('der')) s+=guante(cx,cy,col,+1);
+  s+=cuerpo(cx,cy,col,vol);
+  return s;
+}
+
+/* ===== OPCIÓN B: barras finas de alcance ===== */
+function barra(cx,cy,col,lado){
+  const x = cx + lado*4 - (lado<0?5:0); // barra entre cuerpo y casilla contigua
+  return `<g transform="translate(${cx},${cy})">
+     <rect x="${lado<0?-8.5:3.5}" y="-0.9" width="5" height="1.8" rx="0.9" fill="${col}" stroke="rgba(0,0,0,0.3)" stroke-width="0.2" filter="url(#sb)"/>
+     <rect x="${lado<0?-8.5:3.5}" y="-0.9" width="5" height="0.7" rx="0.35" fill="rgba(255,255,255,0.4)"/>
+   </g>`;
+}
+function porteroB(cx,cy,col,vol,brazos){
+  let s='';
+  if(brazos.includes('izq')) s+=barra(cx,cy,col,-1);
+  if(brazos.includes('der')) s+=barra(cx,cy,col,+1);
+  s+=cuerpo(cx,cy,col,vol);
+  return s;
+}
+
+function escena(fn,col,vol){
+  // 3 porteros: ambos brazos / solo izq / sin brazos
+  const slots=[ {x:28,b:['izq','der']}, {x:55,b:['izq']}, {x:82,b:[]} ];
+  const labels=['ambos brazos','solo izquierdo','sin brazos'];
+  let s=`<svg viewBox="14 14 82 24" xmlns="http://www.w3.org/2000/svg"><defs>${defs()}</defs>`;
+  slots.forEach((sl,i)=>{ s+=fn(sl.x, 26, col, vol, sl.b); });
+  s+=`</svg>`;
+  return s;
+}
+
+function render(){
+  const vol=document.getElementById('cb-vol').checked;
+  const col=document.getElementById('col').value;
+  const grid=document.getElementById('grid'); grid.innerHTML='';
+  const A={t:'A · Disco con volumen + guantes', d:'Cuerpo con volumen + manoplas redondeadas integradas. Los guantes se leen como "manos" del portero.', fn:porteroA};
+  const B={t:'B · Disco + barra de alcance fina', d:'Cuerpo con volumen + barras finas y elegantes que marcan el alcance lateral. Más minimalista.', fn:porteroB};
+  [A,B].forEach(o=>{
+    const card=document.createElement('div'); card.className='card';
+    card.innerHTML=`<h2>${o.t}</h2><div class="d">${o.d}</div>${escena(o.fn,col,vol)}`;
+    grid.appendChild(card);
+  });
+}
+['cb-vol','col'].forEach(id=>document.getElementById(id).addEventListener('input',render));
+render();
+</script>
+</body>
+</html>

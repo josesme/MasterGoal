@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MasterGoal · Marcadores de destino</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#0a0c0f; color:#e8e8ea; font-family:system-ui,-apple-system,sans-serif; }
+  header { padding:20px 20px 6px; text-align:center; }
+  header h1 { margin:0 0 4px; font-size:20px; letter-spacing:-0.5px; }
+  header p { margin:0 auto; font-size:12.5px; opacity:0.55; max-width:680px; line-height:1.5; }
+  .controls { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; padding:12px 16px; align-items:center; }
+  .controls label { display:inline-flex; align-items:center; gap:6px; font-size:12px; opacity:0.85;
+    background:#1c2026; padding:6px 12px; border-radius:20px; border:1px solid rgba(255,255,255,0.08); cursor:pointer; }
+  .controls input { accent-color:#4caf50; cursor:pointer; }
+  .seg { display:inline-flex; background:#1c2026; border-radius:20px; padding:3px; gap:3px; border:1px solid rgba(255,255,255,0.08); }
+  .seg button { background:none; border:none; color:#aaa; font-size:12px; padding:5px 12px; border-radius:16px; cursor:pointer; }
+  .seg button.on { background:#3a7d44; color:#fff; }
+
+  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; padding:16px 20px 40px; max-width:1180px; margin:0 auto; }
+  @media (max-width:980px){ .grid{ grid-template-columns:repeat(2,1fr); max-width:760px; } }
+  @media (max-width:640px){ .grid{ grid-template-columns:1fr; max-width:420px; } }
+  .card { background:#12151a; border:1px solid rgba(255,255,255,0.07); border-radius:14px; overflow:hidden; }
+  .card.sel { border-color:#4caf50; box-shadow:0 0 0 1px #4caf50; }
+  .card h2 { margin:0; padding:12px 14px 2px; font-size:14px; }
+  .card .d { padding:0 14px 8px; font-size:11px; opacity:0.5; line-height:1.4; min-height:46px; }
+  .card svg { width:100%; height:auto; display:block; }
+  code { background:rgba(255,255,255,0.08); padding:1px 5px; border-radius:4px; font-size:11px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>MasterGoal · Marcadores de destino</h1>
+  <p>Distintas formas de señalar las casillas a las que puedes mover. Cambia entre
+     <strong>mover jugador</strong> (acento azul/cian) y <strong>mover balón</strong> (acento ámbar).
+     Arriba a la izquierda en cada tablero se simula la ficha/balón seleccionado con un anillo.</p>
+</header>
+
+<div class="controls">
+  <span class="seg" id="modoSeg">
+    <button data-modo="jugador" class="on">Mover jugador</button>
+    <button data-modo="balon">Mover balón</button>
+  </span>
+  <label><input type="checkbox" id="cb-damero" checked> Damero</label>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<footer style="text-align:center;padding:0 20px 40px;font-size:12px;opacity:0.4">
+  Hoy en el juego: <code>círculo r=4, relleno sólido opacidad 0.5</code> (el estilo "Actual" de la primera tarjeta).
+</footer>
+
+<script>
+const POS = {
+  local:[[35,45],[75,45],[25,65],[85,65]], localPort:[55,25],
+  visit:[[25,85],[85,85],[35,105],[75,105]], visitPort:[55,125],
+  balon:[55,75],
+};
+const esClara=(c,f)=>(c+f)%2===0;
+const EQ_LOCAL = { colorPrincipal:'#ffffff', colorSecundario:'#1e63b0', colorPantalon:'#13315f', patron:'solido' };
+const EQ_VISIT = { colorPrincipal:'#e23b3b', colorSecundario:'#ffffff', colorPantalon:'#7d1818', patron:'v8' };
+const PATRONES=[
+  {id:'solido',gen:(c1,c2,s,h)=>`<rect width="${s}" height="${h}" fill="${c1}"/>`},
+  {id:'v8',gen:(c1,c2,s,h)=>[0,1,2,3,4,5,6,7,8].map(i=>`<rect x="${i*s/9}" width="${s/9}" height="${h}" fill="${i%2===0?c1:c2}"/>`).join('')},
+];
+const patById=id=>PATRONES.find(p=>p.id===id)||PATRONES[0];
+
+/* destinos de ejemplo: para JUGADOR (alrededor de la ficha seleccionada) y para BALÓN */
+const SEL_JUGADOR = [35,45];                 // ficha local arriba-izq seleccionada
+const DEST_JUGADOR = [[25,45],[45,45],[35,35],[35,55],[25,35],[45,35]];
+const SEL_BALON = [55,75];                    // balón en el centro
+const DEST_BALON = [[45,65],[55,65],[65,65],[45,75],[65,75],[55,85]];
+
+/* ===== Campo ===== */
+function campoDefs(){return `
+   <radialGradient id="cesp" cx="50%" cy="42%" r="80%"><stop offset="0%" stop-color="#3aa046"/><stop offset="100%" stop-color="#2c8537"/></radialGradient>
+   <linearGradient id="banda" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1f6b2c"/><stop offset="100%" stop-color="#175223"/></linearGradient>
+   <linearGradient id="marco" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#11331c"/><stop offset="100%" stop-color="#05140b"/></linearGradient>
+   <radialGradient id="foco" cx="50%" cy="40%" r="72%"><stop offset="0%" stop-color="#fff" stop-opacity="0.10"/><stop offset="60%" stop-color="#fff" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity="0.35"/></radialGradient>`;}
+function campo(dam){
+  let dG='';
+  if(dam) for(let f=0;f<13;f++)for(let c=0;c<11;c++){const x=c*10,y=10+f*10;
+    dG+=`<rect x="${x}" y="${y}" width="10" height="10" fill="${esClara(c,f)?'rgba(255,255,255,0.05)':'rgba(0,40,15,0.17)'}"/>`;}
+  let rej='<g stroke="rgba(255,255,255,0.07)" stroke-width="0.12">';
+  for(let c=1;c<11;c++)rej+=`<line x1="${c*10}" y1="10" x2="${c*10}" y2="140"/>`;
+  for(let f=1;f<13;f++)rej+=`<line x1="0" y1="${10+f*10}" x2="110" y2="${10+f*10}"/>`;
+  rej+='</g>';
+  const port=(y0,d)=>`<path d="M 30 ${y0} L 30 ${y0+10*d} L 80 ${y0+10*d} L 80 ${y0}" fill="none" stroke="#fff" stroke-width="1.1"/>`;
+  const lin=`<g fill="none" stroke="#f4fff4" stroke-opacity="0.9">
+     <rect x="0" y="10" width="110" height="130" stroke-width="0.45"/><line x1="0" y1="75" x2="110" y2="75" stroke-width="0.45"/>
+     <circle cx="55" cy="75" r="15" stroke-width="0.4"/>
+     <rect x="10" y="10" width="90" height="40" stroke-width="0.45"/><rect x="20" y="10" width="70" height="20" stroke-width="0.45"/>
+     <rect x="10" y="100" width="90" height="40" stroke-width="0.45"/><rect x="20" y="120" width="70" height="20" stroke-width="0.45"/>
+   </g><circle cx="55" cy="75" r="0.9" fill="#f4fff4"/>`;
+  return `<rect x="-14" y="-14" width="138" height="178" fill="url(#marco)"/>
+   <rect x="-8" y="-8" width="126" height="166" rx="4" fill="url(#banda)"/>
+   <rect x="0" y="10" width="110" height="130" fill="url(#cesp)"/>
+   ${dG}${rej}${port(10,-1)}${port(140,1)}${lin}
+   <rect x="-14" y="-14" width="138" height="178" fill="url(#foco)" pointer-events="none"/>`;
+}
+const BP=`<g transform="scale(0.062) translate(-50,-50)" fill="#1a1a1a"><path d="M50,95C25.2,95,5,74.8,5,50S25.2,5,50,5s45,20.2,45,45S74.8,95,50,95z M50,7.5C26.6,7.5,7.5,26.6,7.5,50S26.6,92.5,50,92.5S92.5,73.4,92.5,50S73.4,7.5,50,7.5z"/><path d="M43.9,47.4l20.3,6.5c6.8-8.5,10.4-16.8,10.4-16.8c-5.4-8.4-12.6-15.8-12.6-15.8c-10.3,2.1-19.1,6-19.1,6L43.9,47.4z"/><path d="M9.9,67.5c0.8-8.6,3.7-14.4,3.7-14.4s5.3,2.6,16.1,6.5c1.1,9.5,4.8,18.5,4.8,18.5s-7.1,3.3-14.4,3.8"/></g>`;
+
+function fichaDefs(){return `
+  <filter id="sb" x="-80%" y="-80%" width="260%" height="260%"><feDropShadow dx="0" dy="0.7" stdDeviation="0.7" flood-color="#000" flood-opacity="0.55"/></filter>
+  <radialGradient id="spec" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#fff" stop-opacity="0.85"/><stop offset="60%" stop-color="#fff" stop-opacity="0.12"/><stop offset="100%" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  <radialGradient id="occ" cx="50%" cy="100%" r="60%"><stop offset="0%" stop-color="#000" stop-opacity="0.45"/><stop offset="100%" stop-color="#000" stop-opacity="0"/></radialGradient>`;}
+
+let _uid=0;
+function disco(x,y,eq){
+  const R=3.6, id='dk'+(_uid++); const pat=patById(eq.patron);
+  const d=2*R, corte=d*0.675;
+  const jersey=pat.gen(eq.colorPrincipal, eq.colorSecundario, d, corte);
+  return `<g transform="translate(${x},${y})">
+    <ellipse cx="0.5" cy="1.8" rx="3.9" ry="1.5" fill="rgba(0,0,0,0.30)"/>
+    <clipPath id="${id}"><circle r="${R}"/></clipPath>
+    <g filter="url(#sb)"><circle r="${R}" fill="${eq.colorPantalon}"/></g>
+    <g clip-path="url(#${id})">
+      <g transform="translate(${-R},${-R})">
+        <rect width="${d}" height="${d}" fill="${eq.colorPantalon}"/>${jersey}
+        <rect y="${corte}" width="${d}" height="${d-corte}" fill="${eq.colorPantalon}"/>
+        <line x1="0" y1="${corte}" x2="${d}" y2="${corte}" stroke="rgba(0,0,0,0.3)" stroke-width="0.25"/>
+      </g>
+      <ellipse cx="-1.0" cy="-1.5" rx="2.0" ry="1.6" fill="url(#spec)"/>
+      <ellipse cx="0" cy="2.2" rx="3.2" ry="2.0" fill="url(#occ)"/>
+    </g>
+    <circle r="${R}" fill="none" stroke="rgba(0,0,0,0.45)" stroke-width="0.25"/></g>`;
+}
+function balon(x,y){return `<g filter="url(#sb)"><circle cx="${x}" cy="${y}" r="3" fill="#fff"/></g><g transform="translate(${x},${y})">${BP}</g>`;}
+
+/* ficha/balón seleccionado: anillo de selección */
+function seleccion(x,y,col){
+  return `<circle cx="${x}" cy="${y}" r="5" fill="none" stroke="${col}" stroke-width="0.5" opacity="0.9"/>
+          <circle cx="${x}" cy="${y}" r="5" fill="${col}" opacity="0.12"/>`;
+}
+
+/* =====================================================================
+   ESTILOS DE MARCADOR DE DESTINO
+   Cada uno recibe (x,y,col) y devuelve el SVG del marcador.
+   col = color de acento (cian para jugador, ámbar para balón)
+   ===================================================================== */
+const MARCADORES = {
+  actual: { nombre:'Actual', desc:'Lo que hay hoy: disco sólido r=4 a 50% de opacidad. Tapa la casilla.',
+    fn:(x,y,c)=>`<circle cx="${x}" cy="${y}" r="4" fill="${c}" opacity="0.5"/>` },
+
+  punto: { nombre:'Punto discreto', desc:'Punto pequeño y luminoso en el centro de la casilla. Mínimo, no estorba.',
+    fn:(x,y,c)=>`<circle cx="${x}" cy="${y}" r="1.6" fill="${c}"/><circle cx="${x}" cy="${y}" r="1.6" fill="${c}" opacity="0.35"><animate attributeName="r" values="1.6;2.6;1.6" dur="1.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.35;0;0.35" dur="1.4s" repeatCount="indefinite"/></circle>` },
+
+  anillo: { nombre:'Anillo', desc:'Solo el borde de la casilla-destino. Deja ver el césped/damero debajo.',
+    fn:(x,y,c)=>`<circle cx="${x}" cy="${y}" r="3.6" fill="${c}" opacity="0.12"/><circle cx="${x}" cy="${y}" r="3.6" fill="none" stroke="${c}" stroke-width="0.55" opacity="0.95"/>` },
+
+  casilla: { nombre:'Casilla resaltada', desc:'Resalta la casilla entera (cuadrado redondeado). Muy claro dónde caes.',
+    fn:(x,y,c)=>`<rect x="${x-4.6}" y="${y-4.6}" width="9.2" height="9.2" rx="1.4" fill="${c}" opacity="0.18"/><rect x="${x-4.6}" y="${y-4.6}" width="9.2" height="9.2" rx="1.4" fill="none" stroke="${c}" stroke-width="0.35" opacity="0.8"/>` },
+
+  diana: { nombre:'Diana', desc:'Anillo exterior + punto central. Estética "objetivo", muy legible.',
+    fn:(x,y,c)=>`<circle cx="${x}" cy="${y}" r="3.4" fill="none" stroke="${c}" stroke-width="0.45" opacity="0.85"/><circle cx="${x}" cy="${y}" r="1.3" fill="${c}"/>` },
+
+  huella: { nombre:'Huella suave', desc:'Disco con degradado radial (centro tenue → borde nítido). Suave pero claro.',
+    fn:(x,y,c)=>`<circle cx="${x}" cy="${y}" r="4" fill="url(#grad_${c.replace('#','')})"/><circle cx="${x}" cy="${y}" r="4" fill="none" stroke="${c}" stroke-width="0.3" opacity="0.6"/>` },
+};
+
+function gradDefs(){
+  // gradientes para "huella" por color
+  return ['#19c3dd','#ffae33'].map(c=>{
+    const id='grad_'+c.replace('#','');
+    return `<radialGradient id="${id}" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="${c}" stop-opacity="0.05"/><stop offset="70%" stop-color="${c}" stop-opacity="0.3"/><stop offset="100%" stop-color="${c}" stop-opacity="0.55"/></radialGradient>`;
+  }).join('');
+}
+
+function tablero(estilo, modo, dam){
+  const acento = modo==='balon' ? '#ffae33' : '#19c3dd';
+  const sel    = modo==='balon' ? SEL_BALON : SEL_JUGADOR;
+  const dests  = modo==='balon' ? DEST_BALON : DEST_JUGADOR;
+  const mk = MARCADORES[estilo].fn;
+
+  // fichas (todas), pero la seleccionada lleva anillo
+  let fichas='';
+  POS.visit.forEach(([x,y])=>fichas+=disco(x,y,EQ_VISIT)); fichas+=disco(POS.visitPort[0],POS.visitPort[1],EQ_VISIT);
+  POS.local.forEach(([x,y])=>fichas+=disco(x,y,EQ_LOCAL)); fichas+=disco(POS.localPort[0],POS.localPort[1],EQ_LOCAL);
+
+  const selG = modo==='balon' ? '' : seleccion(sel[0],sel[1],acento);
+  const selBalonG = modo==='balon' ? seleccion(sel[0],sel[1],acento) : '';
+  const destG = dests.map(([x,y])=>mk(x,y,acento)).join('');
+
+  return `<svg viewBox="-14 -14 138 178" xmlns="http://www.w3.org/2000/svg">
+    <defs>${campoDefs()}${fichaDefs()}${gradDefs()}</defs>
+    ${campo(dam)}
+    ${selG}
+    ${fichas}
+    ${selBalonG}
+    ${balon(POS.balon[0],POS.balon[1])}
+    ${destG}
+  </svg>`;
+}
+
+let MODO='jugador';
+function renderAll(){
+  const dam=document.getElementById('cb-damero').checked;
+  const grid=document.getElementById('grid'); grid.innerHTML='';
+  Object.keys(MARCADORES).forEach(k=>{
+    const M=MARCADORES[k];
+    const card=document.createElement('div'); card.className='card';
+    card.innerHTML=`<h2>${M.nombre}</h2><div class="d">${M.desc}</div>${tablero(k,MODO,dam)}`;
+    grid.appendChild(card);
+  });
+}
+document.getElementById('modoSeg').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  MODO=b.dataset.modo;
+  document.querySelectorAll('#modoSeg button').forEach(x=>x.classList.toggle('on',x===b));
+  renderAll();
+});
+document.getElementById('cb-damero').addEventListener('change',renderAll);
+renderAll();
+</script>
+</body>
+</html>

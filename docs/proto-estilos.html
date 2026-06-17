@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MasterGoal · Prototipos de estilo visual</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: #15171c; color: #e8e8ea;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+  header {
+    padding: 22px 20px 8px; text-align: center;
+  }
+  header h1 { margin: 0 0 4px; font-size: 22px; letter-spacing: -0.5px; }
+  header p { margin: 0; font-size: 13px; opacity: 0.55; max-width: 640px; margin: 0 auto; line-height: 1.5; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+    padding: 20px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: #1d2026;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .card-head {
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .card-head h2 { margin: 0 0 3px; font-size: 16px; }
+  .card-head .tag {
+    display: inline-block; font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 20px; margin-bottom: 6px;
+  }
+  .tag-real { background: rgba(76,175,80,0.18); color: #8bd98f; }
+  .tag-mesa { background: rgba(180,140,90,0.2); color: #d8b486; }
+  .tag-min  { background: rgba(100,160,255,0.18); color: #9cc2ff; }
+  .tag-arc  { background: rgba(255,90,160,0.18); color: #ff9cc4; }
+  .card-head p { margin: 0; font-size: 12px; opacity: 0.5; line-height: 1.45; }
+
+  .stage {
+    aspect-ratio: 110 / 150;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .stage svg { width: 100%; height: 100%; display: block; }
+
+  footer { text-align: center; padding: 10px 20px 40px; font-size: 12px; opacity: 0.4; }
+  code { background: rgba(255,255,255,0.08); padding: 1px 5px; border-radius: 4px; font-size: 11px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>MasterGoal · Prototipos de estilo visual</h1>
+  <p>Cuatro tratamientos del MISMO tablero y fichas reales (misma geometría que el juego).
+     Solo cambia la capa estética: paleta, profundidad, materiales y escenario.
+     Nada de esto toca el motor ni <code>index.html</code>.</p>
+</header>
+
+<div class="grid" id="grid"></div>
+
+<footer>Geometría idéntica al juego · viewBox <code>-10 -10 130 170</code> · fichas en sus posiciones iniciales reales</footer>
+
+<script>
+/* ===========================================================================
+   GEOMETRÍA REAL (copiada de index.html, NO se altera)
+   - Campo: 11 cols × 13 filas, casillas de 10×10, origen (0,10).
+   - Fichas: r=3.5 en sus posiciones iniciales. Balón en (55,75).
+   =========================================================================== */
+
+const POS = {
+  local:     [ [35,45],[75,45],[25,65],[85,65] ],   // j1..j4
+  localPort: [55,25],
+  visit:     [ [25,85],[85,85],[35,105],[75,105] ],
+  visitPort: [55,125],
+  balon:     [55,75],
+};
+
+// Damero: devuelve true si la casilla (ix col, iy fila) es "clara"
+function esClara(ix, iy) { return (ix + iy) % 2 === 0; }
+
+// Construye los <rect> del terreno (13 filas × 11 cols)
+function terreno(claraClass, oscuraClass) {
+  let s = '';
+  for (let f = 0; f < 13; f++) {
+    for (let c = 0; c < 11; c++) {
+      const x = c * 10, y = 10 + f * 10;
+      const cls = esClara(c, f) ? claraClass : oscuraClass;
+      s += `<rect x="${x}" y="${y}" width="10" height="10" class="${cls}"/>`;
+    }
+  }
+  return s;
+}
+
+// Líneas del campo (área, círculo central, perímetro) — comunes
+function lineas(stroke = '#fff', w = 0.4, opacity = 1) {
+  return `
+    <g fill="none" stroke="${stroke}" stroke-opacity="${opacity}">
+      <rect x="10" y="10" width="90" height="40" stroke-width="${w}"/>
+      <rect x="20" y="10" width="70" height="20" stroke-width="${w}"/>
+      <rect x="10" y="100" width="90" height="40" stroke-width="${w}"/>
+      <rect x="20" y="120" width="70" height="20" stroke-width="${w}"/>
+      <line x1="0" y1="75" x2="110" y2="75" stroke-width="${w}"/>
+      <rect x="0" y="10" width="110" height="130" stroke-width="${w}"/>
+      <circle cx="55" cy="75" r="15" stroke-width="${w*0.8}"/>
+      <circle cx="55" cy="75" r="0.9" fill="${stroke}" fill-opacity="${opacity}" stroke="none"/>
+    </g>`;
+}
+
+// Porterías (arcos arriba y abajo)
+function porterias(stroke = '#fff', w = 1.2, opacity = 1) {
+  return `
+    <g fill="none" stroke="${stroke}" stroke-opacity="${opacity}" stroke-width="${w}" stroke-linejoin="miter">
+      <path d="M 30 10 L 30 0 L 80 0 L 80 10"/>
+      <path d="M 30 140 L 30 150 L 80 150 L 80 140"/>
+    </g>`;
+}
+
+/* ===========================================================================
+   ESTILO 1 — REALISTA / ESTADIO TV
+   Césped con franjas de corte + degradado, sombras en fichas, glow líneas,
+   marco de "estadio" oscuro alrededor.
+   =========================================================================== */
+function estiloRealista() {
+  // Franjas de corte: bandas horizontales alternas con dos verdes
+  let franjas = '';
+  for (let f = 0; f < 13; f++) {
+    const y = 10 + f * 10;
+    franjas += `<rect x="0" y="${y}" width="110" height="10" fill="${f%2 ? 'url(#cespA)' : 'url(#cespB)'}"/>`;
+  }
+  function fichas(arr, port, grad, glow) {
+    let s = '';
+    [...arr, port].forEach(([x,y]) => {
+      s += `<circle cx="${x}" cy="${y}" r="3.6" fill="url(#${grad})" stroke="${glow}" stroke-width="0.25" filter="url(#sombraR)"/>
+            <circle cx="${x-1}" cy="${y-1}" r="1.1" fill="rgba(255,255,255,0.45)"/>`;
+    });
+    return s;
+  }
+  return `
+  <svg viewBox="-12 -12 134 174" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="cespA" cx="50%" cy="40%" r="90%">
+        <stop offset="0%" stop-color="#3ea64a"/><stop offset="100%" stop-color="#2f8c3c"/>
+      </radialGradient>
+      <radialGradient id="cespB" cx="50%" cy="40%" r="90%">
+        <stop offset="0%" stop-color="#36963f"/><stop offset="100%" stop-color="#287d34"/>
+      </radialGradient>
+      <radialGradient id="fLocalR" cx="38%" cy="32%" r="75%">
+        <stop offset="0%" stop-color="#ffffff"/><stop offset="70%" stop-color="#dfe6ea"/><stop offset="100%" stop-color="#aeb8bd"/>
+      </radialGradient>
+      <radialGradient id="fVisitR" cx="38%" cy="32%" r="75%">
+        <stop offset="0%" stop-color="#ff6b6b"/><stop offset="65%" stop-color="#e23b3b"/><stop offset="100%" stop-color="#9e1f1f"/>
+      </radialGradient>
+      <filter id="sombraR" x="-50%" y="-50%" width="200%" height="200%">
+        <feDropShadow dx="0" dy="0.6" stdDeviation="0.7" flood-color="#000" flood-opacity="0.5"/>
+      </filter>
+      <filter id="glowR"><feGaussianBlur stdDeviation="0.4"/></filter>
+      <linearGradient id="marcoR" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#10331a"/><stop offset="100%" stop-color="#061a0d"/>
+      </linearGradient>
+    </defs>
+    <rect x="-12" y="-12" width="134" height="174" fill="url(#marcoR)"/>
+    <rect x="-4" y="-4" width="118" height="158" rx="3" fill="#1f5c2a"/>
+    ${franjas}
+    <g filter="url(#glowR)">${lineas('#eaffea', 0.45, 0.9)}${porterias('#eaffea', 1.1, 0.95)}</g>
+    ${fichas(POS.visit, POS.visitPort, 'fVisitR', 'rgba(0,0,0,0.3)')}
+    ${fichas(POS.local, POS.localPort, 'fLocalR', 'rgba(0,0,0,0.3)')}
+    <circle cx="55" cy="75" r="3" fill="#fff" filter="url(#sombraR)"/>
+    <circle cx="55" cy="75" r="3" fill="none" stroke="#bbb" stroke-width="0.25"/>
+    <path d="M55 72.2 l1.8 1.3 -0.7 2.1 -2.2 0 -0.7 -2.1z" fill="#222"/>
+  </svg>`;
+}
+
+/* ===========================================================================
+   ESTILO 2 — SUBBUTEO / MESA PREMIUM
+   Tablero tipo juego de lujo: borde de madera, fieltro, fichas-disco con
+   base biselada y número. Damero suave.
+   =========================================================================== */
+function estiloMesa() {
+  function fichas(arr, port, grad, ring, numFill, nums) {
+    let s = '';
+    [...arr, port].forEach(([x,y], i) => {
+      s += `
+        <ellipse cx="${x}" cy="${y+1.4}" rx="3.6" ry="1.5" fill="rgba(0,0,0,0.35)"/>
+        <circle cx="${x}" cy="${y}" r="3.7" fill="${ring}"/>
+        <circle cx="${x}" cy="${y}" r="3.1" fill="url(#${grad})"/>
+        <text x="${x}" y="${y}" font-size="3" font-weight="800" fill="${numFill}"
+              text-anchor="middle" dominant-baseline="central">${nums[i]}</text>`;
+    });
+    return s;
+  }
+  return `
+  <svg viewBox="-12 -12 134 174" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="maderaM" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#6b4a2b"/><stop offset="50%" stop-color="#8a5e36"/><stop offset="100%" stop-color="#5a3d23"/>
+      </linearGradient>
+      <radialGradient id="fieltroM" cx="50%" cy="35%" r="85%">
+        <stop offset="0%" stop-color="#2f7d3a"/><stop offset="100%" stop-color="#1f5e2a"/>
+      </radialGradient>
+      <radialGradient id="discoL" cx="40%" cy="35%" r="75%">
+        <stop offset="0%" stop-color="#fdfdfd"/><stop offset="100%" stop-color="#c9d2d6"/>
+      </radialGradient>
+      <radialGradient id="discoV" cx="40%" cy="35%" r="75%">
+        <stop offset="0%" stop-color="#e85555"/><stop offset="100%" stop-color="#b02626"/>
+      </radialGradient>
+      <pattern id="dameroM" width="20" height="20" patternUnits="userSpaceOnUse">
+        <rect width="20" height="20" fill="#2c773688" opacity="0"/>
+        <rect x="0" y="0" width="10" height="10" fill="rgba(255,255,255,0.04)"/>
+        <rect x="10" y="10" width="10" height="10" fill="rgba(255,255,255,0.04)"/>
+      </pattern>
+    </defs>
+    <rect x="-12" y="-12" width="134" height="174" rx="6" fill="url(#maderaM)"/>
+    <rect x="-12" y="-12" width="134" height="174" rx="6" fill="none" stroke="rgba(0,0,0,0.4)" stroke-width="1.5"/>
+    <rect x="-6" y="-6" width="122" height="162" rx="3" fill="url(#fieltroM)"/>
+    <rect x="0" y="10" width="110" height="130" fill="url(#dameroM)"/>
+    ${lineas('#dfeede', 0.4, 0.8)}${porterias('#dfeede', 1.0, 0.85)}
+    ${fichas(POS.visit, POS.visitPort, 'discoV', '#7d1818', '#fff', ['9','10','11','1'])}
+    ${fichas(POS.local, POS.localPort, 'discoL', '#9aa3a8', '#333', ['7','8','5','2'])}
+    <ellipse cx="55" cy="76.4" rx="3" ry="1.3" fill="rgba(0,0,0,0.3)"/>
+    <circle cx="55" cy="75" r="2.8" fill="#fff" stroke="#999" stroke-width="0.2"/>
+    <path d="M55 72.6 l1.6 1.2 -0.6 1.9 -2 0 -0.6 -1.9z" fill="#333"/>
+  </svg>`;
+}
+
+/* ===========================================================================
+   ESTILO 3 — MINIMAL MODERNO
+   Fondo oscuro, campo casi monocromo, líneas neón sutiles, fichas planas
+   con un único acento de color y halo suave.
+   =========================================================================== */
+function estiloMinimal() {
+  function fichas(arr, port, color) {
+    let s = '';
+    [...arr, port].forEach(([x,y]) => {
+      s += `<circle cx="${x}" cy="${y}" r="4" fill="${color}" opacity="0.18"/>
+            <circle cx="${x}" cy="${y}" r="3" fill="${color}"/>`;
+    });
+    return s;
+  }
+  return `
+  <svg viewBox="-12 -12 134 174" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="bgMin" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#181c22"/><stop offset="100%" stop-color="#0e1116"/>
+      </linearGradient>
+      <linearGradient id="campoMin" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#1c2530"/><stop offset="100%" stop-color="#161d26"/>
+      </linearGradient>
+      <filter id="neonMin"><feGaussianBlur stdDeviation="0.6"/></filter>
+    </defs>
+    <rect x="-12" y="-12" width="134" height="174" fill="url(#bgMin)"/>
+    <rect x="-3" y="-3" width="116" height="156" rx="6" fill="url(#campoMin)"/>
+    <g filter="url(#neonMin)" opacity="0.8">${lineas('#5ad1c4', 0.5, 0.9)}${porterias('#5ad1c4', 1.0, 0.8)}</g>
+    ${lineas('#7ee9dc', 0.25, 0.5)}
+    ${fichas(POS.visit, POS.visitPort, '#ff5a7a')}
+    ${fichas(POS.local, POS.localPort, '#4fc3f7')}
+    <circle cx="55" cy="75" r="3.6" fill="#fff" opacity="0.15"/>
+    <circle cx="55" cy="75" r="2.6" fill="#fff"/>
+  </svg>`;
+}
+
+/* ===========================================================================
+   ESTILO 4 — ARCADE VIBRANTE
+   Colores saturados, brillos fuertes, fichas con outline grueso estilo
+   cartoon, césped saturado con viñeta de foco.
+   =========================================================================== */
+function estiloArcade() {
+  let franjas = '';
+  for (let f = 0; f < 13; f++) {
+    const y = 10 + f * 10;
+    franjas += `<rect x="0" y="${y}" width="110" height="10" fill="${f%2 ? '#2fd04a' : '#26b840'}"/>`;
+  }
+  function fichas(arr, port, grad) {
+    let s = '';
+    [...arr, port].forEach(([x,y]) => {
+      s += `<circle cx="${x}" cy="${y}" r="4" fill="#1a1a1a"/>
+            <circle cx="${x}" cy="${y}" r="3.4" fill="url(#${grad})"/>
+            <ellipse cx="${x-1}" cy="${y-1.3}" rx="1.4" ry="0.9" fill="rgba(255,255,255,0.6)"/>`;
+    });
+    return s;
+  }
+  return `
+  <svg viewBox="-12 -12 134 174" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="focoA" cx="50%" cy="42%" r="75%">
+        <stop offset="0%" stop-color="#ffffff" stop-opacity="0.35"/>
+        <stop offset="55%" stop-color="#ffffff" stop-opacity="0"/>
+        <stop offset="100%" stop-color="#000000" stop-opacity="0.45"/>
+      </radialGradient>
+      <radialGradient id="arcL" cx="40%" cy="30%" r="80%">
+        <stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#3aa0ff"/>
+      </radialGradient>
+      <radialGradient id="arcV" cx="40%" cy="30%" r="80%">
+        <stop offset="0%" stop-color="#ffd24a"/><stop offset="100%" stop-color="#ff3d6e"/>
+      </radialGradient>
+    </defs>
+    <rect x="-12" y="-12" width="134" height="174" fill="#0c2b14"/>
+    ${franjas}
+    <g stroke="#fff" stroke-opacity="1">
+      ${lineas('#ffffff', 0.7, 1)}${porterias('#ffffff', 1.6, 1)}
+    </g>
+    <rect x="-12" y="-12" width="134" height="174" fill="url(#focoA)"/>
+    ${fichas(POS.visit, POS.visitPort, 'arcV')}
+    ${fichas(POS.local, POS.localPort, 'arcL')}
+    <circle cx="55" cy="75" r="3.4" fill="#1a1a1a"/>
+    <circle cx="55" cy="75" r="2.8" fill="#fff"/>
+    <path d="M55 72.5 l1.7 1.3 -0.65 2 -2.1 0 -0.65 -2z" fill="#111"/>
+  </svg>`;
+}
+
+/* ===========================================================================
+   RENDER de las tarjetas
+   =========================================================================== */
+const ESTILOS = [
+  { tag:'tag-real', tagTxt:'Realista', titulo:'Estadio TV',
+    desc:'Césped con franjas de corte y degradado, fichas con volumen y sombra, líneas con glow, marco de estadio. El mayor "wow".',
+    svg: estiloRealista },
+  { tag:'tag-mesa', tagTxt:'Mesa premium', titulo:'Subbuteo / juego de lujo',
+    desc:'Borde de madera, tapete de fieltro, fichas-disco biseladas con número. Coherente con que ES un juego de tablero.',
+    svg: estiloMesa },
+  { tag:'tag-min', tagTxt:'Minimal', titulo:'Minimal moderno',
+    desc:'Fondo oscuro, campo monocromo, líneas neón sutiles, fichas planas con un acento de color y halo. Estilo app actual.',
+    svg: estiloMinimal },
+  { tag:'tag-arc', tagTxt:'Arcade', titulo:'Arcade vibrante',
+    desc:'Colores saturados, outline grueso cartoon, brillos, viñeta de foco. Divertido y llamativo.',
+    svg: estiloArcade },
+];
+
+const grid = document.getElementById('grid');
+ESTILOS.forEach(e => {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `
+    <div class="card-head">
+      <span class="tag ${e.tag}">${e.tagTxt}</span>
+      <h2>${e.titulo}</h2>
+      <p>${e.desc}</p>
+    </div>
+    <div class="stage">${e.svg()}</div>`;
+  grid.appendChild(card);
+});
+</script>
+</body>
+</html>

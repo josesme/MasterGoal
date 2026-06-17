@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MasterGoal · Estilo Estadio (alta fidelidad)</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: #0a0c0f; color: #e8e8ea;
+    font-family: system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+  }
+  header { padding: 20px 20px 6px; text-align: center; }
+  header h1 { margin: 0 0 4px; font-size: 20px; letter-spacing: -0.5px; }
+  header p  { margin: 0 auto; font-size: 12.5px; opacity: 0.55; max-width: 620px; line-height: 1.5; }
+
+  .controls {
+    display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+    padding: 12px 16px;
+  }
+  .controls label {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; opacity: 0.8; background: #1c2026;
+    padding: 6px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.08);
+    cursor: pointer; user-select: none;
+  }
+  .controls input { accent-color: #4caf50; cursor: pointer; }
+
+  .stage-wrap {
+    display: flex; justify-content: center; padding: 8px 16px 40px;
+  }
+  .stage {
+    width: min(440px, 92vw);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+  }
+  .stage svg { width: 100%; height: auto; display: block; }
+  code { background: rgba(255,255,255,0.08); padding: 1px 5px; border-radius: 4px; font-size: 11px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>MasterGoal · Estilo Estadio — alta fidelidad</h1>
+  <p>Mismo tablero real (áreas, puntos amarillos, esquinas, porterías con red).
+     Las franjas de corte conviven con un <strong>damero legible</strong>: la cuadrícula
+     siempre se ve para poder razonar las jugadas.</p>
+</header>
+
+<div class="controls">
+  <label><input type="checkbox" id="cb-damero" checked> Damero visible</label>
+  <label><input type="checkbox" id="cb-franjas" checked> Franjas de corte</label>
+  <label><input type="checkbox" id="cb-puntos" checked> Puntos amarillos</label>
+  <label><input type="checkbox" id="cb-destinos"> Resaltar destinos (demo)</label>
+</div>
+
+<div class="stage-wrap">
+  <div class="stage" id="stage"></div>
+</div>
+
+<script>
+/* ===========================================================================
+   GEOMETRÍA REAL (idéntica a index.html). viewBox -10 -10 130 170.
+   =========================================================================== */
+const POS = {
+  local:     [ [35,45],[75,45],[25,65],[85,65] ],
+  localPort: [55,25],
+  visit:     [ [25,85],[85,85],[35,105],[75,105] ],
+  visitPort: [55,125],
+  balon:     [55,75],
+};
+// Puntos amarillos reales (posiciones de salida) — de index.html
+const PUNTOS = [
+  [55,25],[35,45],[75,45],[25,65],[85,65],[55,125],[25,85],[85,85],[35,105],[75,105],
+  [5,15],[35,15],[45,15],[55,15],[65,15],[75,15],[105,15],
+  [5,135],[35,135],[45,135],[55,135],[65,135],[75,135],[105,135],
+];
+const CORNERS = [[5,15],[105,15],[5,135],[105,135]];
+
+function esClara(c, f){ return (c + f) % 2 === 0; }
+
+/* ---- DAMERO sutil: tono leve por casilla, encima de las franjas ---- */
+function damero(visible){
+  if(!visible) return '';
+  let s = '<g>';
+  for(let f=0; f<13; f++){
+    for(let c=0; c<11; c++){
+      const x=c*10, y=10+f*10;
+      // Casilla oscura: velo verde oscuro translúcido. Clara: casi nada.
+      const fill = esClara(c,f) ? 'rgba(255,255,255,0.045)' : 'rgba(0,40,15,0.16)';
+      s += `<rect x="${x}" y="${y}" width="10" height="10" fill="${fill}"/>`;
+    }
+  }
+  s += '</g>';
+  return s;
+}
+
+/* ---- REJILLA fina: refuerza la lectura de las casillas sin saturar ---- */
+function rejilla(){
+  let s = '<g stroke="rgba(255,255,255,0.07)" stroke-width="0.12">';
+  for(let c=1; c<11; c++) s += `<line x1="${c*10}" y1="10" x2="${c*10}" y2="140"/>`;
+  for(let f=1; f<13; f++) s += `<line x1="0" y1="${10+f*10}" x2="110" y2="${10+f*10}"/>`;
+  s += '</g>';
+  return s;
+}
+
+/* ---- FRANJAS de corte: bandas horizontales alternas, suaves ---- */
+function franjas(visible){
+  if(!visible) return '<rect x="0" y="10" width="110" height="130" fill="url(#cespBase)"/>';
+  let s = '';
+  for(let f=0; f<13; f++){
+    const y = 10 + f*10;
+    s += `<rect x="0" y="${y}" width="110" height="10" fill="${f%2 ? 'url(#cespA)' : 'url(#cespB)'}"/>`;
+  }
+  return s;
+}
+
+/* ---- LÍNEAS del campo ---- */
+function lineas(){
+  return `
+  <g fill="none" stroke="#f4fff4" stroke-opacity="0.92" filter="url(#glowLin)">
+    <rect x="0" y="10" width="110" height="130" stroke-width="0.45"/>
+    <line x1="0" y1="75" x2="110" y2="75" stroke-width="0.45"/>
+    <circle cx="55" cy="75" r="15" stroke-width="0.4"/>
+    <rect x="10" y="10" width="90" height="40" stroke-width="0.45"/>
+    <rect x="20" y="10" width="70" height="20" stroke-width="0.45"/>
+    <rect x="10" y="100" width="90" height="40" stroke-width="0.45"/>
+    <rect x="20" y="120" width="70" height="20" stroke-width="0.45"/>
+  </g>
+  <circle cx="55" cy="75" r="0.9" fill="#f4fff4"/>`;
+}
+
+/* ---- PORTERÍAS con red ---- */
+function porteria(yBase, dir){ // dir: +1 hacia fuera arriba(-) ... usamos coords absolutas
+  // Marco
+  const y0 = yBase, y1 = yBase + 10*dir;
+  let net = '';
+  // Verticales de red
+  for(let x=32; x<80; x+=2){
+    net += `<line x1="${x}" y1="${y0}" x2="${x}" y2="${y1}"/>`;
+  }
+  // Horizontales de red
+  for(let k=1; k<8; k++){
+    const yy = y0 + (10*k/8)*dir;
+    net += `<line x1="30" y1="${yy}" x2="80" y2="${yy}"/>`;
+  }
+  return `
+  <g>
+    <g stroke="#ffffff" stroke-opacity="0.28" stroke-width="0.18">${net}</g>
+    <path d="M 30 ${y0} L 30 ${y1} L 80 ${y1} L 80 ${y0}" fill="none"
+          stroke="#ffffff" stroke-width="1.1" stroke-linejoin="miter"/>
+  </g>`;
+}
+
+/* ---- PUNTOS amarillos + esquinas ---- */
+function puntos(visible){
+  if(!visible) return '';
+  let s = '<g>';
+  PUNTOS.forEach(([x,y]) => {
+    s += `<circle cx="${x}" cy="${y}" r="0.7" fill="#ffe680" opacity="0.4"/>`;
+  });
+  CORNERS.forEach(([x,y]) => {
+    s += `<circle cx="${x}" cy="${y}" r="0.9" fill="#ffd24a" opacity="0.5"/>`;
+  });
+  s += '</g>';
+  return s;
+}
+
+/* ---- DESTINOS demo: marca algunas casillas como jugada posible ---- */
+function destinos(visible){
+  if(!visible) return '';
+  const cells = [[45,55],[55,55],[65,55],[55,65]]; // ejemplo alrededor del balón
+  let s = '<g>';
+  cells.forEach(([x,y]) => {
+    s += `<circle cx="${x}" cy="${y}" r="2.4" fill="#ffe680" opacity="0.35"/>
+          <circle cx="${x}" cy="${y}" r="2.4" fill="none" stroke="#ffe680" stroke-width="0.3" opacity="0.7"/>`;
+  });
+  s += '</g>';
+  return s;
+}
+
+/* ---- FICHAS con volumen ---- */
+function ficha(x, y, grad, esPortero){
+  const r = 3.6;
+  return `
+  <g filter="url(#sombraFicha)">
+    <circle cx="${x}" cy="${y}" r="${r}" fill="url(#${grad})" stroke="rgba(0,0,0,0.35)" stroke-width="0.25"/>
+  </g>
+  <ellipse cx="${x-1.1}" cy="${y-1.2}" rx="1.3" ry="0.95" fill="rgba(255,255,255,0.55)"/>
+  ${esPortero ? `<circle cx="${x}" cy="${y}" r="${r+0.9}" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.2" stroke-dasharray="1 1"/>` : ''}`;
+}
+
+function fichas(){
+  let s = '';
+  // Visitante primero (debajo), local encima, igual que el juego
+  POS.visit.forEach(([x,y]) => s += ficha(x,y,'fVisit',false));
+  s += ficha(POS.visitPort[0], POS.visitPort[1], 'fVisit', true);
+  POS.local.forEach(([x,y]) => s += ficha(x,y,'fLocal',false));
+  s += ficha(POS.localPort[0], POS.localPort[1], 'fLocal', true);
+  return s;
+}
+
+/* ---- BALÓN con detalle ---- */
+function balon(){
+  const [x,y] = POS.balon;
+  return `
+  <g filter="url(#sombraBalon)">
+    <circle cx="${x}" cy="${y}" r="3" fill="url(#balonGrad)" stroke="#bbb" stroke-width="0.2"/>
+  </g>
+  <g fill="#1c1c1c" transform="translate(${x},${y})">
+    <path d="M0 -1.6 l1.5 1.1 -0.57 1.78 -1.86 0 -0.57 -1.78z"/>
+    <circle cx="0" cy="-2.2" r="0.35"/><circle cx="2.2" cy="-0.5" r="0.35"/>
+    <circle cx="1.4" cy="2" r="0.35"/><circle cx="-1.4" cy="2" r="0.35"/><circle cx="-2.2" cy="-0.5" r="0.35"/>
+  </g>
+  <ellipse cx="${x-0.9}" cy="${y-1}" rx="0.9" ry="0.6" fill="rgba(255,255,255,0.7)"/>`;
+}
+
+/* ===========================================================================
+   COMPOSICIÓN
+   =========================================================================== */
+function render(){
+  const dam = document.getElementById('cb-damero').checked;
+  const fra = document.getElementById('cb-franjas').checked;
+  const pun = document.getElementById('cb-puntos').checked;
+  const des = document.getElementById('cb-destinos').checked;
+
+  const svg = `
+  <svg viewBox="-14 -14 138 178" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <!-- Verdes del césped -->
+      <linearGradient id="cespA" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#3fa84b"/><stop offset="100%" stop-color="#359540"/>
+      </linearGradient>
+      <linearGradient id="cespB" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#359a40"/><stop offset="100%" stop-color="#2c8537"/>
+      </linearGradient>
+      <radialGradient id="cespBase" cx="50%" cy="42%" r="80%">
+        <stop offset="0%" stop-color="#3aa046"/><stop offset="100%" stop-color="#2c8537"/>
+      </radialGradient>
+      <!-- Marco estadio -->
+      <linearGradient id="marco" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#11331c"/><stop offset="100%" stop-color="#05140b"/>
+      </linearGradient>
+      <!-- Borde/banda perimetral del campo -->
+      <linearGradient id="banda" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#1f6b2c"/><stop offset="100%" stop-color="#175223"/>
+      </linearGradient>
+      <!-- Fichas -->
+      <radialGradient id="fLocal" cx="36%" cy="30%" r="78%">
+        <stop offset="0%" stop-color="#ffffff"/><stop offset="65%" stop-color="#e2e8ec"/><stop offset="100%" stop-color="#9aa6ac"/>
+      </radialGradient>
+      <radialGradient id="fVisit" cx="36%" cy="30%" r="78%">
+        <stop offset="0%" stop-color="#ff7a7a"/><stop offset="60%" stop-color="#e23b3b"/><stop offset="100%" stop-color="#8f1c1c"/>
+      </radialGradient>
+      <radialGradient id="balonGrad" cx="38%" cy="32%" r="75%">
+        <stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#d6d6d6"/>
+      </radialGradient>
+      <!-- Sombras -->
+      <filter id="sombraFicha" x="-60%" y="-60%" width="220%" height="220%">
+        <feDropShadow dx="0" dy="0.7" stdDeviation="0.65" flood-color="#000" flood-opacity="0.5"/>
+      </filter>
+      <filter id="sombraBalon" x="-80%" y="-80%" width="260%" height="260%">
+        <feDropShadow dx="0" dy="0.5" stdDeviation="0.5" flood-color="#000" flood-opacity="0.45"/>
+      </filter>
+      <filter id="glowLin" x="-20%" y="-20%" width="140%" height="140%">
+        <feGaussianBlur stdDeviation="0.18"/>
+      </filter>
+      <!-- Viñeta de foco de estadio -->
+      <radialGradient id="foco" cx="50%" cy="40%" r="72%">
+        <stop offset="0%"  stop-color="#ffffff" stop-opacity="0.10"/>
+        <stop offset="60%" stop-color="#ffffff" stop-opacity="0"/>
+        <stop offset="100%" stop-color="#000000" stop-opacity="0.35"/>
+      </radialGradient>
+    </defs>
+
+    <!-- Fondo / marco estadio -->
+    <rect x="-14" y="-14" width="138" height="178" fill="url(#marco)"/>
+    <!-- Banda perimetral (zona fuera de juego) -->
+    <rect x="-8" y="-8" width="126" height="166" rx="4" fill="url(#banda)"/>
+
+    <!-- Césped (franjas o base) clipeado al rectángulo de juego -->
+    <g>
+      ${franjas(fra)}
+      ${rejilla()}
+      ${damero(dam)}
+    </g>
+
+    <!-- Porterías con red (detrás de líneas) -->
+    ${porteria(10, -1)}
+    ${porteria(140, 1)}
+
+    <!-- Líneas -->
+    ${lineas()}
+    ${puntos(pun)}
+    ${destinos(des)}
+
+    <!-- Foco de estadio encima del campo, debajo de fichas -->
+    <rect x="-14" y="-14" width="138" height="178" fill="url(#foco)" pointer-events="none"/>
+
+    <!-- Fichas y balón -->
+    ${fichas()}
+    ${balon()}
+  </svg>`;
+
+  document.getElementById('stage').innerHTML = svg;
+}
+
+['cb-damero','cb-franjas','cb-puntos','cb-destinos'].forEach(id =>
+  document.getElementById(id).addEventListener('change', render));
+render();
+</script>
+</body>
+</html>
