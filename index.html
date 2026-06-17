@@ -1911,6 +1911,18 @@
           <stop offset="0%" stop-color="#000" stop-opacity="0.42"/>
           <stop offset="100%" stop-color="#000" stop-opacity="0"/>
         </radialGradient>
+        <!-- Marcador de destino "huella suave": centro tenue, borde nítido.
+             Uno por color: jugador (cian) / balón (ámbar). -->
+        <radialGradient id="destJugador" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"  stop-color="#19c3dd" stop-opacity="0.05"/>
+          <stop offset="70%" stop-color="#19c3dd" stop-opacity="0.30"/>
+          <stop offset="100%" stop-color="#19c3dd" stop-opacity="0.55"/>
+        </radialGradient>
+        <radialGradient id="destBalon" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"  stop-color="#ffae33" stop-opacity="0.05"/>
+          <stop offset="70%" stop-color="#ffae33" stop-opacity="0.30"/>
+          <stop offset="100%" stop-color="#ffae33" stop-opacity="0.55"/>
+        </radialGradient>
       </defs>
       
       <!-- FONDO (muy extendido: cubre cualquier viewBox, también el de móvil, sin dejar gris) -->
@@ -2907,22 +2919,40 @@
     }
     
     // ====== RENDER DESTINOS ======
+    // Marcador "huella suave": disco con degradado radial (centro tenue → borde
+    // nítido) + aro sutil. Color por contexto: ámbar (balón) / cian (jugador).
     function renderDestinos(destinos) {
       destinosGroup.innerHTML = '';
+      const esBalon = estado.seleccionado === 'balon';
+      const grad    = esBalon ? 'url(#destBalon)' : 'url(#destJugador)';
+      const aro     = esBalon ? '#ffae33' : '#19c3dd';
       for (const d of destinos) {
         const coords = casillaToSVG(d.fila, d.col);
-        const circ = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        circ.setAttribute('cx', coords.cx);
-        circ.setAttribute('cy', coords.cy);
-        circ.setAttribute('r', '4');
-        circ.setAttribute('fill', estado.seleccionado === 'balon' ? '#ff9800' : '#00bcd4');
-        circ.setAttribute('opacity', '0.5');
-        circ.setAttribute('cursor', 'pointer');
-        addFastListener(circ, (e) => {
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('cursor', 'pointer');
+
+        const huella = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        huella.setAttribute('cx', coords.cx);
+        huella.setAttribute('cy', coords.cy);
+        huella.setAttribute('r', '4');
+        huella.setAttribute('fill', grad);
+        g.appendChild(huella);
+
+        const borde = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        borde.setAttribute('cx', coords.cx);
+        borde.setAttribute('cy', coords.cy);
+        borde.setAttribute('r', '4');
+        borde.setAttribute('fill', 'none');
+        borde.setAttribute('stroke', aro);
+        borde.setAttribute('stroke-width', '0.3');
+        borde.setAttribute('opacity', '0.6');
+        g.appendChild(borde);
+
+        addFastListener(g, (e) => {
           e.stopPropagation();
           mover(estado.seleccionado, d.fila, d.col);
         });
-        destinosGroup.appendChild(circ);
+        destinosGroup.appendChild(g);
       }
     }
     
