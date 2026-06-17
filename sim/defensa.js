@@ -130,9 +130,14 @@ const ESCENARIOS = [
 // Devuelve el score desde la perspectiva del visitante (más alto = mejor defensa)
 // y el nº de amenazas de gol directas que quedan.
 function amenazaResidual(estado) {
+  // Amenaza INICIAL (sin que la IA mueva nada): si ya es <= -100000, la posición
+  // estaba perdida de salida y el "gol" no es culpa de la decisión defensiva.
+  ia.setEstado(JSON.parse(JSON.stringify(estado)));
+  const amenazaInicial = Math.round(ia.iaSimularMejorTurnoLocal());
+
   ia.setEstado(JSON.parse(JSON.stringify(estado)));
   const dec = ia.calcularDecisionJugador();
-  if (!dec) return { score: null, amenazas: null, mov: null };
+  if (!dec) return { score: null, amenazas: null, mov: null, inicial: amenazaInicial };
 
   // Aplicar la decisión (la mejor según top5, determinista)
   const mejor = dec.top5[0];
@@ -150,7 +155,7 @@ function amenazaResidual(estado) {
   const amenazas = ia.iaDetectarAmenazaGol().length;
   st.turno = 'visitante';
 
-  return { score: Math.round(scoreResidual), amenazas, mov: `${mejor.piezaId}->(${mejor.dest.fila},${mejor.dest.col})` };
+  return { score: Math.round(scoreResidual), amenazas, mov: `${mejor.piezaId}->(${mejor.dest.fila},${mejor.dest.col})`, inicial: amenazaInicial };
 }
 
 function correr(estilo) {
@@ -197,28 +202,37 @@ function main() {
   }
   console.log('');
 
-  const res = correr('equilibrado');
-
-  // Un escenario se considera GOL CONCEDIDO si la amenaza residual es catastrófica
-  // (el simulador del local encuentra gol seguro: score <= -100000).
   const UMBRAL_GOL = -100000;
-  let golesConcedidos = 0, salvados = 0;
-  let suma = 0;
+  // Modo comparativo: equilibrado vs defensivo lado a lado, para ver si el estilo
+  // defensivo aporta ventaja real y dónde falla.
+  const resEq  = correr('equilibrado');
+  const resDef = correr('defensivo');
+
+  const resumen = (res) => {
+    let goles = 0, suma = 0;
+    res.forEach(r => { suma += r.score; if (r.score <= UMBRAL_GOL) goles++; });
+    return { goles, medio: suma / res.length, defendidos: res.length - goles };
+  };
 
   for (let i = 0; i < ESCENARIOS.length; i++) {
-    const r = res[i];
-    suma += r.score;
-    const concede = r.score <= UMBRAL_GOL;
-    if (concede) golesConcedidos++; else salvados++;
-    const veredicto = concede ? '❌ GOL concedido' : '🛡️  defendido';
-
+    const e = resEq[i], d = resDef[i];
+    const vE = e.score <= UMBRAL_GOL ? '❌' : '🛡️ ';
+    const vD = d.score <= UMBRAL_GOL ? '❌' : '🛡️ ';
+    const yaPerdido = e.inicial <= UMBRAL_GOL;
     console.log(`${i + 1}. ${ESCENARIOS[i].nombre}`);
-    console.log(`   score=${r.score}  amenazas=${r.amenazas}  defensa=${r.mov}  ${veredicto}\n`);
+    console.log(`   amenaza inicial (sin mover): ${e.inicial}${yaPerdido ? '  ⚠️ POSICIÓN YA PERDIDA' : ''}`);
+    console.log(`   EQUIL: ${vE} score=${e.score}  amen=${e.amenazas}  ${e.mov}`);
+    console.log(`   DEFEN: ${vD} score=${d.score}  amen=${d.amenazas}  ${d.mov}`);
+    if (d.mov !== e.mov) console.log(`   ↳ el defensivo ELIGE DISTINTO`);
+    console.log('');
   }
 
+  const sE = resumen(resEq), sD = resumen(resDef);
   console.log('─'.repeat(55));
-  console.log(`Escenarios defendidos: ${salvados}/${ESCENARIOS.length}  | goles concedidos: ${golesConcedidos}`);
-  console.log(`Score medio (más alto = mejor defensa): ${(suma / ESCENARIOS.length).toFixed(0)}`);
+  console.log(`EQUILIBRADO  defendidos ${sE.defendidos}/${ESCENARIOS.length}  goles ${sE.goles}  score medio ${sE.medio.toFixed(0)}`);
+  console.log(`DEFENSIVO    defendidos ${sD.defendidos}/${ESCENARIOS.length}  goles ${sD.goles}  score medio ${sD.medio.toFixed(0)}`);
+  const delta = sD.medio - sE.medio;
+  console.log(`Δ defensivo vs equilibrado: ${delta >= 0 ? '+' : ''}${delta.toFixed(0)} (positivo = el defensivo defiende mejor)`);
   console.log('─'.repeat(55));
 }
 
