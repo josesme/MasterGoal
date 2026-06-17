@@ -1935,6 +1935,13 @@
         <pattern id="redPorteria" width="1.6" height="1.6" patternUnits="userSpaceOnUse">
           <path d="M0 0 H1.6 M0 0 V1.6" stroke="#ffffff" stroke-width="0.13" stroke-opacity="0.32"/>
         </pattern>
+        <!-- Volumen del cuerpo del portero (amarillo). objectBoundingBox: se ancla
+             al propio círculo y se mueve con él, sin tocar la lógica de movimiento. -->
+        <radialGradient id="porteroBody" cx="38%" cy="30%" r="75%">
+          <stop offset="0%"  stop-color="#fff0a8"/>
+          <stop offset="55%" stop-color="#ffd23f"/>
+          <stop offset="100%" stop-color="#d9a400"/>
+        </radialGradient>
       </defs>
 
       <!-- FONDO (muy extendido: cubre cualquier viewBox, también el de móvil, sin dejar gris) -->
@@ -2093,12 +2100,12 @@
       <g id="equipo-local">
         <!-- Portero 2-6: grupo con cuerpo + brazos -->
         <g id="l-portero" class="ficha portero" data-equipo="local">
-          <rect id="l-portero-brazo-izq" x="46.5" y="23.75" width="5" height="2.5" rx="1.25"
-                fill="#ffffff" fill-opacity="0.6" stroke="#333" stroke-width="0.3"/>
-          <rect id="l-portero-brazo-der" x="58.5" y="23.75" width="5" height="2.5" rx="1.25"
-                fill="#ffffff" fill-opacity="0.6" stroke="#333" stroke-width="0.3"/>
+          <rect id="l-portero-brazo-izq" x="46.5" y="24.1" width="5" height="1.8" rx="0.9"
+                fill="#ffd23f" stroke="rgba(0,0,0,0.3)" stroke-width="0.2"/>
+          <rect id="l-portero-brazo-der" x="58.5" y="24.1" width="5" height="1.8" rx="0.9"
+                fill="#ffd23f" stroke="rgba(0,0,0,0.3)" stroke-width="0.2"/>
           <circle id="l-portero-cuerpo" cx="55" cy="25" r="3.5"
-                  fill="#ffffff" stroke="#333" stroke-width="0.3"/>
+                  fill="url(#porteroBody)" stroke="rgba(0,0,0,0.4)" stroke-width="0.3"/>
         </g>
         <!-- Jugadores -->
         <circle id="l-j1" cx="35" cy="45" r="3.5" fill="#ffffff" stroke="#333" stroke-width="0.3" class="ficha"/>
@@ -2111,12 +2118,12 @@
       <g id="equipo-visitante">
         <!-- Portero 12-6: grupo con cuerpo + brazos -->
         <g id="v-portero" class="ficha portero" data-equipo="visitante">
-          <rect id="v-portero-brazo-izq" x="46.5" y="123.75" width="5" height="2.5" rx="1.25"
-                fill="#d32f2f" fill-opacity="0.6" stroke="#333" stroke-width="0.3"/>
-          <rect id="v-portero-brazo-der" x="58.5" y="123.75" width="5" height="2.5" rx="1.25"
-                fill="#d32f2f" fill-opacity="0.6" stroke="#333" stroke-width="0.3"/>
+          <rect id="v-portero-brazo-izq" x="46.5" y="124.1" width="5" height="1.8" rx="0.9"
+                fill="#ffd23f" stroke="rgba(0,0,0,0.3)" stroke-width="0.2"/>
+          <rect id="v-portero-brazo-der" x="58.5" y="124.1" width="5" height="1.8" rx="0.9"
+                fill="#ffd23f" stroke="rgba(0,0,0,0.3)" stroke-width="0.2"/>
           <circle id="v-portero-cuerpo" cx="55" cy="125" r="3.5"
-                  fill="#d32f2f" stroke="#333" stroke-width="0.3"/>
+                  fill="url(#porteroBody)" stroke="rgba(0,0,0,0.4)" stroke-width="0.3"/>
         </g>
         <!-- Jugadores -->
         <circle id="v-j1" cx="25" cy="85" r="3.5" fill="#d32f2f" stroke="#333" stroke-width="0.3" class="ficha"/>
@@ -2245,6 +2252,9 @@
     
     const POSICIONES_INICIALES = JSON.parse(JSON.stringify(estado.fichas));
     const MARCADOR = { local: 0, visitante: 0 };
+
+    // Color del portero (contraste fijo de momento; futuro: selector por equipo en el editor).
+    const COLOR_PORTERO = '#ffd23f';
 
     // ====== PATRONES DE CAMISETA ======
     // gen(c1, c2, s, h) — s=ancho total, h=altura de la zona camiseta (≈67.5% de s)
@@ -2434,11 +2444,13 @@
           el.setAttribute('stroke-width', '0.3');
         });
 
-        const pc = document.getElementById(porteroId+'-cuerpo');
+        // Portero: brazos en color fijo amarillo de contraste; el cuerpo mantiene su
+        // gradiente de volumen del markup (url(#porteroBody)) — no lo sobrescribimos.
+        // (De momento color fijo; pendiente selector "color portero" por equipo.)
+        const colorPortero = eq.colorPortero || COLOR_PORTERO;
         [porteroId+'-brazo-izq', porteroId+'-brazo-der'].forEach(b => {
-          const el = document.getElementById(b); if (el) el.setAttribute('fill', eq.colorPantalon);
+          const el = document.getElementById(b); if (el) el.setAttribute('fill', colorPortero);
         });
-        if (pc) pc.setAttribute('fill', eq.colorPantalon);
       });
     }
 
@@ -3509,7 +3521,7 @@
       const brazoIzq = document.getElementById(id + '-brazo-izq');
       if (enAreaGrande(fila, col - 1) && col - 1 >= 1) {
         brazoIzq.setAttribute('x', centro.cx - 8.5);
-        brazoIzq.setAttribute('y', centro.cy - 1.25);
+        brazoIzq.setAttribute('y', centro.cy - 0.9);
         brazoIzq.setAttribute('visibility', 'visible');
       } else {
         brazoIzq.setAttribute('visibility', 'hidden');
@@ -3518,7 +3530,7 @@
       const brazoDer = document.getElementById(id + '-brazo-der');
       if (enAreaGrande(fila, col + 1) && col + 1 <= 11) {
         brazoDer.setAttribute('x', centro.cx + 3.5);
-        brazoDer.setAttribute('y', centro.cy - 1.25);
+        brazoDer.setAttribute('y', centro.cy - 0.9);
         brazoDer.setAttribute('visibility', 'visible');
       } else {
         brazoDer.setAttribute('visibility', 'hidden');
