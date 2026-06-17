@@ -2209,9 +2209,15 @@
       })();
     </script>
 
-    <!-- Indicador discreto de config de IA. Dentro del campo (esquina inf. dcha.) para que siempre sea visible, también en móvil. Formato: N5-D4/A4-P3 -->
-    <div id="ia-debug" style="display:none;position:absolute;bottom:6px;right:8px;z-index:50;
-         font-family:monospace;font-size:10px;color:rgba(255,255,255,0.4);
+    <!-- Indicador discreto de config de IA. position:fixed anclado al viewport
+         (esquina inf. dcha.) para que sea visible siempre, en PC y en móvil,
+         independientemente del encuadre del campo. Formato: N5-D4/A4-P3.
+         safe-area-inset por si hay barra de gestos en móvil. -->
+    <div id="ia-debug" style="display:none;position:fixed;
+         bottom:calc(6px + env(safe-area-inset-bottom));
+         right:calc(8px + env(safe-area-inset-right));z-index:120;
+         font-family:monospace;font-size:10px;color:rgba(255,255,255,0.55);
+         text-shadow:0 1px 2px rgba(0,0,0,0.6);
          pointer-events:none;user-select:none;letter-spacing:0.5px;"></div>
 
    </div><!-- /svg-wrapper -->
@@ -6465,7 +6471,7 @@
 
   <script>
     // Muestra nivel / profundidad / potencial de la partida en curso vs IA.
-    // (El elemento #ia-debug vive dentro de .svg-wrapper para no cortarse en móvil.)
+    // (El elemento #ia-debug es position:fixed en la esquina inf. dcha. del viewport.)
     (function () {
       const NIVEL_NUM = { imbatible: 5, leyenda: 4, profesional: 3, juvenil: 2, cadete: 1 };
       const PROF = {
