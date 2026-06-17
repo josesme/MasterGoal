@@ -2303,7 +2303,7 @@
       const s = size;
       // El <svg> lleva style width/height 100% inline para llenar SIEMPRE su
       // contenedor (sea cual sea), sin depender de CSS externo por contenedor.
-      const svgOpen = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${s} ${s}" preserveAspectRatio="none" style="width:100%;height:100%;display:block">`;
+      const svgOpen = `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">`;
       // Modo portero: color único sólido (sin pantalón diferenciado ni patrón).
       if (eq.portero) {
         return `${svgOpen}
@@ -2344,18 +2344,23 @@
 
     function aplicarMiniJersey(el, eq, size) {
       if (!el) return;
-      // SVG inline (igual que los botones de patrón) para que llene el dot sin
-      // huecos: con el CSS de abajo, el <svg> ocupa el 100% del contenedor.
-      // (Antes iba como background-image base64 y dejaba márgenes en las esquinas.)
-      el.style.removeProperty('background-image');
-      el.style.removeProperty('background-size');
+      // background-image (robusto en cualquier contenedor: HUD, lista, campo...).
+      // Clave: background-size 'cover' (no '100% 100%') para llenar el círculo sin
+      // huecos en las esquinas y sin deformar. Volvemos a este método tras los
+      // problemas de layout del SVG inline (colapso/deformación/desbordes).
+      el.innerHTML = '';
       if (!eq) {
-        el.innerHTML = '';
+        el.style.removeProperty('background-image');
         el.style.background = 'rgba(255,255,255,0.15)';
         return;
       }
-      el.style.background = 'transparent';
-      el.innerHTML = miniJerseySVG(eq, 100);
+      const svgStr = miniJerseySVG(eq, 100);
+      const b64 = btoa(unescape(encodeURIComponent(svgStr)));
+      el.style.setProperty('background-image', `url("data:image/svg+xml;base64,${b64}")`);
+      el.style.setProperty('background-size', 'cover');
+      el.style.setProperty('background-position', 'center');
+      el.style.setProperty('background-repeat', 'no-repeat');
+      el.style.setProperty('background-color', 'transparent');
     }
 
     // Mezcla un color hex con blanco (t>0) o negro (t<0). t en [-1,1].
@@ -2389,7 +2394,7 @@
       defsEl.appendChild(g);
     }
 
-    const svg = document.querySelector('svg');
+    const svg = document.getElementById('tablero-svg');
     const destinosGroup = document.getElementById('destinos');
 
     // En móvil, click tiene 300ms de delay. Usamos pointerdown para respuesta inmediata.
@@ -2420,7 +2425,7 @@
 
     // ====== PINTAR FICHAS TABLERO ======
     function pintarFichasTablero(localEq, rivalEq) {
-      const svgEl = document.querySelector('svg');
+      const svgEl = document.getElementById('tablero-svg');
       let defsEl = svgEl.querySelector('defs');
       if (!defsEl) { defsEl = document.createElementNS('http://www.w3.org/2000/svg','defs'); svgEl.prepend(defsEl); }
 
@@ -2546,7 +2551,7 @@
         if (v) v.setAttribute('transform', `translate(${cx},${cy})`);
         return;
       }
-      const svgEl = document.querySelector('svg');
+      const svgEl = document.getElementById('tablero-svg');
       const defsEl = svgEl && svgEl.querySelector('defs');
       if (!defsEl) return;
       const r = 3.5;
