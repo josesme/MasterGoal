@@ -61,15 +61,18 @@ const IA_ESTILOS = {
     cercaniaBalon:   1.0,   // bonus por cercanía al balón
     presionZona:     1.0,   // bonus por jugadores cerca del balón en peligro
   },
+  // "Autobús": bloque bajo. Todos atrás, tapar centro y líneas, marcar de cerca,
+  // sin interés por avanzar el balón (al recuperar, despejar lejos — ver regla en
+  // calcularDecisionBalon). Lo opuesto a regalar balón/centro como hacía antes.
   defensivo: {
-    posBalon:        0.7,   // menos obsesión con avanzar el balón
+    posBalon:        0.3,   // casi no le importa avanzar el balón
     superioridad:    1.2,   // mantener control cerca del balón
-    lineasOfensivas: 0.6,   // menos agresividad ofensiva
-    lineasDefensivas:1.8,   // muy sensible a líneas de peligro rivales
-    controlCentro:   0.5,   // no arriesga por el centro
-    avanceJugadores: 0.4,   // jugadores retrasados
-    cercaniaBalon:   0.8,
-    presionZona:     1.5,   // agrupa bien en defensa cuando hay peligro
+    lineasOfensivas: 0.5,   // mínima ambición ofensiva
+    lineasDefensivas:2.5,   // obsesión con cortar líneas de peligro
+    controlCentro:   1.3,   // TAPAR el centro (antes 0.5 lo regalaba)
+    avanceJugadores: 0.1,   // jugadores muy retrasados (bloque bajo)
+    cercaniaBalon:   1.2,   // acudir a marcar al poseedor/receptor
+    presionZona:     1.8,   // agruparse fuerte ante peligro
   },
   presion: {
     posBalon:        1.1,
@@ -1495,6 +1498,46 @@ function calcularDecisionJugador() {
   return elegido ? { piezaId: elegido.piezaId, dest: elegido.dest, top5: candidatos.slice(0, 5) } : null;
 }
 
+// AUTOBÚS: elige la "casilla segura" entre los destinos de balón dados.
+// Distancia en pasos de REY (Chebyshov = max(|df|,|dc|)), que es como mueven las
+// fichas. Una casilla es SEGURA si, tras dejar el balón neutro ahí, mi jugador
+// más cercano llega ANTES que el rival contando el turno: como tras soltar el
+// balón mueve el rival, hace falta MI_dist < RIVAL_dist (empate = llega el rival).
+// Entre las seguras, preferir la que deja al rival más cercano lo MÁS LEJOS
+// posible (y, a igualdad, mi jugador más cerca). Si ninguna es segura, devuelve
+// la de mayor ventaja (rival - propio); como último criterio, más lejos del rival.
+function iaCasillaSeguraAutobus(destinos) {
+  const cheb = (f1, c1, f2, c2) => Math.max(Math.abs(f1 - f2), Math.abs(c1 - c2));
+  const propios = [], rivales = [];
+  for (const [id, d] of Object.entries(estado.fichas)) {
+    if (id === 'balon' || esPortero(id)) continue;
+    if (d.equipo === 'visitante') propios.push(d); else rivales.push(d);
+  }
+  const distMin = (arr, f, c) => arr.reduce((m, d) => Math.min(m, cheb(d.fila, d.col, f, c)), Infinity);
+
+  let mejorSegura = null, mejorSeguraKey = -Infinity;
+  let mejorFallback = null, mejorFallbackKey = -Infinity;
+  for (const dst of destinos) {
+    const dp = distMin(propios, dst.fila, dst.col);
+    const dr = distMin(rivales, dst.fila, dst.col);
+    // Lejanía de la portería PROPIA (fila 14): cuanto más arriba (fila baja),
+    // más despejado el peligro. Pesa menos que la lejanía del rival.
+    const lejosPorteria = 14 - dst.fila;
+    const segura = dp < dr; // yo llego antes contando el turno del rival
+    if (segura) {
+      // Entre las seguras (todas garantizan posesión), lo que más importa es
+      // ALEJAR el balón de la portería propia; el margen sobre el rival es
+      // secundario (basta con ser >0). Esto evita acumular el balón en el área.
+      const key = lejosPorteria * 100 + dr * 10 - dp;
+      if (key > mejorSeguraKey) { mejorSeguraKey = key; mejorSegura = dst; }
+    }
+    // fallback (ninguna segura): priorizar ventaja sobre el rival; luego alejar.
+    const key = (dr - dp) * 1000 + lejosPorteria * 30 + dr * 10;
+    if (key > mejorFallbackKey) { mejorFallbackKey = key; mejorFallback = dst; }
+  }
+  return mejorSegura || mejorFallback;
+}
+
 // ====== DECISIÓN MOVER BALÓN ======
 
 function calcularDecisionBalon(movRestantes) {
@@ -1525,6 +1568,18 @@ function calcularDecisionBalon(movRestantes) {
     primero = res.seq.length > 0 ? res.seq[0] : null;
     secuencia = res.seq;
     scoreElegido = res.score;
+
+    // AUTOBÚS (estilo defensivo): si la jugada planificada NO es de gol claro,
+    // priorizar CASILLA SEGURA: dejar el balón neutro donde conservemos el control.
+    // Control real = mi jugador llega antes que el rival CONTANDO EL TURNO (tras
+    // dejar el balón neutro, mueve el rival; si su distancia <= mi distancia, llega
+    // él). Entre las seguras, preferir la que más LEJOS deja al rival más cercano.
+    // Si ninguna es segura, la menos mala (máxima ventaja). Evita el "despeje
+    // tonto" que regalaba posesión.
+    if ((estado.estiloVisitante === 'defensivo') && scoreElegido < 100000) {
+      const elegida = iaCasillaSeguraAutobus(destinos);
+      if (elegida) { primero = elegida; secuencia = []; scoreElegido = 0; }
+    }
     // Fallback greedy si minimax no encontró secuencia (callejón sin salida)
     if (!primero) {
       let mejorScore = -Infinity;
@@ -1616,6 +1671,7 @@ if (typeof module !== 'undefined' && module.exports) {
     equipoTienePosesion,
     obtenerDestinosBalon,
     obtenerDestinosJugador,
+    estaOcupada,
     esPorteria,
     esPortero,
     esCasillaValida,
