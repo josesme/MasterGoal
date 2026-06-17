@@ -1312,16 +1312,6 @@
         </div>
       </div>
       <div class="torneo-seccion">
-        <h3>Nivel de dificultad (IA)</h3>
-        <div class="radio-group" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">
-          <button class="radio-btn" id="t-btn-nivel-cadete"       onclick="seleccionarNivel('cadete')">Cadete</button>
-          <button class="radio-btn" id="t-btn-nivel-juvenil"      onclick="seleccionarNivel('juvenil')">Juvenil</button>
-          <button class="radio-btn activo" id="t-btn-nivel-profesional" onclick="seleccionarNivel('profesional')">Profesional</button>
-          <button class="radio-btn" id="t-btn-nivel-leyenda"      onclick="seleccionarNivel('leyenda')">Leyenda</button>
-          <button class="radio-btn" id="t-btn-nivel-imbatible"    onclick="seleccionarNivel('imbatible')">Imbatible</button>
-        </div>
-      </div>
-      <div class="torneo-seccion">
         <h3>Número de equipos</h3>
         <div class="torneo-tamano-btns">
           <button class="torneo-tamano-btn activo" id="btn-t8" onclick="torneoSetTamano(8)">8 equipos</button>
@@ -1430,16 +1420,6 @@
           <button class="torneo-tamano-btn" id="liga-btn-j2" onclick="ligaSetJugadores(2)">2 jugadores</button>
           <button class="torneo-tamano-btn" id="liga-btn-j3" onclick="ligaSetJugadores(3)">3 jugadores</button>
           <button class="torneo-tamano-btn" id="liga-btn-j4" onclick="ligaSetJugadores(4)">4 jugadores</button>
-        </div>
-      </div>
-      <div class="torneo-seccion">
-        <h3>Nivel de dificultad (IA)</h3>
-        <div class="radio-group" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">
-          <button class="radio-btn" id="l-btn-nivel-cadete"       onclick="seleccionarNivel('cadete')">Cadete</button>
-          <button class="radio-btn" id="l-btn-nivel-juvenil"      onclick="seleccionarNivel('juvenil')">Juvenil</button>
-          <button class="radio-btn activo" id="l-btn-nivel-profesional" onclick="seleccionarNivel('profesional')">Profesional</button>
-          <button class="radio-btn" id="l-btn-nivel-leyenda"      onclick="seleccionarNivel('leyenda')">Leyenda</button>
-          <button class="radio-btn" id="l-btn-nivel-imbatible"    onclick="seleccionarNivel('imbatible')">Imbatible</button>
         </div>
       </div>
       <div class="torneo-seccion">
@@ -4086,11 +4066,11 @@
 
     window.seleccionarNivel = function(nivel) {
       config.nivelIA = nivel;
+      // Solo el selector del menú vsIA directo (btn-nivel-*). Liga y torneo usan
+      // selector de nivel por jugador, no este global.
       ['cadete','juvenil','profesional','leyenda','imbatible'].forEach(n => {
-        ['btn-nivel-','t-btn-nivel-','l-btn-nivel-'].forEach(prefix => {
-          const el = document.getElementById(prefix + n);
-          if (el) el.classList.toggle('activo', n === nivel);
-        });
+        const el = document.getElementById('btn-nivel-' + n);
+        if (el) el.classList.toggle('activo', n === nivel);
       });
     };
 
@@ -5921,9 +5901,12 @@
         wrap.className = 'torneo-jugador-slot';
         const label = document.createElement('label');
         label.textContent = n === 1 ? '' : `Jugador ${i}`;
+        const fila = document.createElement('div');
+        fila.style.cssText = 'display:flex;gap:8px;align-items:center;';
         const sel = document.createElement('select');
         sel.className = 'torneo-equipo-select';
         sel.id = `torneo-jugador-${i}`;
+        sel.style.flex = '1';
         sel.innerHTML = '<option value="">-- Selecciona equipo --</option>';
         equipos.forEach(e => {
           const o = document.createElement('option');
@@ -5931,8 +5914,10 @@
           sel.appendChild(o);
         });
         sel.onchange = torneoActualizarRivales;
+        fila.appendChild(sel);
+        fila.appendChild(_crearSelectorNivel(`torneo-nivel-${i}`));
         wrap.appendChild(label);
-        wrap.appendChild(sel);
+        wrap.appendChild(fila);
         slots.appendChild(wrap);
       }
       torneoActualizarRivales();
@@ -6008,8 +5993,14 @@
         rondas.push(partidos);
         actuales = new Array(actuales.length / 2).fill(null);
       }
-      // Guardar tambien el nivel de IA elegido para que se mantenga toda la copa.
-      torneoData = { jugadores, tamano, rondas, rondaActual: 0, config: { ...torneoConfig, nivelIA: config.nivelIA || 'profesional' } };
+      // Nivel de IA por jugador humano (equilibrio), leído de los mini-selectores.
+      // Se mantiene nivelIA global como fallback.
+      const nivelPorJugador = {};
+      jugadores.forEach((id, idx) => {
+        const sel = document.getElementById(`torneo-nivel-${idx + 1}`);
+        if (sel && id) nivelPorJugador[id] = sel.value;
+      });
+      torneoData = { jugadores, tamano, rondas, rondaActual: 0, config: { ...torneoConfig, nivelIA: config.nivelIA || 'profesional', nivelPorJugador } };
       torneoGuardar();
       document.getElementById('torneo-overlay').classList.remove('visible');
       mostrarBracket();
@@ -6197,9 +6188,10 @@
       config.turnos = torneoData.config.turnos;
       config.cronoTiempo = torneoData.config.cronoTiempo;
       config.cronoGoles = torneoData.config.cronoGoles;
-      // Mantener el nivel de IA elegido al crear la copa (fallback si copas
-      // antiguas no lo guardaron).
-      config.nivelIA = torneoData.config.nivelIA || config.nivelIA || 'profesional';
+      // Nivel de IA: el del jugador humano de este partido (el humano siempre es
+      // config.equipoLocal en HvIA). Fallbacks: mapa -> nivel global -> profesional.
+      const nivelMapT = torneoData.config.nivelPorJugador || {};
+      config.nivelIA = nivelMapT[config.equipoLocal] || torneoData.config.nivelIA || config.nivelIA || 'profesional';
       config._torneoRonda = ronda;
       config._torneoPartido = partido;
       config._torneoPendiente = true;
@@ -6264,20 +6256,45 @@
         const wrap = document.createElement('div'); wrap.className = 'torneo-jugador-slot';
         const label = document.createElement('label');
         label.textContent = n === 1 ? '' : `Jugador ${i}`;
+        const fila = document.createElement('div');
+        fila.style.cssText = 'display:flex;gap:8px;align-items:center;';
         const sel = document.createElement('select');
         sel.className = 'torneo-equipo-select';
         sel.id = `liga-jugador-${i}`;
+        sel.style.flex = '1';
         sel.innerHTML = '<option value="">-- Selecciona equipo --</option>';
         equipos.forEach(e => {
           const o = document.createElement('option'); o.value = e.id; o.textContent = e.nombre;
           sel.appendChild(o);
         });
         sel.onchange = ligaActualizarRivales;
-        wrap.appendChild(label); wrap.appendChild(sel);
+        fila.appendChild(sel);
+        fila.appendChild(_crearSelectorNivel(`liga-nivel-${i}`));
+        wrap.appendChild(label); wrap.appendChild(fila);
         slots.appendChild(wrap);
       }
       ligaActualizarRivales();
     };
+
+    // Mini-selector de nivel de IA por jugador (Cadete..Imbatible). Por defecto,
+    // el nivel global actual (config.nivelIA). Reutilizable en liga y torneo.
+    function _crearSelectorNivel(id) {
+      const sel = document.createElement('select');
+      sel.className = 'torneo-equipo-select';
+      sel.id = id;
+      sel.title = 'Nivel de la IA para este jugador';
+      sel.style.cssText = 'flex:0 0 auto;width:auto;';
+      const niveles = [
+        ['cadete', 'Cadete'], ['juvenil', 'Juvenil'], ['profesional', 'Profesional'],
+        ['leyenda', 'Leyenda'], ['imbatible', 'Imbatible'],
+      ];
+      niveles.forEach(([v, t]) => {
+        const o = document.createElement('option'); o.value = v; o.textContent = t;
+        sel.appendChild(o);
+      });
+      sel.value = config.nivelIA || 'profesional';
+      return sel;
+    }
 
     window.abrirLiga = function() {
       const saved = ligaCargar();
@@ -6379,9 +6396,15 @@
       // Inicializar tabla
       const tabla = {};
       todos.forEach(id => { tabla[id] = { pj:0, g:0, e:0, p:0, gf:0, gc:0, pts:0 }; });
-      // Guardar tambien el nivel de IA elegido (el selector de nivel setea
-      // config.nivelIA via seleccionarNivel) para que se mantenga en toda la liga.
-      ligaData = { miEquipo: miId, jugadores: jugadorIds, equipos: todos, partidos, tabla, config: { ...ligaConfig, nivelIA: config.nivelIA || 'profesional' }, jornadaVista: 1 };
+      // Nivel de IA por jugador humano (para equilibrar). Mapa equipoId -> nivel,
+      // leído de los mini-selectores de cada slot. Se mantiene nivelIA global como
+      // fallback para compatibilidad.
+      const nivelPorJugador = {};
+      jugadorIds.forEach((id, idx) => {
+        const sel = document.getElementById(`liga-nivel-${idx + 1}`);
+        if (sel && id) nivelPorJugador[id] = sel.value;
+      });
+      ligaData = { miEquipo: miId, jugadores: jugadorIds, equipos: todos, partidos, tabla, config: { ...ligaConfig, nivelIA: config.nivelIA || 'profesional', nivelPorJugador }, jornadaVista: 1 };
       ligaGuardar();
       document.getElementById('liga-crear-overlay').classList.remove('visible');
       ligaMostrar();
@@ -6597,9 +6620,11 @@
       config.encuentro  = ligaData.config.encuentro;
       config.turnos     = ligaData.config.turnos;
       config.cronoTiempo = ligaData.config.cronoTiempo;
-      // Mantener el nivel de IA elegido al crear la liga (fallback si ligas antiguas
-      // no lo guardaron).
-      config.nivelIA    = ligaData.config.nivelIA || config.nivelIA || 'profesional';
+      // Nivel de IA: el del jugador humano de este partido (el humano siempre es
+      // config.equipoLocal en HvIA). Permite equilibrar por persona. Fallbacks:
+      // mapa por jugador -> nivel global de la liga -> profesional.
+      const nivelMap = ligaData.config.nivelPorJugador || {};
+      config.nivelIA = nivelMap[config.equipoLocal] || ligaData.config.nivelIA || config.nivelIA || 'profesional';
       config._ligaPartido = p;
       config._ligaPendiente = true;
       actualizarSelectoresEquipo();
