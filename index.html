@@ -1310,6 +1310,12 @@
           <button class="torneo-tamano-btn" id="btn-j3" onclick="torneoSetJugadores(3)">3 jugadores</button>
           <button class="torneo-tamano-btn" id="btn-j4" onclick="torneoSetJugadores(4)">4 jugadores</button>
         </div>
+        <div class="torneo-jugadores-btns" style="margin-top:8px;">
+          <button class="torneo-tamano-btn" id="btn-j5" onclick="torneoSetJugadores(5)">5 jugadores</button>
+          <button class="torneo-tamano-btn" id="btn-j6" onclick="torneoSetJugadores(6)">6 jugadores</button>
+          <button class="torneo-tamano-btn" id="btn-j7" onclick="torneoSetJugadores(7)">7 jugadores</button>
+          <button class="torneo-tamano-btn" id="btn-j8" onclick="torneoSetJugadores(8)">8 jugadores</button>
+        </div>
       </div>
       <div class="torneo-seccion">
         <h3>Número de equipos</h3>
@@ -1420,6 +1426,12 @@
           <button class="torneo-tamano-btn" id="liga-btn-j2" onclick="ligaSetJugadores(2)">2 jugadores</button>
           <button class="torneo-tamano-btn" id="liga-btn-j3" onclick="ligaSetJugadores(3)">3 jugadores</button>
           <button class="torneo-tamano-btn" id="liga-btn-j4" onclick="ligaSetJugadores(4)">4 jugadores</button>
+        </div>
+        <div class="torneo-jugadores-btns" style="margin-top:8px;">
+          <button class="torneo-tamano-btn" id="liga-btn-j5" onclick="ligaSetJugadores(5)">5 jugadores</button>
+          <button class="torneo-tamano-btn" id="liga-btn-j6" onclick="ligaSetJugadores(6)">6 jugadores</button>
+          <button class="torneo-tamano-btn" id="liga-btn-j7" onclick="ligaSetJugadores(7)">7 jugadores</button>
+          <button class="torneo-tamano-btn" id="liga-btn-j8" onclick="ligaSetJugadores(8)">8 jugadores</button>
         </div>
       </div>
       <div class="torneo-seccion">
@@ -5854,7 +5866,7 @@
       return 'Ronda ' + ronda;
     }
 
-    // Devuelve el número de jugador humano (1-4) que controla ese equipo, o null si es IA
+    // Devuelve el número de jugador humano (1-8) que controla ese equipo, o null si es IA
     function torneoJugadorDeEquipo(equipoId) {
       if (!torneoData || !torneoData.jugadores) return null;
       const idx = torneoData.jugadores.indexOf(equipoId);
@@ -5893,7 +5905,7 @@
 
     window.torneoSetJugadores = function(n) {
       _torneoNumJugadores = n;
-      [1,2,3,4].forEach(i => document.getElementById('btn-j'+i).classList.toggle('activo', i === n));
+      [1,2,3,4,5,6,7,8].forEach(i => document.getElementById('btn-j'+i).classList.toggle('activo', i === n));
       const equipos = equiposGuardados();
       const slots = document.getElementById('torneo-jugadores-slots');
       slots.innerHTML = '';
@@ -6249,7 +6261,7 @@
 
     window.ligaSetJugadores = function(n) {
       _ligaNumJugadores = n;
-      [1, 2, 3, 4].forEach(i => document.getElementById('liga-btn-j' + i).classList.toggle('activo', i === n));
+      [1, 2, 3, 4, 5, 6, 7, 8].forEach(i => document.getElementById('liga-btn-j' + i).classList.toggle('activo', i === n));
       const equipos = equiposGuardados();
       const slots = document.getElementById('liga-jugadores-slots');
       slots.innerHTML = '';
