@@ -980,6 +980,8 @@
     .pasa-dispositivo-dot { width: 36px; height: 36px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); }
     .pasa-dispositivo-jugador { font-size: 12px; opacity: 0.55; font-weight: 400; margin-top: 2px; }
     .btn-pasa-iniciar { padding: 16px 40px; border-radius: 12px; border: none; background: #43a047; color: white; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 8px; }
+    .btn-pasa-volver { padding: 12px 40px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.25); background: transparent; color: rgba(255,255,255,0.75); font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 10px; }
+    .btn-pasa-volver:hover { background: rgba(255,255,255,0.06); }
     .campeon-overlay {
       display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.96);
       z-index: 300; flex-direction: column; align-items: center; justify-content: center;
@@ -1404,6 +1406,7 @@
       </div>
     </div>
     <button class="btn-pasa-iniciar" id="pasa-btn-iniciar">Comenzar partido</button>
+    <button class="btn-pasa-volver" id="pasa-btn-volver">Volver</button>
   </div>
 
   <!-- Pantalla campeón -->
@@ -4301,9 +4304,13 @@
       if (config._ligaPendiente) {
         config._ligaPendiente = false;
         const p = config._ligaPartido;
-        const soyLocal = p.local === ligaData.miEquipo;
-        p.golLocal     = soyLocal ? MARCADOR.local : MARCADOR.visitante;
-        p.golVisitante = soyLocal ? MARCADOR.visitante : MARCADOR.local;
+        // El marcador en pantalla está en términos de config.equipoLocal/Rival.
+        // En HvIA el humano siempre se monta como local (swap en ligaJugarPartido),
+        // así que comparamos contra quién jugó de local, no contra ligaData.miEquipo
+        // (que solo identifica a un humano y rompe con varios jugadores / HvH).
+        const localFueLocal = config.equipoLocal === p.local;
+        p.golLocal     = localFueLocal ? MARCADOR.local : MARCADOR.visitante;
+        p.golVisitante = localFueLocal ? MARCADOR.visitante : MARCADOR.local;
         p.jugado = true;
         ligaRecalcularTabla();
         ligaData.jornadaVista = ligaJornadaActual();
@@ -6224,10 +6231,13 @@
       mostrarPasaDispositivo(eqLocal, eqVisit, jLocal, jVisit, () => {
         document.getElementById('bracket-overlay').classList.remove('visible');
         iniciarJuego();
+      }, () => {
+        // Volver: el bracket sigue visible debajo; basta reasegurarlo.
+        document.getElementById('bracket-overlay').classList.add('visible');
       });
     }
 
-    function mostrarPasaDispositivo(eqLocal, eqVisit, jLocal, jVisit, callback) {
+    function mostrarPasaDispositivo(eqLocal, eqVisit, jLocal, jVisit, callback, onVolver) {
       const overlay = document.getElementById('pasa-dispositivo-overlay');
       aplicarMiniJersey(document.getElementById('pasa-dot-local'), eqLocal, 36);
       aplicarMiniJersey(document.getElementById('pasa-dot-visitante'), eqVisit, 36);
@@ -6237,6 +6247,8 @@
       document.getElementById('pasa-jugador-visitante').textContent = jVisit ? `Jugador ${jVisit}` : 'IA';
       const btn = document.getElementById('pasa-btn-iniciar');
       btn.onclick = () => { overlay.classList.remove('visible'); callback(); };
+      const btnVolver = document.getElementById('pasa-btn-volver');
+      btnVolver.onclick = () => { overlay.classList.remove('visible'); if (onVolver) onVolver(); };
       overlay.classList.add('visible');
     }
 
@@ -6629,9 +6641,18 @@
       const localHumano = ligaEsHumano(p.local);
       const visitHumano = ligaEsHumano(p.visitante);
       const esHvH = localHumano && visitHumano;
-      // El humano siempre juega como local en HvIA
-      config.equipoLocal = localHumano ? p.local : p.visitante;
-      config.equipoRival = localHumano ? p.visitante : p.local;
+      // En HvH respetamos el orden del calendario: p.local juega de local y
+      // p.visitante de visitante, para que el marcador en pantalla coincida con
+      // la jornada. En HvIA el motor exige que la IA sea el lado 'visitante',
+      // así que el humano se monta como local aunque en la jornada sea visitante
+      // (el resultado se registra contra p.local/p.visitante en finPartida).
+      if (esHvH) {
+        config.equipoLocal = p.local;
+        config.equipoRival = p.visitante;
+      } else {
+        config.equipoLocal = localHumano ? p.local : p.visitante;
+        config.equipoRival = localHumano ? p.visitante : p.local;
+      }
       config.modo = esHvH ? 'pvp' : 'vsIA';
       config.encuentro  = ligaData.config.encuentro;
       config.turnos     = ligaData.config.turnos;
@@ -6654,6 +6675,10 @@
       const eqVisit = equipos.find(e => e.id === p.visitante);
       mostrarPasaDispositivo(eqLocal, eqVisit, ligaJugadorNum(p.local), ligaJugadorNum(p.visitante), () => {
         iniciarJuego();
+      }, () => {
+        // Volver: reabrir la pantalla de liga (se ocultó al montar el partido).
+        config._ligaPendiente = false;
+        ligaMostrar();
       });
     }
 
