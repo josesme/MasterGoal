@@ -5859,9 +5859,32 @@
     function torneoCargar() { const d = localStorage.getItem('mg_torneo'); return d ? JSON.parse(d) : null; }
     function torneoBorrar() { localStorage.removeItem('mg_torneo'); }
 
-    function simularGoles() {
-      const pesos = [0,0,0,1,1,1,1,2,2,3];
-      return pesos[Math.floor(Math.random()*pesos.length)];
+    // Muestrea un número de goles de una Poisson(lambda) — el modelo estándar de
+    // goles en fútbol. Algoritmo de Knuth. Recortado a un máximo razonable.
+    function poissonGoles(lambda, maxGoles = 7) {
+      const L = Math.exp(-lambda);
+      let k = 0, p = 1;
+      do { k++; p *= Math.random(); } while (p > L);
+      return Math.min(k - 1, maxGoles);
+    }
+
+    // Simula un partido IA-vs-IA (de relleno en liga/copa) en función del
+    // potencial de cada equipo (1-5), la ventaja de jugar en casa y el nº de
+    // turnos (más turnos => más goles). Mantiene azar para que haya sorpresas.
+    // Devuelve { golLocal, golVisitante }.
+    function simularPartido(potLocal, potVisit, turnos) {
+      const pL = potLocal ?? 3, pV = potVisit ?? 3;
+      // baseline 30 turnos; si el modo no es por turnos, usa 30.
+      const factorTurnos = (turnos && turnos > 0 ? turnos : 30) / 30;
+      const base = 1.35 * factorTurnos;        // goles esperados de un equipo medio
+      const PESO_POT = 0.18;                    // "Equilibrado": el favorito gana clarito pero hay sorpresas
+      const VENT_LOCAL = 0.5;                   // ventaja de local moderada (~+0.5 de potencial)
+      const delta = pL - pV;
+      const ajusteL = 1 + PESO_POT * (delta + VENT_LOCAL);
+      const ajusteV = 1 - PESO_POT * (delta + VENT_LOCAL);
+      const lambdaL = base * Math.max(0.15, ajusteL);
+      const lambdaV = base * Math.max(0.15, ajusteV);
+      return { golLocal: poissonGoles(lambdaL), golVisitante: poissonGoles(lambdaV) };
     }
 
     function torneoNombreRonda(total, ronda) {
@@ -6188,9 +6211,18 @@
       const { rondas, rondaActual } = torneoData;
       const pendientes = rondas[rondaActual].filter(p => !p.jugado && p.local && p.visitante && !torneoEsHumano(p.local) && !torneoEsHumano(p.visitante));
       if (!pendientes.length) return;
+      const equipos = equiposGuardados();
+      const potDe = id => equipos.find(e => e.id === id)?.potencial ?? 3;
+      const turnos = torneoData.config?.encuentro === 'turnos' ? torneoData.config.turnos : 30;
       pendientes.forEach(p => {
-        let gl = simularGoles(), gv = simularGoles();
-        if (gl === gv) Math.random() < 0.5 ? gl++ : gv++;
+        let { golLocal: gl, golVisitante: gv } = simularPartido(potDe(p.local), potDe(p.visitante), turnos);
+        // En eliminatoria no puede haber empate: desempata sesgando al más fuerte.
+        if (gl === gv) {
+          const pL = potDe(p.local), pV = potDe(p.visitante);
+          // probabilidad de que gane el local en el desempate, según potencial (+ventaja local)
+          const probLocal = 0.5 + 0.06 * ((pL - pV) + 0.5);
+          Math.random() < probLocal ? gl++ : gv++;
+        }
         p.golLocal = gl; p.golVisitante = gv; p.jugado = true;
       });
       torneoAvanzarRonda();
@@ -6685,10 +6717,14 @@
     window.ligaSimularPendientes = function() {
       const { partidos, miEquipo } = ligaData;
       const jornadaActual = ligaJornadaActual();
+      const equipos = equiposGuardados();
+      const potDe = id => equipos.find(e => e.id === id)?.potencial ?? 3;
+      const turnos = ligaData.config?.encuentro === 'turnos' ? ligaData.config.turnos : 30;
       partidos.forEach(p => {
         if (p.jornada !== jornadaActual) return;
         if (p.jugado || ligaEsHumano(p.local) || ligaEsHumano(p.visitante)) return;
-        p.golLocal = simularGoles(); p.golVisitante = simularGoles(); p.jugado = true;
+        const r = simularPartido(potDe(p.local), potDe(p.visitante), turnos);
+        p.golLocal = r.golLocal; p.golVisitante = r.golVisitante; p.jugado = true;
       });
       ligaRecalcularTabla();
       ligaGuardar();
