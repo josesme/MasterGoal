@@ -42,3 +42,23 @@
 - Los documentos "Estudiosos" proponen símbolos en fichas (triángulo, círculo, cruz...) para diferenciar jugadores dentro del mismo equipo.
 - Decidido no implementar por ahora: el usuario ya está acostumbrado al sistema actual (numeración local/visitante).
 - Queda como mejora opcional si se añade modo de edición de equipos avanzado.
+
+---
+
+## Online (Firebase Realtime DB)
+
+### Estado actual (implementado y validado)
+- **Sync fiable**: cola de eventos append-only (push + child_added) con corte temporal al re-suscribirse. Sin desincronizaciones de tablero.
+- **Reconexión/reanudación**: presencia (heartbeat + onDisconnect), snapshot autoritativo del estado en Firebase, overlay "rival desconectado". (Re)entrar reconstruye el estado real, no el saque inicial.
+- **Reconexión del creador** con su propio código (rol persistido en localStorage).
+- **Selección de equipos**: el creador elige su equipo (local) + encuentro; el que se une elige su equipo (visitante) tras conectar, sin poder repetir el del creador.
+- **Robustez del lobby**: códigos únicos por transacción, limpieza de salas por TTL (2h), poda de la cola de eventos (>15s).
+
+### Pendiente — Validación de movimientos del rival (anti-cheat) [D]
+- **Qué**: hoy `aplicarMovimientoRemoto` aplica el movimiento del rival sin re-validar su legalidad. Un cliente modificado podría enviar movimientos ilegales.
+- **Decisión**: dejado en backlog. Con Firebase como mero buzón (sin servidor autoritativo) el anti-cheat tiene techo: se puede validar/rechazar en cliente para frenar trampeo casual, pero no protege de un cliente malicioso determinado. No prioritario.
+- **Si se retoma**: validar el destino recibido con las reglas (mismo motor que valida los movimientos propios) antes de aplicar; ignorar y avisar si es ilegal.
+
+### Pendiente — Pulido UX (no prioritario)
+- Indicador "turno del rival / esperando su jugada".
+- Revancha online más visible, estados de conexión más claros, timeouts de sala en espera.
