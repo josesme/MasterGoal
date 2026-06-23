@@ -7218,10 +7218,11 @@
     // Esquema: MAYOR.MENOR. MAYOR = nº de hito grande (modo/sistema nuevo o salto
     // de motor). MENOR = commits acumulados DESDE ese hito (reinicia a 0 en cada
     // hito nuevo; +1 por commit normal). Hitos hasta ahora: 1 base · 2 Liga ·
-    // 3 IA v2 Minimax · 4 Torneo · 5 Editor/niveles/retos · 6 Rediseño visual.
+    // 3 IA v2 Minimax · 4 Torneo · 5 Editor/niveles/retos · 6 Rediseño visual ·
+    // 7 Online multijugador (1v1 por Firebase).
     // Se muestra en la esquina inf. izquierda DEL CAMPO (foreignObject #version-tag).
     // Sirve para verificar que localhost/producción = lo commiteado.
-    const APP_VERSION = '6.11';
+    const APP_VERSION = '7.7';
     (function () {
       const vt = document.getElementById('version-tag');
       if (vt) vt.textContent = 'v' + APP_VERSION;
