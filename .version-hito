@@ -1,0 +1,13 @@
+# Control del versionado del juego (esquema MAYOR.MENOR).
+#
+# MAYOR = número de hito grande (modo/sistema nuevo o salto de motor).
+# MENOR = se CALCULA en CI como nº de commits desde COMMIT_HITO (incluido).
+#
+# Para abrir un hito nuevo: incrementa MAYOR y pon COMMIT_HITO al hash del
+# primer commit de ese hito (o déjalo en 'HEAD' al crearlo y el Action lo fija).
+#
+# Hitos: 1 base · 2 Liga · 3 IA Minimax · 4 Torneo · 5 Editor/niveles/retos ·
+# 6 Rediseño visual · 7 Online multijugador (1v1 Firebase).
+
+MAYOR=7
+COMMIT_HITO=7112e14

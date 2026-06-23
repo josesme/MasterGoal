@@ -7221,11 +7221,13 @@
     // 3 IA v2 Minimax · 4 Torneo · 5 Editor/niveles/retos · 6 Rediseño visual ·
     // 7 Online multijugador (1v1 por Firebase).
     // Se muestra en la esquina inf. izquierda DEL CAMPO (foreignObject #version-tag).
-    // Sirve para verificar que localhost/producción = lo commiteado.
-    // AUTO-BUMP: el hook git pre-commit incrementa el MENOR en cada commit que
-    // toque index.html. Para abrir un hito nuevo, edita esta línea a 'X.0' a
-    // mano (el hook respeta el salto y no lo pisa).
-    const APP_VERSION = '7.8';
+    // Sirve para verificar que producción = lo commiteado.
+    // VERSIÓN AUTOMÁTICA: el valor real lo inyecta el GitHub Action al desplegar,
+    // calculándolo del historial de git (MENOR = commits desde el hito en
+    // .version-hito). No editar a mano ni colisiona entre ordenadores. En local
+    // verás el placeholder 'dev'; en producción, la versión calculada (p.ej. 7.8).
+    // Para abrir un hito nuevo: editar .version-hito.
+    const APP_VERSION = 'dev';
     (function () {
       const vt = document.getElementById('version-tag');
       if (vt) vt.textContent = 'v' + APP_VERSION;
