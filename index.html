@@ -1297,6 +1297,21 @@
       text-align: center;
       min-height: 16px;
     }
+    /* ====== DESCONEXIÓN ONLINE ====== */
+    .desconexion-overlay {
+      display: none; position: fixed; inset: 0; z-index: 60;
+      background: rgba(10,15,25,0.82); backdrop-filter: blur(3px);
+      align-items: center; justify-content: center;
+    }
+    .desconexion-overlay.visible { display: flex; }
+    .desconexion-content {
+      display: flex; flex-direction: column; align-items: center; gap: 14px;
+      color: white; text-align: center; padding: 28px 36px;
+    }
+    .desconexion-spinner { font-size: 44px; animation: girar 1.1s linear infinite; }
+    @keyframes girar { to { transform: rotate(360deg); } }
+    .desconexion-titulo { font-size: 19px; font-weight: 700; }
+    .desconexion-sub { font-size: 13px; opacity: 0.6; }
   </style>
 </head>
 <body>
@@ -1826,6 +1841,16 @@
         <button class="btn-revancha" onclick="revancha()">Revancha</button>
         <button class="btn-menu-volver" onclick="volverMenu()">Menú</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Overlay rival desconectado (online) -->
+  <div id="desconexion-overlay" class="desconexion-overlay">
+    <div class="desconexion-content">
+      <div class="desconexion-spinner">⟳</div>
+      <div class="desconexion-titulo" id="desconexion-titulo">Rival desconectado</div>
+      <div class="desconexion-sub" id="desconexion-sub">Esperando reconexión…</div>
+      <button class="btn-menu-volver" onclick="volverMenu()">Salir</button>
     </div>
   </div>
 
@@ -3064,11 +3089,14 @@
         console.log('AUTOPASE INVALIDO: No puedes pasar el balon a una casilla donde el mismo jugador siga siendo el unico colindante.');
         return false;
       }
-      // Enviar movimiento al rival en modo online
+      // Enviar movimiento al rival en modo online + subir snapshot autoritativo
+      // del estado ya actualizado (microtask: tras la cadena síncrona de mover)
+      // para que un jugador que (re)entra reconstruya el tablero actual.
       if (config.modo === 'online') {
         enviarMensaje({ tipo: 'mover', id, fila: fDest, col: cDest, origen: red.miEquipo });
+        queueMicrotask(subirSnapshot);
       }
-      
+
       const el = document.getElementById(id);
       const coords = casillaToSVG(fDest, cDest);
       if (esPortero(id)) {
@@ -3893,7 +3921,13 @@
       eventosRef: null, // ref a salas/<cod>/eventos (para hacer .off al salir)
       onEvento: null,   // callback registrado en child_added (para .off)
       rivalRef: null,   // ref a salas/<cod>/rival (solo creador)
-      onRival: null     // callback en rival (para .off)
+      onRival: null,    // callback en rival (para .off)
+      presRival: null,  // ref a presencia del rival (para .off)
+      onPresRival: null,
+      connRef: null,    // ref a .info/connected (para .off)
+      onConn: null,
+      desde: null,      // timestamp de suscripción: ignora eventos históricos
+      enPartida: false  // true tras arrancar: habilita aviso de desconexión
     };
 
     function salaRef(codigo)    { return db.ref('salas/' + codigo); }
@@ -3913,12 +3947,18 @@
 
     // Escucha la cola con child_added: Firebase entrega cada evento una sola vez
     // y en orden de inserción. Los eventos propios se ignoran por 'origen'.
+    // IMPORTANTE: child_added reentrega TODO el histórico al suscribirse. Para
+    // una re-unión a media partida, los eventos viejos (config, movimientos
+    // pasados) reiniciarían la partida. red.desde marca el punto de corte:
+    // solo se procesan eventos posteriores a la suscripción.
     function escucharMensajes() {
+      red.desde = Date.now();
       red.eventosRef = eventosRef(red.codigo);
       red.onEvento = red.eventosRef.on('child_added', snap => {
         const msg = snap.val();
         if (!msg) return;
         if (msg.origen === red.miEquipo) return;
+        if (red.desde && msg.ts && msg.ts < red.desde) return; // evento histórico
         recibirMensaje(msg);
       });
     }
@@ -3936,6 +3976,134 @@
       red.rivalRef = null; red.onRival = null;
     }
 
+    function estadoRef(codigo) { return db.ref('salas/' + codigo + '/estado'); }
+
+    // Rol persistido por sala (sobrevive a recargas): permite que el creador que
+    // recarga y mete su propio código reconecte como 'local', no como visitante.
+    function guardarRol(codigo, equipo) {
+      try { localStorage.setItem('mg_online_rol_' + codigo, equipo); } catch (e) {}
+    }
+    function leerRol(codigo) {
+      try { return localStorage.getItem('mg_online_rol_' + codigo); } catch (e) { return null; }
+    }
+    function olvidarRol(codigo) {
+      try { localStorage.removeItem('mg_online_rol_' + codigo); } catch (e) {}
+    }
+
+    // Serializa el estado completo de la partida para que un jugador que
+    // (re)entra pueda reconstruir el tablero exacto, no desde el inicio.
+    function serializarEstado() {
+      return {
+        fichas: estado.fichas,
+        turno: estado.turno,
+        fase: estado.fase,
+        posesion: estado.posesion,
+        movimientosBalon: estado.movimientosBalon,
+        turnoExtra: estado.turnoExtra,
+        ultimoPasador: estado.ultimoPasador ?? null,
+        marcador: { local: MARCADOR.local, visitante: MARCADOR.visitante },
+        victoria: {
+          turnosRestantes: victoria.turnosRestantes,
+          turnosTotal: victoria.turnosTotal,
+          tiempoRestante: victoria.tiempoRestante,
+        },
+      };
+    }
+
+    // Sube el snapshot autoritativo a Firebase. Lo llama el jugador que acaba
+    // de mover, tras aplicar su jugada. Marca el autor para que el otro cliente
+    // sepa que debe aplicarlo (y el autor lo ignore).
+    function subirSnapshot() {
+      if (config.modo !== 'online' || !red.codigo) return;
+      // Incluimos config para que un jugador que (re)entra pueda reconstruir la
+      // partida (equipos, modo de encuentro...) sin depender del handshake.
+      estadoRef(red.codigo).set({
+        ...serializarEstado(),
+        autor: red.miEquipo,
+        config: { ...config },
+      });
+    }
+
+    // Aplica un snapshot recibido al estado local y repinta el tablero.
+    function aplicarSnapshot(snap) {
+      if (!snap || !snap.fichas) return;
+      estado.fichas = snap.fichas;
+      estado.turno = snap.turno;
+      estado.fase = snap.fase;
+      estado.posesion = snap.posesion;
+      estado.movimientosBalon = snap.movimientosBalon ?? 0;
+      estado.turnoExtra = snap.turnoExtra ?? false;
+      estado.ultimoPasador = snap.ultimoPasador ?? null;
+      if (snap.marcador) { MARCADOR.local = snap.marcador.local; MARCADOR.visitante = snap.marcador.visitante; }
+      if (snap.victoria) {
+        if (snap.victoria.turnosRestantes) victoria.turnosRestantes = snap.victoria.turnosRestantes;
+        if (snap.victoria.turnosTotal != null) victoria.turnosTotal = snap.victoria.turnosTotal;
+        if (snap.victoria.tiempoRestante) victoria.tiempoRestante = snap.victoria.tiempoRestante;
+      }
+      pintarFichas(estado.fichas);
+      limpiarSeleccion();
+      actualizarUI();
+    }
+
+    function presenciaRef(codigo, equipo) {
+      return db.ref('salas/' + codigo + '/presencia/' + equipo);
+    }
+    function rivalDe(equipo) { return equipo === 'local' ? 'visitante' : 'local'; }
+
+    // Sistema de presencia: cada jugador marca su presencia y la borra
+    // automáticamente al desconectarse (onDisconnect). Se re-registra al
+    // reconectar (.info/connected). Escucha la presencia del rival para avisar
+    // de caídas y reanudar al volver.
+    function iniciarPresencia() {
+      if (!red.codigo || !red.miEquipo) return;
+      const miPres = presenciaRef(red.codigo, red.miEquipo);
+      // Re-registrar presencia cada vez que (re)conectamos con Firebase.
+      // Orden importante para evitar una carrera: primero cancelamos cualquier
+      // onDisconnect pendiente de una sesión anterior, luego lo re-armamos y
+      // SOLO ENTONCES marcamos presencia. Así un remove() tardío no puede
+      // quedar como última operación y dejar al rival con el aviso pegado.
+      red.connRef = db.ref('.info/connected');
+      red.onConn = red.connRef.on('value', snap => {
+        if (snap.val() !== true) return;
+        miPres.onDisconnect().cancel().then(() => {
+          return miPres.onDisconnect().remove();
+        }).then(() => {
+          return miPres.set(true);
+        });
+      });
+      // Escuchar presencia del rival.
+      red.presRival = presenciaRef(red.codigo, rivalDe(red.miEquipo));
+      red.onPresRival = red.presRival.on('value', snap => {
+        const presente = snap.val() === true;
+        if (!red.enPartida) return; // solo avisar una vez en juego
+        if (presente) {
+          ocultarDesconexion();
+          // El rival volvió: él se resincroniza leyendo el snapshot. No tocamos
+          // nuestro estado (somos la referencia mientras él estuvo fuera).
+        } else {
+          mostrarDesconexion();
+        }
+      });
+    }
+
+    function mostrarDesconexion() {
+      document.getElementById('desconexion-titulo').textContent = 'Rival desconectado';
+      document.getElementById('desconexion-sub').textContent = 'Esperando reconexión…';
+      document.getElementById('desconexion-overlay').classList.add('visible');
+    }
+    function ocultarDesconexion() {
+      document.getElementById('desconexion-overlay').classList.remove('visible');
+    }
+
+    function pararPresencia() {
+      if (red.connRef && red.onConn) red.connRef.off('value', red.onConn);
+      if (red.presRival && red.onPresRival) red.presRival.off('value', red.onPresRival);
+      red.connRef = null; red.onConn = null;
+      red.presRival = null; red.onPresRival = null;
+      red.enPartida = false;
+      ocultarDesconexion();
+    }
+
     window.onlineCrear = function() {
       mostrarErrorOnline('');
       document.getElementById('btn-crear').classList.add('activo');
@@ -3945,27 +4113,34 @@
       const codigo = String(Math.floor(1000 + Math.random() * 9000));
       red.codigo   = codigo;
       red.miEquipo = 'local';
+      guardarRol(codigo, 'local');
 
       document.getElementById('sala-codigo').textContent = codigo;
       document.getElementById('sala-espera').innerHTML = '<span class="sala-spinner">⟳</span> Esperando rival...';
       document.getElementById('online-sala').classList.add('visible');
 
-      // Crear sala en Firebase y escuchar
+      // Crear sala en Firebase y escuchar. No usamos onDisconnect().remove()
+      // sobre la sala entera: una microcaída del creador la borraría y mataría
+      // la partida. La presencia (iniciarPresencia) gestiona las desconexiones;
+      // la sala se borra al salir explícitamente (volverMenu).
       salaRef(codigo).set({ estado: 'esperando', ts: Date.now() });
-      salaRef(codigo).onDisconnect().remove();
 
       escucharMensajes();
+      iniciarPresencia();
       // Escuchar cuando el rival se une (ref guardada para .off al salir)
       red.rivalRef = rivalRef(codigo);
       red.onRival = red.rivalRef.on('value', snap => {
-        if (snap.val() === 'listo') {
-          document.getElementById('sala-espera').textContent = '✓ Rival conectado. Iniciando...';
-          setTimeout(() => {
-            // Enviar config al rival
-            enviarMensaje({ tipo: 'config', config: { ...config }, origen: 'local' });
-            iniciarJuego();
-          }, 800);
-        }
+        if (snap.val() !== 'listo') return;
+        // Si la partida ya está en curso, el rival se está RE-UNIENDO: él se
+        // restaura solo desde el snapshot. No reenviamos config ni relanzamos
+        // la moneda (eso reiniciaría la partida desde el saque inicial).
+        if (red.enPartida) return;
+        document.getElementById('sala-espera').textContent = '✓ Rival conectado. Iniciando...';
+        setTimeout(() => {
+          // Enviar config al rival (primera unión)
+          enviarMensaje({ tipo: 'config', config: { ...config }, origen: 'local' });
+          iniciarJuego();
+        }, 800);
       });
     };
 
@@ -3984,7 +4159,12 @@
       document.getElementById('codigo-input').disabled = true;
 
       red.codigo   = codigo;
-      red.miEquipo = 'visitante';
+      // Si este navegador ya era el creador de esta sala (rol persistido),
+      // reconecta como 'local'. Evita que el creador se una como visitante y
+      // ambos queden esperando (dos 'visitante', ningún 'local').
+      const rolPrevio = leerRol(codigo);
+      red.miEquipo = rolPrevio === 'local' ? 'local' : 'visitante';
+      const soyCreador = red.miEquipo === 'local';
 
       // Verificar que la sala existe
       salaRef(codigo).once('value', snap => {
@@ -3993,14 +4173,61 @@
           document.getElementById('codigo-input').disabled = false;
           return;
         }
-        // Notificar al creador que el rival está listo
-        rivalRef(codigo).set('listo');
-        escucharMensajes();
-        mostrarErrorOnline('✓ Conectado. Esperando inicio...');
+        if (!soyCreador) guardarRol(codigo, 'visitante');
+        // ¿Partida ya en curso? Si existe snapshot de estado, es una RE-UNIÓN:
+        // restaurar directamente sin sorteo de moneda.
+        estadoRef(codigo).once('value', sEstado => {
+          const snapEstado = sEstado.val();
+          escucharMensajes();
+          iniciarPresencia();
+          // El visitante avisa de que está listo; el creador no se marca a sí mismo.
+          if (!soyCreador) rivalRef(codigo).set('listo');
+          if (snapEstado && snapEstado.config) {
+            // Reanudar: recuperar config guardada y montar el estado actual.
+            Object.assign(config, snapEstado.config);
+            mostrarErrorOnline('✓ Reanudando partida...');
+            reanudarPartida(snapEstado);
+          } else if (soyCreador) {
+            // Creador reconectando antes de que haya snapshot: vuelve a esperar
+            // rival en la pantalla de sala.
+            mostrarErrorOnline('');
+            document.getElementById('online-unirse').classList.remove('visible');
+            document.getElementById('sala-codigo').textContent = codigo;
+            document.getElementById('sala-espera').innerHTML = '<span class="sala-spinner">⟳</span> Esperando rival...';
+            document.getElementById('online-sala').classList.add('visible');
+            red.rivalRef = rivalRef(codigo);
+            red.onRival = red.rivalRef.on('value', s2 => {
+              if (s2.val() !== 'listo' || red.enPartida) return;
+              setTimeout(() => { enviarMensaje({ tipo: 'config', config: { ...config }, origen: 'local' }); iniciarJuego(); }, 800);
+            });
+          } else {
+            // Primera unión (visitante): flujo normal (espera config + moneda).
+            mostrarErrorOnline('✓ Conectado. Esperando inicio...');
+          }
+        });
       });
     };
 
+    // Monta el tablero en modo online a partir de un snapshot existente, sin
+    // sorteo de moneda. Para (re)entrar a una partida ya en curso.
+    function reanudarPartida(snapEstado) {
+      document.getElementById('menu-inicial').style.display = 'none';
+      document.getElementById('partido-overlay').classList.remove('visible');
+      document.getElementById('online-unirse').classList.remove('visible');
+      document.getElementById('moneda-overlay').classList.remove('visible');
+      // arrancarPartida monta el tablero (posiciones iniciales); luego el
+      // snapshot lo lleva al estado real. Lo aplicamos en microtask para correr
+      // DESPUÉS del subirSnapshot inicial que arrancarPartida pueda agendar, y
+      // así no quedarnos con el estado inicial.
+      arrancarPartida(snapEstado.turno || 'local');
+      queueMicrotask(() => aplicarSnapshot(snapEstado));
+    }
+
     function recibirMensaje(msg) {
+      // Cualquier mensaje del rival prueba que está vivo: quita el aviso de
+      // desconexión por si quedó pegado (red de seguridad ante carreras de
+      // presencia de Firebase).
+      if (red.enPartida) ocultarDesconexion();
       if (msg.tipo === 'config') {
         Object.assign(config, msg.config);
         document.getElementById('menu-inicial').style.display = 'none';
@@ -4201,6 +4428,10 @@
       _remontadaFlag = false;
       iaCalculando = false;
       estado.modo = config.modo;
+      // En online marcamos enPartida. La restauración de estado desde snapshot
+      // se hace SOLO en reanudarPartida (re-unión), de forma explícita, para no
+      // pisar el saque inicial en una primera unión normal.
+      if (config.modo === 'online') red.enPartida = true;
       // Nueva partida: limpiar historial de replay (recolocar añade el 1er snapshot)
       _historial = []; _replayIdx = null;
       recolocar(equipoQueSaca);
@@ -4229,6 +4460,11 @@
       aplicarEquiposAlHUD();
       actualizarUI();
       if (estado.turno === 'visitante' && estado.modo === 'vsIA') ejecutarTurnoIA();
+      // Snapshot inicial (solo el creador) para que una re-unión temprana pueda
+      // reanudar con la config correcta antes de que se haya movido ficha.
+      if (config.modo === 'online' && red.miEquipo === 'local') {
+        queueMicrotask(subirSnapshot);
+      }
     };
 
     // ====== CRONOMETRO ======
@@ -4419,8 +4655,10 @@
       // Cerrar conexión online si la había: quitar listeners y borrar la sala
       // para no dejar listeners huérfanos ni salas colgadas.
       if (red.codigo) {
+        pararPresencia();
         dejarDeEscuchar();
         salaRef(red.codigo).remove();
+        olvidarRol(red.codigo);
         red.codigo = null;
         red.miEquipo = null;
       }
