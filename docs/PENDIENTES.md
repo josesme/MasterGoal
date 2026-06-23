@@ -62,3 +62,20 @@
 ### Pendiente — Pulido UX (no prioritario)
 - Indicador "turno del rival / esperando su jugada".
 - Revancha online más visible, estados de conexión más claros, timeouts de sala en espera.
+
+### Fase futura — Torneos y ligas multijugador online
+
+**Punto de partida**: lo desarrollado hoy es un **1v1 entre dos dispositivos**. Torneo/liga online es un problema cualitativamente distinto, no una extensión. Hoy `torneoJugarPartido` / `ligaJugarPartido` solo conocen `'pvp'` (mismo dispositivo, "pasa el dispositivo") o `'vsIA'`; **no contemplan `'online'`**, y el flujo "pasa el dispositivo" asume a todos los jugadores físicamente presentes en la misma pantalla. La estructura del torneo/liga vive hoy en `localStorage` de un solo dispositivo.
+
+**Qué reutiliza** (cimiento ya resuelto y probado): la capa de transporte 1v1 — cómo dos remotos sincronizan un tablero (cola de eventos, snapshot, presencia, reconexión, selección de equipos). Eso vale mucho y no hay que reinventarlo.
+
+**Qué falta construir** (la capa de orquestación multijugador, comparable en esfuerzo a TODO el bloque online de hoy):
+1. **Lobby persistente de N jugadores** (no 2): crear el torneo, que 4-8 personas se unan con un código, esperar a todos.
+2. **Estructura del torneo/liga compartida en Firebase** (bracket/calendario en la nube, no en localStorage), sincronizada entre todos los participantes.
+3. **Emparejamiento remoto**: para cada partido del bracket, juntar a los dos jugadores remotos concretos, gestionar que el resto espere, y qué pasa si uno no está conectado cuando le toca.
+4. **Propagación de resultados**: el resultado de cada partido actualiza el bracket/tabla de todos, recalculando en la nube.
+5. **Ciclo de vida largo**: una liga puede durar días → ¿partidas asíncronas?, ¿persistencia de pendientes? Multiplica la complejidad.
+
+**Estimación**: la pieza difícil de bajo nivel (sincronizar un partido entre dos remotos) ya está. Falta toda la orquestación, que es un proyecto en sí mismo, no un retoque final.
+
+**Vía intermedia (acorta distancia)**: modo híbrido — la estructura del torneo/liga la lleva un "anfitrión" en su dispositivo (como ahora, en local), pero los enfrentamientos individuales se juegan online con el 1v1 actual, reportando resultados manual o semi-automáticamente. No es multijugador puro, pero reutiliza el 1v1 sin construir toda la orquestación.
