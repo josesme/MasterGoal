@@ -1727,6 +1727,16 @@
             <input class="codigo-input" id="codigo-input" type="text" maxlength="4" placeholder="0000" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'')"/>
             <button class="btn-unirse" onclick="onlineUnirse()">Conectar</button>
           </div>
+          <!-- Visitante: elegir equipo tras conectar -->
+          <div class="online-sala" id="online-visitante-equipo">
+            <div class="sala-estado">Te unes contra <strong id="online-rival-nombre">—</strong></div>
+            <div class="sala-estado" id="online-encuentro-info" style="opacity:0.6;"></div>
+            <h3 style="margin:10px 0 4px;">Tu equipo (visitante)</h3>
+            <select class="torneo-equipo-select" id="sel-equipo-visitante-online" onchange="onlineVisitanteValidar()">
+              <option value="">Selecciona equipo</option>
+            </select>
+            <button class="btn-unirse" id="btn-visitante-confirmar" onclick="onlineVisitanteConfirmar()" disabled style="margin-top:10px;">Confirmar y empezar</button>
+          </div>
           <div class="online-error" id="online-error"></div>
         </div>
         <div id="picker-equipos-wrap" style="margin-top:12px; display:none;">
@@ -1744,20 +1754,20 @@
         </div>
       </div>
 
-      <div class="torneo-seccion">
-        <h3>Local</h3>
+      <div class="torneo-seccion" id="seccion-equipo-local">
+        <h3 id="titulo-equipo-local">Local</h3>
         <select class="torneo-equipo-select" id="sel-equipo-local" onchange="actualizarDotEquipo('local');validarBtnJugar()">
           <option value="">Selecciona equipo</option>
         </select>
       </div>
-      <div class="torneo-seccion">
+      <div class="torneo-seccion" id="seccion-equipo-rival">
         <h3>Visitante</h3>
         <select class="torneo-equipo-select" id="sel-equipo-rival" onchange="actualizarDotEquipo('rival');validarBtnJugar()">
           <option value="">Selecciona equipo</option>
         </select>
       </div>
 
-      <div class="torneo-seccion">
+      <div class="torneo-seccion" id="seccion-encuentro">
         <h3>Tipo de encuentro</h3>
         <div class="encuentro-cols">
           <div class="encuentro-col">
@@ -4104,11 +4114,38 @@
       ocultarDesconexion();
     }
 
+    // "Crear partida": primero el creador elige su equipo (local) + encuentro.
+    // El código se genera al confirmar (onlineGenerarCodigo), no aquí.
     window.onlineCrear = function() {
       mostrarErrorOnline('');
       document.getElementById('btn-crear').classList.add('activo');
       document.getElementById('btn-unirse-tab').classList.remove('activo');
       document.getElementById('online-unirse').classList.remove('visible');
+      document.getElementById('online-visitante-equipo').classList.remove('visible');
+      document.getElementById('online-sala').classList.remove('visible');
+      // Mostrar selección de equipo local + encuentro (ocultos por defecto en online)
+      document.getElementById('seccion-equipo-local').style.display = '';
+      document.getElementById('seccion-encuentro').style.display = '';
+      // Botón "Jugar" se reusa como "Crear código" en este sub-flujo.
+      const btnJugar = document.getElementById('btn-jugar');
+      btnJugar.style.display = '';
+      btnJugar.textContent = 'Crear código';
+      btnJugar.onclick = onlineGenerarCodigo;
+      validarBtnJugar();
+    };
+
+    // Genera el código de sala y empieza a esperar rival (creador ya eligió equipo).
+    window.onlineGenerarCodigo = function() {
+      const equipoLocal = document.getElementById('sel-equipo-local').value;
+      if (!equipoLocal) { mostrarErrorOnline('Elige tu equipo primero'); return; }
+      config.equipoLocal = equipoLocal;
+      // Ocultar la selección; ya está fijada.
+      document.getElementById('seccion-equipo-local').style.display = 'none';
+      document.getElementById('seccion-encuentro').style.display = 'none';
+      const btnJugar = document.getElementById('btn-jugar');
+      btnJugar.style.display = 'none';
+      btnJugar.textContent = 'Jugar';
+      btnJugar.onclick = () => iniciarJuego();
 
       const codigo = String(Math.floor(1000 + Math.random() * 9000));
       red.codigo   = codigo;
@@ -4135,12 +4172,11 @@
         // restaura solo desde el snapshot. No reenviamos config ni relanzamos
         // la moneda (eso reiniciaría la partida desde el saque inicial).
         if (red.enPartida) return;
-        document.getElementById('sala-espera').textContent = '✓ Rival conectado. Iniciando...';
-        setTimeout(() => {
-          // Enviar config al rival (primera unión)
-          enviarMensaje({ tipo: 'config', config: { ...config }, origen: 'local' });
-          iniciarJuego();
-        }, 800);
+        // Rival conectado: le enviamos la config (nuestro equipo + encuentro) y
+        // ESPERAMOS a que elija su equipo (mensaje 'equipo-visitante'). No
+        // arrancamos aún — lo hace recibirMensaje al recibir su equipo.
+        document.getElementById('sala-espera').innerHTML = '<span class="sala-spinner">⟳</span> Rival eligiendo equipo...';
+        enviarMensaje({ tipo: 'config', config: { ...config }, origen: 'local' });
       });
     };
 
@@ -4208,6 +4244,63 @@
       });
     };
 
+    // El visitante elige su equipo tras recibir la config del creador. Se
+    // excluye el equipo del creador para no tener dos equipos idénticos.
+    function mostrarPickerVisitante() {
+      const equipos = equiposGuardados();
+      const sel = document.getElementById('sel-equipo-visitante-online');
+      sel.innerHTML = '<option value="">Selecciona equipo</option>';
+      equipos.forEach(e => {
+        if (e.id === config.equipoLocal) return; // excluir el del creador
+        const o = document.createElement('option');
+        o.value = e.id; o.textContent = e.nombre;
+        sel.appendChild(o);
+      });
+      sel.value = '';
+      // Mostrar nombre del rival (creador) y el encuentro elegido por él.
+      const eqLocal = equipos.find(e => e.id === config.equipoLocal);
+      document.getElementById('online-rival-nombre').textContent = eqLocal ? eqLocal.nombre : 'Local';
+      document.getElementById('online-encuentro-info').textContent = descripcionEncuentro();
+      // Asegurar visible la pantalla de configuración con el picker.
+      document.getElementById('menu-inicial').style.display = 'none';
+      document.getElementById('partido-overlay').classList.add('visible');
+      document.getElementById('online-panel').classList.add('visible');
+      document.getElementById('online-unirse').classList.remove('visible');
+      document.getElementById('online-sala').classList.remove('visible');
+      document.getElementById('online-visitante-equipo').classList.add('visible');
+      document.getElementById('btn-visitante-confirmar').disabled = true;
+      mostrarErrorOnline('');
+    }
+
+    // Texto legible del tipo de encuentro fijado por el creador.
+    function descripcionEncuentro() {
+      if (config.encuentro === 'goles') return `Por goles · objetivo ${config.goles}`;
+      if (config.encuentro === 'turnos') return `Por turnos · ${config.turnos}`;
+      if (config.encuentro === 'crono') return `Contrarreloj · ${config.cronoTiempo}' · ${config.cronoGoles} goles`;
+      return '';
+    }
+
+    window.onlineVisitanteValidar = function() {
+      const v = document.getElementById('sel-equipo-visitante-online').value;
+      document.getElementById('btn-visitante-confirmar').disabled = !v;
+    };
+
+    window.onlineVisitanteConfirmar = function() {
+      const equipo = document.getElementById('sel-equipo-visitante-online').value;
+      if (!equipo) return;
+      config.equipoRival = equipo;
+      // Avisar al creador de mi equipo; él completará config y arrancará.
+      enviarMensaje({ tipo: 'equipo-visitante', equipo, origen: 'visitante' });
+      // Mostrar moneda en espera (el creador la lanza y la replica).
+      document.getElementById('partido-overlay').classList.remove('visible');
+      document.getElementById('moneda-overlay').classList.add('visible');
+      document.getElementById('moneda-resultado').classList.remove('visible');
+      const moneda = document.getElementById('moneda-3d');
+      moneda.className = 'moneda-3d';
+      void moneda.offsetWidth;
+      moneda.classList.add('girando-cara');
+    };
+
     // Monta el tablero en modo online a partir de un snapshot existente, sin
     // sorteo de moneda. Para (re)entrar a una partida ya en curso.
     function reanudarPartida(snapEstado) {
@@ -4229,17 +4322,17 @@
       // presencia de Firebase).
       if (red.enPartida) ocultarDesconexion();
       if (msg.tipo === 'config') {
+        // El visitante recibe la config del creador (su equipo local + encuentro)
+        // y elige SU equipo antes de empezar.
         Object.assign(config, msg.config);
-        document.getElementById('menu-inicial').style.display = 'none';
-        // Cerrar la pantalla de configuración (con el panel online) para que no
-        // quede superpuesta sobre el tablero en el jugador que se une.
-        document.getElementById('partido-overlay').classList.remove('visible');
-        document.getElementById('moneda-overlay').classList.add('visible');
-        document.getElementById('moneda-resultado').classList.remove('visible');
-        const moneda = document.getElementById('moneda-3d');
-        moneda.className = 'moneda-3d';
-        void moneda.offsetWidth;
-        moneda.classList.add('girando-cara');
+        mostrarPickerVisitante();
+
+      } else if (msg.tipo === 'equipo-visitante') {
+        // El creador recibe el equipo elegido por el visitante: completa config y
+        // arranca (lanza moneda, que se replica al visitante).
+        config.equipoRival = msg.equipo;
+        document.getElementById('sala-espera').textContent = '✓ Rival listo. Iniciando...';
+        setTimeout(() => iniciarJuego(), 600);
 
       } else if (msg.tipo === 'mover') {
         aplicarMovimientoRemoto(msg.id, msg.fila, msg.col);
@@ -4330,9 +4423,25 @@
       document.getElementById('btn-modo-online').classList.toggle('activo', modo === 'online');
       document.getElementById('online-panel').classList.toggle('visible', modo === 'online');
       document.getElementById('seccion-nivel-ia').style.display = modo === 'vsIA' ? '' : 'none';
+      const online = modo === 'online';
+      // En online: el creador elige SU equipo (local) + encuentro; el rival (visitante)
+      // lo aporta el que se une, así que ocultamos esa sección. Hasta elegir crear/unirse
+      // ocultamos también local/encuentro (se muestran al pulsar "Crear partida").
+      document.getElementById('seccion-equipo-rival').style.display = online ? 'none' : '';
+      document.getElementById('titulo-equipo-local').textContent = online ? 'Tu equipo (local)' : 'Local';
+      if (online) {
+        document.getElementById('seccion-equipo-local').style.display = 'none';
+        document.getElementById('seccion-encuentro').style.display = 'none';
+        document.getElementById('online-visitante-equipo').classList.remove('visible');
+        document.getElementById('online-sala').classList.remove('visible');
+        document.getElementById('online-unirse').classList.remove('visible');
+      } else {
+        document.getElementById('seccion-equipo-local').style.display = '';
+        document.getElementById('seccion-encuentro').style.display = '';
+      }
       // En modo online ocultar el botón JUGAR — la partida arranca por la conexión
-      const btnJugar = document.querySelector('.btn-jugar') || document.querySelector('.btn-torneo-iniciar');
-      if (btnJugar) btnJugar.style.display = modo === 'online' ? 'none' : '';
+      const btnJugar = document.getElementById('btn-jugar');
+      if (btnJugar) btnJugar.style.display = online ? 'none' : '';
     };
 
     window.seleccionarNivel = function(nivel) {
@@ -4370,6 +4479,16 @@
     const sorteo = { eleccion: null, resultado: null, ganador: null };
 
     window.iniciarJuego = function() {
+      // En online los equipos pueden venir por red (no por los selectores del
+      // menú): volcamos config -> selectores para que actualizarDotEquipo y
+      // aplicarEquiposAlHUD reflejen los equipos reales y no los pisen con ''.
+      if (config.modo === 'online') {
+        actualizarSelectoresEquipo(); // garantiza que existan las <option>
+        const selL = document.getElementById('sel-equipo-local');
+        const selR = document.getElementById('sel-equipo-rival');
+        if (selL && config.equipoLocal) selL.value = config.equipoLocal;
+        if (selR && config.equipoRival) selR.value = config.equipoRival;
+      }
       actualizarDotEquipo('local');
       actualizarDotEquipo('rival');
       document.getElementById('menu-inicial').style.display = 'none';
@@ -6090,7 +6209,9 @@
     function validarBtnJugar() {
       const local = document.getElementById('sel-equipo-local').value;
       const rival = document.getElementById('sel-equipo-rival').value;
-      document.getElementById('btn-jugar').disabled = !local || !rival;
+      // En online (crear) el rival lo aporta el que se une: basta el equipo local.
+      const soloLocal = config.modo === 'online';
+      document.getElementById('btn-jugar').disabled = soloLocal ? !local : (!local || !rival);
     }
 
     window.abrirPartidoUnico = function() {
@@ -6102,6 +6223,16 @@
       document.getElementById('menu-inicial').style.display = 'none';
     };
     window.cerrarPartidoUnico = function() {
+      // Si había una sala online en preparación (creador esperando, o visitante
+      // eligiendo equipo), cerrarla limpiamente para no dejarla colgada.
+      if (red.codigo && !red.enPartida) {
+        pararPresencia();
+        dejarDeEscuchar();
+        salaRef(red.codigo).remove();
+        olvidarRol(red.codigo);
+        red.codigo = null;
+        red.miEquipo = null;
+      }
       document.getElementById('partido-overlay').classList.remove('visible');
       document.getElementById('menu-inicial').style.display = 'flex';
     };
