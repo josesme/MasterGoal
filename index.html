@@ -3890,29 +3890,50 @@
     const red = {
       miEquipo: null,   // 'local' (creador) | 'visitante' (unido)
       codigo: null,
-      escucha: null     // unsubscribe de onValue
+      eventosRef: null, // ref a salas/<cod>/eventos (para hacer .off al salir)
+      onEvento: null,   // callback registrado en child_added (para .off)
+      rivalRef: null,   // ref a salas/<cod>/rival (solo creador)
+      onRival: null     // callback en rival (para .off)
     };
 
     function salaRef(codigo)    { return db.ref('salas/' + codigo); }
-    function mensajeRef(codigo) { return db.ref('salas/' + codigo + '/mensaje'); }
+    function eventosRef(codigo) { return db.ref('salas/' + codigo + '/eventos'); }
+    function rivalRef(codigo)   { return db.ref('salas/' + codigo + '/rival'); }
 
     function mostrarErrorOnline(msg) {
       document.getElementById('online-error').textContent = msg;
     }
 
+    // Cola de eventos append-only: cada acción se añade con push() en vez de
+    // sobrescribir un único nodo, de modo que dos acciones seguidas no se pisan.
     function enviarMensaje(msg) {
       if (!red.codigo) return;
-      mensajeRef(red.codigo).set({ ...msg, ts: Date.now() });
+      eventosRef(red.codigo).push({ ...msg, ts: Date.now() });
     }
 
+    // Escucha la cola con child_added: Firebase entrega cada evento una sola vez
+    // y en orden de inserción. Los eventos propios se ignoran por 'origen'.
     function escucharMensajes() {
-      red.escucha = mensajeRef(red.codigo).on('value', snap => {
+      red.eventosRef = eventosRef(red.codigo);
+      red.onEvento = red.eventosRef.on('child_added', snap => {
         const msg = snap.val();
         if (!msg) return;
-        // Ignorar mensajes propios
         if (msg.origen === red.miEquipo) return;
         recibirMensaje(msg);
       });
+    }
+
+    // Limpia el listener de eventos. Imprescindible para no acumular listeners
+    // (mensajes duplicados) al salir y reentrar a una sala.
+    function dejarDeEscuchar() {
+      if (red.eventosRef && red.onEvento) {
+        red.eventosRef.off('child_added', red.onEvento);
+      }
+      if (red.rivalRef && red.onRival) {
+        red.rivalRef.off('value', red.onRival);
+      }
+      red.eventosRef = null; red.onEvento = null;
+      red.rivalRef = null; red.onRival = null;
     }
 
     window.onlineCrear = function() {
@@ -3934,8 +3955,9 @@
       salaRef(codigo).onDisconnect().remove();
 
       escucharMensajes();
-      // Escuchar cuando el rival se une
-      db.ref('salas/' + codigo + '/rival').on('value', snap => {
+      // Escuchar cuando el rival se une (ref guardada para .off al salir)
+      red.rivalRef = rivalRef(codigo);
+      red.onRival = red.rivalRef.on('value', snap => {
         if (snap.val() === 'listo') {
           document.getElementById('sala-espera').textContent = '✓ Rival conectado. Iniciando...';
           setTimeout(() => {
@@ -3972,7 +3994,7 @@
           return;
         }
         // Notificar al creador que el rival está listo
-        db.ref('salas/' + codigo + '/rival').set('listo');
+        rivalRef(codigo).set('listo');
         escucharMensajes();
         mostrarErrorOnline('✓ Conectado. Esperando inicio...');
       });
@@ -3982,6 +4004,9 @@
       if (msg.tipo === 'config') {
         Object.assign(config, msg.config);
         document.getElementById('menu-inicial').style.display = 'none';
+        // Cerrar la pantalla de configuración (con el panel online) para que no
+        // quede superpuesta sobre el tablero en el jugador que se une.
+        document.getElementById('partido-overlay').classList.remove('visible');
         document.getElementById('moneda-overlay').classList.add('visible');
         document.getElementById('moneda-resultado').classList.remove('visible');
         const moneda = document.getElementById('moneda-3d');
@@ -4018,7 +4043,7 @@
         }, 3000);
 
       } else if (msg.tipo === 'revancha') {
-        revancha();
+        revancha(true);
       }
     }
 
@@ -4366,7 +4391,12 @@
       overlay.classList.add('visible');
     }
 
-    window.revancha = function() {
+    window.revancha = function(remoto = false) {
+      // En online, propagar la revancha al rival. El flag 'remoto' evita el
+      // bucle: cuando la revancha llega por la cola no se reenvía.
+      if (config.modo === 'online' && !remoto) {
+        enviarMensaje({ tipo: 'revancha', origen: red.miEquipo });
+      }
       document.getElementById('fin-overlay').classList.remove('visible');
       MARCADOR.local = 0; MARCADOR.visitante = 0;
       recolocar('local');
@@ -4386,6 +4416,14 @@
 
     window.volverMenu = function() {
       pausarCronometro();
+      // Cerrar conexión online si la había: quitar listeners y borrar la sala
+      // para no dejar listeners huérfanos ni salas colgadas.
+      if (red.codigo) {
+        dejarDeEscuchar();
+        salaRef(red.codigo).remove();
+        red.codigo = null;
+        red.miEquipo = null;
+      }
       document.getElementById('fin-overlay').classList.remove('visible');
       document.getElementById('game-container').style.display = 'none';
       document.getElementById('ui-panel').style.display = 'none';
