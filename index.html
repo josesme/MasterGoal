@@ -4032,6 +4032,26 @@
         autor: red.miEquipo,
         config: { ...config },
       });
+      // Refrescar ts de la sala: marca actividad para que la limpieza por TTL no
+      // borre una partida que sigue en juego.
+      salaRef(red.codigo).child('ts').set(Date.now());
+      // Podar la cola de eventos ya entregados (más viejos que PODA_MS) para que
+      // no crezca sin límite en partidas largas. El snapshot es la fuente de
+      // verdad para (re)entrar, así que estos eventos antiguos ya no se necesitan.
+      podarEventos();
+    }
+
+    const PODA_MS = 15 * 1000; // margen amplio para asegurar entrega antes de borrar
+    function podarEventos() {
+      if (!red.codigo) return;
+      const corte = Date.now() - PODA_MS;
+      eventosRef(red.codigo).once('value', snap => {
+        const evs = snap.val();
+        if (!evs) return;
+        Object.entries(evs).forEach(([key, ev]) => {
+          if (ev && ev.ts && ev.ts < corte) eventosRef(red.codigo).child(key).remove();
+        });
+      });
     }
 
     // Aplica un snapshot recibido al estado local y repinta el tablero.
@@ -4147,7 +4167,33 @@
       btnJugar.textContent = 'Jugar';
       btnJugar.onclick = () => iniciarJuego();
 
+      document.getElementById('sala-espera').innerHTML = '<span class="sala-spinner">⟳</span> Creando partida...';
+      document.getElementById('online-sala').classList.add('visible');
+      limpiarSalasViejas();
+      reservarCodigoUnico(6);
+    };
+
+    // Reserva un código libre con transacción (evita colisión de dos partidas
+    // con el mismo código). Reintenta si el código ya está ocupado.
+    function reservarCodigoUnico(intentos) {
+      if (intentos <= 0) {
+        mostrarErrorOnline('No se pudo crear la partida, inténtalo de nuevo.');
+        document.getElementById('online-sala').classList.remove('visible');
+        return;
+      }
       const codigo = String(Math.floor(1000 + Math.random() * 9000));
+      salaRef(codigo).transaction(actual => {
+        if (actual !== null) return undefined; // ocupada: abortar transacción
+        return { estado: 'esperando', ts: Date.now() };
+      }, (err, committed) => {
+        if (err || !committed) { reservarCodigoUnico(intentos - 1); return; } // colisión: reintentar
+        montarSalaCreador(codigo);
+      });
+    }
+
+    // Monta la sala del creador con un código ya reservado: escucha eventos,
+    // presencia y la unión del rival.
+    function montarSalaCreador(codigo) {
       red.codigo   = codigo;
       red.miEquipo = 'local';
       guardarRol(codigo, 'local');
@@ -4156,15 +4202,11 @@
       document.getElementById('sala-espera').innerHTML = '<span class="sala-spinner">⟳</span> Esperando rival...';
       document.getElementById('online-sala').classList.add('visible');
 
-      // Crear sala en Firebase y escuchar. No usamos onDisconnect().remove()
-      // sobre la sala entera: una microcaída del creador la borraría y mataría
-      // la partida. La presencia (iniciarPresencia) gestiona las desconexiones;
-      // la sala se borra al salir explícitamente (volverMenu).
-      salaRef(codigo).set({ estado: 'esperando', ts: Date.now() });
-
+      // No usamos onDisconnect().remove() sobre la sala entera: una microcaída
+      // del creador la borraría y mataría la partida. La presencia gestiona las
+      // desconexiones; la sala se borra al salir explícitamente.
       escucharMensajes();
       iniciarPresencia();
-      // Escuchar cuando el rival se une (ref guardada para .off al salir)
       red.rivalRef = rivalRef(codigo);
       red.onRival = red.rivalRef.on('value', snap => {
         if (snap.val() !== 'listo') return;
@@ -4178,7 +4220,23 @@
         document.getElementById('sala-espera').innerHTML = '<span class="sala-spinner">⟳</span> Rival eligiendo equipo...';
         enviarMensaje({ tipo: 'config', config: { ...config }, origen: 'local' });
       });
-    };
+    }
+
+    // Limpieza de salas abandonadas: borra las que llevan más de SALA_TTL_MS sin
+    // actividad (ts). Evita que la base de datos crezca sin límite con salas
+    // colgadas de partidas que nunca arrancaron o no se cerraron bien.
+    const SALA_TTL_MS = 2 * 60 * 60 * 1000; // 2 horas
+    function limpiarSalasViejas() {
+      const ahora = Date.now();
+      db.ref('salas').once('value', snap => {
+        const salas = snap.val();
+        if (!salas) return;
+        Object.entries(salas).forEach(([cod, s]) => {
+          const ts = s && s.ts;
+          if (ts && (ahora - ts) > SALA_TTL_MS) db.ref('salas/' + cod).remove();
+        });
+      });
+    }
 
     window.onlineMostrarUnirse = function() {
       mostrarErrorOnline('');
