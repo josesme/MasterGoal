@@ -719,6 +719,15 @@ function iaEvaluarEstado() {
         if (d.fila <= 7 && Math.abs(d.col - 6) <= 2) v += 150 * E.controlCentro;
         if (enLineaPase) v += 180 * E.cercaniaBalon;
         if (bf <= 6 && d.fila >= 9) v -= 200 * E.avanceJugadores;
+        // AUTOBÚS (defensivo): bloque bajo y compacto. Penalizar fuerte dos
+        // vicios que abrían carriles de gol (medido en partidas): defensor en
+        // campo rival (fila<=6) y defensor pegado a banda muerta (col 1 u 11),
+        // salvo que esté tapando una línea de pase real. Mantiene a los 4 atrás
+        // y centrados, cerrando los carriles centrales por donde se marcaba.
+        if (estado.estiloVisitante === 'defensivo') {
+          if (d.fila <= 6) v -= (7 - d.fila) * 220;            // cuanto más arriba, peor
+          if ((d.col <= 1 || d.col >= 11) && !enLineaPase) v -= 300; // banda muerta
+        }
       }
     } else {
       v -= Math.max(0, 200 - distBal * 40) * E.cercaniaBalon;
