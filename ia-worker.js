@@ -1524,16 +1524,26 @@ function calcularDecisionJugador() {
 // casilla de MAYOR score. Desempate: alejar de la portería propia (fila 14).
 function iaCasillaSeguraAutobus(destinos) {
   const balonF0 = estado.fichas.balon.fila, balonC0 = estado.fichas.balon.col;
-  let mejor = null, mejorScore = -Infinity, mejorLejos = -Infinity;
+  // Bonus por alejar el balón de la portería propia (fila 14). Es peso REAL,
+  // no solo desempate: sin él la simulación elige la casilla de mayor score
+  // residual aunque esté pegada al área propia, y el balón hace yo-yo
+  // (lo aleja a campo rival y al turno siguiente lo trae de vuelta a fila 8-12,
+  // donde el local lo intercepta y marca). Cada fila más arriba vale BONUS_LEJOS;
+  // así una casilla segura y lejana gana a una marginalmente "más segura" pero atrás.
+  const BONUS_LEJOS = 4000;
+  let mejor = null, mejorMetrica = -Infinity;
   for (const dst of destinos) {
     if (mejor && tiempoAgotado()) break; // acotar coste; ya tenemos candidato
     estado.fichas.balon.fila = dst.fila; estado.fichas.balon.col = dst.col;
     // Amenaza del local si el balón queda neutro aquí (su mejor turno de ataque).
     const score = iaSimularMejorTurnoLocal();
     estado.fichas.balon.fila = balonF0; estado.fichas.balon.col = balonC0;
-    const lejos = 14 - dst.fila; // alejar de portería propia (fila 14)
-    if (score > mejorScore || (score === mejorScore && lejos > mejorLejos)) {
-      mejorScore = score; mejorLejos = lejos; mejor = dst;
+    // No retroceder: si la casilla está más cerca de la portería propia que la
+    // posición actual del balón, no aplicamos el bonus de lejanía (evita el yo-yo).
+    const lejos = 14 - dst.fila;
+    const metrica = score + lejos * BONUS_LEJOS;
+    if (metrica > mejorMetrica) {
+      mejorMetrica = metrica; mejor = dst;
     }
   }
   return mejor;
