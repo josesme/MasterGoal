@@ -1851,6 +1851,9 @@
         <button class="btn-revancha" onclick="revancha()">Revancha</button>
         <button class="btn-menu-volver" onclick="volverMenu()">Menú</button>
       </div>
+      <!-- Herramienta de diagnóstico: exporta la partida (historial + metadatos)
+           a JSON para analizar la IA. Discreto, no es función de uso general. -->
+      <button onclick="exportarPartida()" style="margin-top:14px;background:none;border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.4);font-size:11px;padding:5px 12px;border-radius:6px;cursor:pointer;">⬇ Exportar partida (debug)</button>
     </div>
   </div>
 
@@ -3464,6 +3467,40 @@
       _historial.push({ fichas: JSON.parse(JSON.stringify(estado.fichas)), turnoNum: null, equipo: null });
       actualizarReplayUI();
     }
+
+    // Exporta la partida (historial de snapshots + metadatos) a JSON, para
+    // analizar offline la IA con sim/. Cada snapshot es {fichas,turnoNum,equipo};
+    // comparando posiciones consecutivas se reconstruye cada movimiento.
+    window.exportarPartida = function() {
+      const equipos = equiposGuardados();
+      const eqLocal = equipos.find(e => e.id === config.equipoLocal);
+      const eqRival = equipos.find(e => e.id === config.equipoRival);
+      const datos = {
+        version: (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'dev'),
+        fecha: new Date().toISOString(),
+        meta: {
+          modo: config.modo,                 // 'vsIA' | 'pvp' | 'online'
+          nivelIA: config.nivelIA || null,
+          encuentro: config.encuentro, turnos: config.turnos,
+          // En vsIA el humano es local y la IA visitante.
+          equipoLocal:  { id: config.equipoLocal, nombre: eqLocal?.nombre, estilo: eqLocal?.estilo, potencial: eqLocal?.potencial },
+          equipoRival:  { id: config.equipoRival, nombre: eqRival?.nombre, estilo: eqRival?.estilo, potencial: eqRival?.potencial },
+          iaEs: config.modo === 'vsIA' ? 'visitante' : null,
+          estiloIA: config.modo === 'vsIA' ? (eqRival?.estilo || null) : null,
+          marcadorFinal: { local: MARCADOR.local, visitante: MARCADOR.visitante },
+        },
+        historial: _historial,
+      };
+      const json = JSON.stringify(datos, null, 2);
+      const blob = new Blob(['﻿' + json], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const est = (config.modo === 'vsIA' ? (eqRival?.estilo || 'ia') : config.modo);
+      a.href = url;
+      a.download = `mg-partida-${est}-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    };
 
     // Pinta un conjunto de fichas en el tablero SIN tocar `estado`.
     function pintarFichas(fichas) {
@@ -7230,7 +7267,9 @@
     const APP_VERSION = 'dev';
     (function () {
       const vt = document.getElementById('version-tag');
-      if (vt) vt.textContent = 'v' + APP_VERSION;
+      // En local APP_VERSION es el placeholder 'dev' (el CI inyecta el número real
+      // solo al desplegar). Mostrar 'dev' tal cual; con número real, prefijar 'v'.
+      if (vt) vt.textContent = (APP_VERSION === 'dev') ? 'dev' : 'v' + APP_VERSION;
     })();
 
     // Muestra nivel / profundidad / potencial de la partida en curso vs IA.

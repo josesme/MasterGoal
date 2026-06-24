@@ -1506,36 +1506,28 @@ function calcularDecisionJugador() {
 // Entre las seguras, preferir la que deja al rival más cercano lo MÁS LEJOS
 // posible (y, a igualdad, mi jugador más cerca). Si ninguna es segura, devuelve
 // la de mayor ventaja (rival - propio); como último criterio, más lejos del rival.
+// AUTOBÚS: elige dónde dejar el balón neutro SIMULANDO el turno del local en
+// cada casilla candidata. La heurística de un paso (mi jugador más cerca que el
+// rival) era ingenua: dejaba el balón en zona donde el local, con superioridad,
+// lo recupera y marca igual (causa del 7-1). Aquí, para cada destino, colocamos
+// el balón ahí y medimos iaSimularMejorTurnoLocal() = amenaza residual real
+// (perspectiva visitante; MÁS ALTO = el local hace menos daño). Elegimos la
+// casilla de MAYOR score. Desempate: alejar de la portería propia (fila 14).
 function iaCasillaSeguraAutobus(destinos) {
-  const cheb = (f1, c1, f2, c2) => Math.max(Math.abs(f1 - f2), Math.abs(c1 - c2));
-  const propios = [], rivales = [];
-  for (const [id, d] of Object.entries(estado.fichas)) {
-    if (id === 'balon' || esPortero(id)) continue;
-    if (d.equipo === 'visitante') propios.push(d); else rivales.push(d);
-  }
-  const distMin = (arr, f, c) => arr.reduce((m, d) => Math.min(m, cheb(d.fila, d.col, f, c)), Infinity);
-
-  let mejorSegura = null, mejorSeguraKey = -Infinity;
-  let mejorFallback = null, mejorFallbackKey = -Infinity;
+  const balonF0 = estado.fichas.balon.fila, balonC0 = estado.fichas.balon.col;
+  let mejor = null, mejorScore = -Infinity, mejorLejos = -Infinity;
   for (const dst of destinos) {
-    const dp = distMin(propios, dst.fila, dst.col);
-    const dr = distMin(rivales, dst.fila, dst.col);
-    // Lejanía de la portería PROPIA (fila 14): cuanto más arriba (fila baja),
-    // más despejado el peligro. Pesa menos que la lejanía del rival.
-    const lejosPorteria = 14 - dst.fila;
-    const segura = dp < dr; // yo llego antes contando el turno del rival
-    if (segura) {
-      // Entre las seguras (todas garantizan posesión), lo que más importa es
-      // ALEJAR el balón de la portería propia; el margen sobre el rival es
-      // secundario (basta con ser >0). Esto evita acumular el balón en el área.
-      const key = lejosPorteria * 100 + dr * 10 - dp;
-      if (key > mejorSeguraKey) { mejorSeguraKey = key; mejorSegura = dst; }
+    if (mejor && tiempoAgotado()) break; // acotar coste; ya tenemos candidato
+    estado.fichas.balon.fila = dst.fila; estado.fichas.balon.col = dst.col;
+    // Amenaza del local si el balón queda neutro aquí (su mejor turno de ataque).
+    const score = iaSimularMejorTurnoLocal();
+    estado.fichas.balon.fila = balonF0; estado.fichas.balon.col = balonC0;
+    const lejos = 14 - dst.fila; // alejar de portería propia (fila 14)
+    if (score > mejorScore || (score === mejorScore && lejos > mejorLejos)) {
+      mejorScore = score; mejorLejos = lejos; mejor = dst;
     }
-    // fallback (ninguna segura): priorizar ventaja sobre el rival; luego alejar.
-    const key = (dr - dp) * 1000 + lejosPorteria * 30 + dr * 10;
-    if (key > mejorFallbackKey) { mejorFallbackKey = key; mejorFallback = dst; }
   }
-  return mejorSegura || mejorFallback;
+  return mejor;
 }
 
 // ====== DECISIÓN MOVER BALÓN ======
