@@ -1531,17 +1531,26 @@ function iaCasillaSeguraAutobus(destinos) {
   // donde el local lo intercepta y marca). Cada fila más arriba vale BONUS_LEJOS;
   // así una casilla segura y lejana gana a una marginalmente "más segura" pero atrás.
   const BONUS_LEJOS = 4000;
+  // Plantarse: una casilla NEUTRA (el visitante pierde la posesión al soltar el
+  // balón ahí) TERMINA el turno inmediatamente. Una casilla que CONSERVA posesión
+  // obliga por reglas a mover otra vez (no se puede pasar turno con posesión y
+  // destinos), y ese paso forzado suele acercar/empeorar el balón. Por eso, a
+  // igualdad de lejanía/seguridad, preferimos la casilla que cierra el turno aquí
+  // en la posición buena, en vez de arriesgarnos a un movimiento adicional peor.
+  // El bonus es menor que una fila de lejanía: no sacrificamos profundidad real
+  // por plantarnos, solo desempatamos a favor de cerrar el turno.
+  const BONUS_PLANTARSE = 1500;
   let mejor = null, mejorMetrica = -Infinity;
   for (const dst of destinos) {
     if (mejor && tiempoAgotado()) break; // acotar coste; ya tenemos candidato
     estado.fichas.balon.fila = dst.fila; estado.fichas.balon.col = dst.col;
+    // ¿Soltar el balón aquí termina el turno? (neutra: sin mayoría propia colindante)
+    const terminaTurno = !equipoTienePosesion('visitante');
     // Amenaza del local si el balón queda neutro aquí (su mejor turno de ataque).
     const score = iaSimularMejorTurnoLocal();
     estado.fichas.balon.fila = balonF0; estado.fichas.balon.col = balonC0;
-    // No retroceder: si la casilla está más cerca de la portería propia que la
-    // posición actual del balón, no aplicamos el bonus de lejanía (evita el yo-yo).
-    const lejos = 14 - dst.fila;
-    const metrica = score + lejos * BONUS_LEJOS;
+    const lejos = 14 - dst.fila; // alejar de portería propia (fila 14)
+    const metrica = score + lejos * BONUS_LEJOS + (terminaTurno ? BONUS_PLANTARSE : 0);
     if (metrica > mejorMetrica) {
       mejorMetrica = metrica; mejor = dst;
     }
