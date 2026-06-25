@@ -35,12 +35,18 @@ function fichasEntries() {
 // Los niveles inferiores ven menos: más rápidos y más fáciles de batir. Bajar
 // profDefensa hace que la IA no detecte goles largos (defiende peor, como antes
 // del fix); bajar profAtaque hace que combine peor de cara a portería.
+// Escala recalibrada (2026-06-25): pruebas con jugadores reales mostraron niveles
+// demasiado fáciles (principiantes ganaban a leyenda vs potencial 3; cadete era
+// una broma). Se sube la profundidad base de toda la escala y se baja el error
+// aleatorio (ver iaErrorRate): la dificultad la marca CUÁNTO piensa cada nivel,
+// no cuántos dados tira. Cadete = fácil pero COHERENTE (pierde por flojo, no por
+// movimientos al azar).
 const IA_PROFUNDIDAD = {
   imbatible:    { profAtaque: 4, profDefensa: 4 },
-  leyenda:      { profAtaque: 4, profDefensa: 3 },
-  profesional:  { profAtaque: 3, profDefensa: 2 },
-  juvenil:      { profAtaque: 2, profDefensa: 2 },
-  cadete:       { profAtaque: 2, profDefensa: 1 },
+  leyenda:      { profAtaque: 4, profDefensa: 4 },
+  profesional:  { profAtaque: 4, profDefensa: 3 },
+  juvenil:      { profAtaque: 3, profDefensa: 2 },
+  cadete:       { profAtaque: 2, profDefensa: 2 },
 };
 
 function iaGetProfundidad() {
@@ -575,8 +581,10 @@ function iaColindantesSimulados(bf, bc, equipo) {
 }
 
 function iaErrorRate() {
-  // Error base por nivel (imbatible=0, leyenda=0.10, profesional=0.25, juvenil=0.45, cadete=0.65)
-  const baseNivel = { imbatible: 0, leyenda: 0.10, profesional: 0.25, juvenil: 0.45, cadete: 0.65 };
+  // Error base por nivel. Recalibrado 2026-06-25 (ver IA_PROFUNDIDAD): bajado en
+  // toda la escala porque el azar alto hacía la IA incoherente sin ser difícil.
+  // Antes: leyenda 0.10, profesional 0.25, juvenil 0.45, cadete 0.65.
+  const baseNivel = { imbatible: 0, leyenda: 0.03, profesional: 0.12, juvenil: 0.25, cadete: 0.35 };
   const base = baseNivel[estado.nivelIA] ?? 0.25;
   if (base === 0) return 0;
   // Potencial (1-5): potencial alto reduce el error, potencial bajo lo aumenta
