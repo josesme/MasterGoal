@@ -1139,6 +1139,9 @@ function calcularDecisionJugador() {
   const balonC = estado.fichas.balon.col;
   const rivalTienePosesion  = equipoTienePosesion('local');
   const visitanteTienePosesion = equipoTienePosesion('visitante');
+  // ¿Hay un local colindante al balón AHORA? (el rival lo disputa). Sirve para
+  // priorizar arrebatar un balón neutro que el rival está disputando.
+  const rivalColindanteBalonAntes = iaColindantesSimulados(balonF, balonC, 'local') >= 1;
   const piezasIA = Object.entries(estado.fichas)
     .filter(([id, d]) => d.equipo === 'visitante')
     .map(([id, d]) => ({ id, ...d }));
@@ -1420,6 +1423,16 @@ function calcularDecisionJugador() {
         // (cuánto más cerca del balón queda el jugador, más sólida la posesión)
         scoreTotal += 3500 + Math.max(0, 400 - distDestBalon * 60);
         if (esColindanteDest) scoreTotal += 600;
+
+        // ARREBATAR el balón disputado: si el balón estaba NEUTRO con el rival
+        // colindante (lo disputaba), traer un 2º jugador para ganar la mayoría y
+        // recuperarlo es decisivo y debe dominar a cualquier jugada de mera
+        // colocación. Sin esto, con el balón en campo propio profundo (recuperar
+        // ahí da poco ataque y el local sigue amenazando), el bonus de +3500 no
+        // bastaba y la IA movía estérilmente el jugador que YA disputaba el balón
+        // en vez de traer al compañero que sí da mayoría (bug observado en partida).
+        const rivalDisputaba = rivalColindanteBalonAntes && !visitanteTienePosesion;
+        if (rivalDisputaba) scoreTotal += 12000;
 
       } else if (visitanteTienePosesion) {
         // Ya teníamos posesión: evaluar si este movimiento mejora la posición

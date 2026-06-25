@@ -1928,6 +1928,14 @@
     </div>
 
     <div id="casilla-tooltip" style="display:none;position:fixed;background:rgba(0,0,0,0.75);color:#fff;font-size:11px;font-family:monospace;padding:2px 6px;border-radius:4px;pointer-events:none;z-index:9999;"></div>
+    <!-- Exportar JSON en vivo (solo localhost: APP_VERSION==='dev'). Permite descargar
+         el historial en cualquier momento de la partida para revisar una jugada concreta
+         con replay (retroceder/avanzar) sin esperar a que acabe. -->
+    <button id="btn-export-vivo" title="Descargar JSON de la partida (debug)"
+      style="display:none;position:fixed;top:8px;right:8px;z-index:50;width:34px;height:34px;
+             border-radius:8px;border:1px solid rgba(255,255,255,0.25);
+             background:rgba(0,0,0,0.55);color:#fff;font-size:16px;cursor:pointer;
+             line-height:1;padding:0;backdrop-filter:blur(2px);">⬇</button>
     <svg id="tablero-svg" viewBox="-10 -10 130 170" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
       <!-- ====== TABLERO (copia de tablero.svg) ====== -->
       <defs>
@@ -7270,6 +7278,16 @@
       // En local APP_VERSION es el placeholder 'dev' (el CI inyecta el número real
       // solo al desplegar). Mostrar 'dev' tal cual; con número real, prefijar 'v'.
       if (vt) vt.textContent = (APP_VERSION === 'dev') ? 'dev' : 'v' + APP_VERSION;
+
+      // Botón de exportar JSON en vivo: SOLO en localhost (APP_VERSION==='dev').
+      // En producción queda oculto, así que la web pública no lo muestra.
+      const btnExp = document.getElementById('btn-export-vivo');
+      if (btnExp && APP_VERSION === 'dev') {
+        btnExp.style.display = 'block';
+        btnExp.addEventListener('click', () => {
+          if (typeof window.exportarPartida === 'function') window.exportarPartida();
+        });
+      }
     })();
 
     // Muestra nivel / profundidad / potencial de la partida en curso vs IA.
