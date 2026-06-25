@@ -10,7 +10,18 @@
 //
 // La huella usa `top5` de calcularDecisionJugador (scores ordenados, sin la
 // aleatoriedad de iaElegir) y la secuencia de iaBestBallSequence para balón.
-// Ambos son deterministas dado un estado.
+//
+// ⚠️ EL DETERMINISMO DEPENDE DE MG_LIMITE_MS. El motor corta la exploración al
+// agotarse el reloj (MG_LIMITE_MS, def. 9000); bajo carga de CPU el corte cae en
+// momentos distintos y los top5/scores cambian ronda a ronda AUNQUE el código no
+// cambie. Reglas para que la regresión sea fiable:
+//   1) `bless` y `check` deben usar el MISMO MG_LIMITE_MS. NUNCA bendecir con
+//      tiempo "infinito" (p.ej. 600000): genera scores de exploración completa
+//      que el `check` normal jamás reproduce, y deja la referencia inservible.
+//   2) No fiarse de un único FAIL: repetir 2-3 veces; si el diff salta en
+//      posiciones distintas cada vez, es no-determinismo, no una regresión real.
+//   3) Cuidado con `bless` en background: si termina DESPUÉS de un commit puede
+//      sobrescribir la referencia ya versionada (pasó el 2026-06-25).
 // ============================================================================
 
 console.log = (() => { const o = console.log; return (...a) => { if (typeof a[0]==='string' && a[0].includes('PERF')) return; o(...a); }; })();
