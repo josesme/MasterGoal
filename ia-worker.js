@@ -1322,12 +1322,27 @@ function calcularDecisionJugador() {
             if (descentrado >= 3) score -= Math.abs(dest.col - 6) * 40;
           }
         } else if (balonLejos && descentrado >= 3) {
-          score -= Math.abs(dest.col - 6) * 60;
+          // Portero muy descentrado con balón aún lejos: recentrarse, PERO si el
+          // balón está en transición por una banda (fila 7-8, alejado del centro),
+          // recentrar hacia la COLUMNA DEL BALÓN, no al centro fijo col 6 — así
+          // empieza a achicar el ángulo del carril por donde llega el peligro en
+          // vez de plantarse en el medio (origen de goles por banda en el 2-1).
+          const balonEnBanda = balonF >= 7 && Math.abs(balonC - 6) >= 2;
+          const colObjetivo = balonEnBanda ? Math.max(2, Math.min(10, balonC)) : 6;
+          score -= Math.abs(dest.col - colObjetivo) * 60;
           score -= Math.abs(dest.fila - 13) * 10;
-          if (Math.abs(dest.col - 6) < descentrado) score += 800;
+          if (Math.abs(dest.col - colObjetivo) < Math.abs(porteroCol - colObjetivo)) score += 800;
         } else {
-          score -= Math.abs(dest.col - balonC) * 20;
-          score -= Math.abs(dest.col - 6) * 40;
+          // Balón en transición hacia nuestra área (fila 7-8) sin amenaza crítica
+          // detectada aún: ALINEAR la columna del portero con la del BALÓN (achicar
+          // el ángulo de tiro por el carril por donde llega el peligro), no con el
+          // centro absoluto col 6. Antes pesaba más centrarse en col 6 (×40) que
+          // seguir al balón (×20), y el portero se quedaba en el centro mientras el
+          // local marcaba por una banda con el ángulo abierto (goles t29/t39 del 2-1).
+          // Columna objetivo: la del balón, acotada al área jugable del portero (2..10).
+          const colObjetivo = Math.max(2, Math.min(10, balonC));
+          score -= Math.abs(dest.col - colObjetivo) * 80;
+          score -= Math.abs(dest.col - 6) * 10; // leve sesgo a no irse a la esquina opuesta
           score -= Math.abs(dest.fila - 13) * 10;
         }
 
