@@ -1477,6 +1477,17 @@ function calcularDecisionJugador() {
         const rivalDisputaba = rivalColindanteBalonAntes && !visitanteTienePosesion;
         if (rivalDisputaba) scoreTotal += 12000;
 
+        // RECUPERAR UN BALÓN SUELTO EN ZONA PELIGROSA: si el balón quedó neutro/suelto
+        // (sin local colindante que lo dispute) en nuestro campo (fila >= 9, cerca de
+        // nuestra portería en fila 14), cogerlo es URGENTE: si no, el local lo recoge
+        // su turno y marca. Antes solo se premiaba arrebatar el balón DISPUTADO
+        // (rivalColindanteBalonAntes), así que un balón que el rival dejó suelto en
+        // zona de peligro no se valoraba y la IA prefería recolocarse a la esquina,
+        // dejando el balón al alcance del local (caso real: balón suelto en (10,11),
+        // v-j4 podía cogerlo desde (10,9) y se fue a (12,11) -> gol del local).
+        const balonSueltoPeligroso = balonNeutro && !rivalColindanteBalonAntes && balonF >= 9;
+        if (balonSueltoPeligroso) scoreTotal += 12000;
+
       } else if (visitanteTienePosesion) {
         // Ya teníamos posesión: evaluar si este movimiento mejora la posición
         // antes de mover el balón (abre líneas de tiro, mejora ángulo)
