@@ -1146,6 +1146,24 @@ function calcularDecisionJugador() {
     .filter(([id, d]) => d.equipo === 'visitante')
     .map(([id, d]) => ({ id, ...d }));
 
+  // ¿Puede un JUGADOR DE CAMPO (no el portero) recuperar el balón este turno?
+  // (moverse a una casilla legal y ganar la posesión). Si sí, no hace falta sacar
+  // al portero a disputarlo. Se calcula una vez por turno restaurando posiciones.
+  let campoPuedeRecuperarBalon = false;
+  for (const p of piezasIA) {
+    if (esPortero(p.id) || campoPuedeRecuperarBalon) continue;
+    const ds = obtenerDestinosJugador(p.fila, p.col, 'visitante')
+      .filter(d => !estaOcupada(d.fila, d.col, p.id) &&
+                   Math.abs(d.fila - balonF) <= 1 && Math.abs(d.col - balonC) <= 1);
+    for (const d of ds) {
+      const of = p.fila, oc = p.col;
+      estado.fichas[p.id].fila = d.fila; estado.fichas[p.id].col = d.col;
+      const gana = equipoTienePosesion('visitante') && !equipoTienePosesion('local');
+      estado.fichas[p.id].fila = of; estado.fichas[p.id].col = oc;
+      if (gana) { campoPuedeRecuperarBalon = true; break; }
+    }
+  }
+
   // Detección de amenaza de gol local (hacia portería visitante fila 14)
   const amenazasGolActuales = iaDetectarAmenazaGol();
   const bloqueosPorAmenaza = [];
@@ -1360,6 +1378,21 @@ function calcularDecisionJugador() {
           score = enAreaGrande
             ? evaluarDefensaRealCache(pieza.id, dest.fila, dest.col)
             : amenazaBaseSinIntervenir - 5000; // fuera del área: aún peor
+        }
+
+        // COSTE DE SACAR AL PORTERO A DISPUTAR: salir de la zona de protección
+        // para disputar un balón que el rival también disputa descoloca la portería
+        // y la deja vulnerable. Si un JUGADOR DE CAMPO puede recuperar ese mismo
+        // balón, debe hacerlo él. Penalizamos al portero para que pierda el
+        // desempate frente al jugador de campo cuando ambos recuperan igual de bien
+        // (antes el portero ganaba por un margen mínimo y salía sin necesidad,
+        // descolocándose y dejando hundido al jugador de campo — caso T5V). Se
+        // aplica también en defensa crítica (es donde más caro sale descolocarlo),
+        // tras el override de amenaza real, pero solo si el balón NO está pegado a
+        // la línea de gol (fila>=13: ahí el portero SÍ debe intervenir aunque salga).
+        if (rivalColindanteBalonAntes && campoPuedeRecuperarBalon &&
+            dest.fila <= 11 && balonF <= 12) {
+          score -= 4000;
         }
 
         candidatos.push({ piezaId: pieza.id, dest, score });
