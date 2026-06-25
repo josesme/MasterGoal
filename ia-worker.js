@@ -1200,7 +1200,15 @@ function calcularDecisionJugador() {
   let amenazaBaseSinIntervenir = 0; // amenaza del local si la IA no interviene
   if (rivalTienePosesion || balonNeutro) {
     amenazaBaseSinIntervenir = iaSimularMejorTurnoLocal();
-    if (amenazaBaseSinIntervenir <= -100000) defensaCritica = true;
+    // Solo es amenaza CRÍTICA si el balón está lo bastante cerca de nuestra
+    // portería (fila 14) como para que el local pueda marcar pronto. Con el balón
+    // en campo rival / medio (fila <= 8) la simulación puede devolver -502000 por
+    // una jugada larga teórica (ganar posesión + cruzar el campo), pero NO es gol
+    // inminente: la IA tiene turnos para defender con jugadores de campo y NO debe
+    // entrar en pánico (que descolocaba al portero fuera de la portería — caso
+    // real: balón en (7,10) disparaba defensa crítica y el portero subía a (10,3)
+    // dejando el centro abierto). El balón solo cruza el campo en varios turnos.
+    if (amenazaBaseSinIntervenir <= -100000 && balonF >= 9) defensaCritica = true;
   }
 
   // Líneas de tiro rivales abiertas ANTES de cualquier movimiento
@@ -1401,6 +1409,18 @@ function calcularDecisionJugador() {
         if (rivalColindanteBalonAntes && campoPuedeRecuperarBalon &&
             dest.fila <= 11 && balonF <= 12) {
           score -= 4000;
+        }
+
+        // EL PORTERO NO ABANDONA LA PORTERÍA CON EL BALÓN LEJOS. Si el balón está
+        // en campo rival / medio campo (fila <= 8, lejísimos de nuestra portería
+        // en fila 14), NO hay gol posible este turno: aunque la simulación entre en
+        // "defensa crítica" por una jugada larga teórica del local (cruzar el campo
+        // en 3-4 pases), el portero debe QUEDARSE guardando — los jugadores de campo
+        // ya tienen turnos para cortar. Salir a fila < 11 lo descoloca para cuando
+        // el balón sí llegue (caso real: balón en (7,10), el portero se fue a (10,3)
+        // y encajó gol por el centro). Penalización dominante por adelantarse.
+        if (balonF <= 8 && dest.fila < 11) {
+          score -= 50000 * (11 - dest.fila);
         }
 
         candidatos.push({ piezaId: pieza.id, dest, score });
