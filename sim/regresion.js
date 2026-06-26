@@ -121,6 +121,58 @@ const POSICIONES = [
     'v-j4':      { fila: 6,  col: 5, equipo: 'visitante' },
     'balon':     { fila: 4,  col: 3 },
   }}),
+  // 6. DEFENSA CRÍTICA con receptor amenazado libre (turno 15 del log mg-partida-defensivo):
+  //    balón en área visitante (13,7), receptor local l-j2 en (9,10) puede recibir
+  //    en cadena de pases. La IA debe marcar al receptor, no solo disputar el balón.
+  //    Correcto: un visitante se coloca colindante a l-j2 (p.ej. v-j2 a (10,9) o similar).
+  base({ estiloVisitante: 'defensivo', fichas: {
+    'l-portero': { fila: 2,  col: 6, equipo: 'local' },
+    'l-j1':      { fila: 8,  col: 6, equipo: 'local' },
+    'l-j2':      { fila: 9,  col: 10, equipo: 'local' },
+    'l-j3':      { fila: 8,  col: 1,  equipo: 'local' },
+    'l-j4':      { fila: 5,  col: 9,  equipo: 'local' },
+    'v-portero': { fila: 10, col: 5,  equipo: 'visitante' },
+    'v-j1':      { fila: 9,  col: 2,  equipo: 'visitante' },
+    'v-j2':      { fila: 12, col: 7,  equipo: 'visitante' },
+    'v-j3':      { fila: 10, col: 2,  equipo: 'visitante' },
+    'v-j4':      { fila: 4,  col: 9,  equipo: 'visitante' },
+    'balon':     { fila: 13, col: 7 },
+  }}),
+  // 7. DEFENSA CRÍTICA con balón lejos (bug T7V): balón en fila 3, local puede
+  //    encadenar 4 pases y marcar gol. El portero visitante en (13,9) debe
+  //    moverse a zona defensiva (p.ej. 12,8 o 13,7) para bloquear, NO irse
+  //    lejos. Correcto: portero en top5, score > -100000 (no ve el gol).
+  base({ fichas: {
+    'l-portero': { fila: 2,  col: 6,  equipo: 'local' },
+    'l-j1':      { fila: 4,  col: 2,  equipo: 'local' },
+    'l-j2':      { fila: 6,  col: 10, equipo: 'local' },
+    'l-j3':      { fila: 8,  col: 5,  equipo: 'local' },
+    'l-j4':      { fila: 10, col: 9,  equipo: 'local' },
+    'v-portero': { fila: 13, col: 9,  equipo: 'visitante' },
+    'v-j1':      { fila: 8,  col: 3,  equipo: 'visitante' },
+    'v-j2':      { fila: 8,  col: 9,  equipo: 'visitante' },
+    'v-j3':      { fila: 12, col: 2,  equipo: 'visitante' },
+    'v-j4':      { fila: 9,  col: 9,  equipo: 'visitante' },
+    'balon':     { fila: 3,  col: 8 },
+  }}),
+  // 8. POSESIÓN: visitante con posesión en campo rival pero sin gol disponible.
+  //    Debe alejar el balón hacia campo propio, no dejarlo cerca donde el local
+  //    puede recuperar fácil. Bug anterior: elegía (8,9) con amenazaLocal=+5992
+  //    ignorando (8,7) o (4,6) con amenazaLocal=-3500 a -5000.
+  //    Correcto: balón alejado de piezas locales, score < 4000 en nodo hoja.
+  base({ fase: 'MOVER_BALON', fichas: {
+    'l-portero': { fila: 2,  col: 6,  equipo: 'local' },
+    'l-j1':      { fila: 4,  col: 4,  equipo: 'local' },
+    'l-j2':      { fila: 6,  col: 10, equipo: 'local' },
+    'l-j3':      { fila: 6,  col: 3,  equipo: 'local' },
+    'l-j4':      { fila: 8,  col: 11, equipo: 'local' },
+    'v-portero': { fila: 12, col: 6,  equipo: 'visitante' },
+    'v-j1':      { fila: 8,  col: 5,  equipo: 'visitante' },
+    'v-j2':      { fila: 9,  col: 10, equipo: 'visitante' },
+    'v-j3':      { fila: 10, col: 4,  equipo: 'visitante' },
+    'v-j4':      { fila: 9,  col: 9,  equipo: 'visitante' },
+    'balon':     { fila: 8,  col: 10 },
+  }}),
 ];
 
 // ---------------------------------------------------------------------------

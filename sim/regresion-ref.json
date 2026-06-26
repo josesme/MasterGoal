@@ -69,33 +69,33 @@
           "piezaId": "v-portero",
           "dest": {
             "fila": 12,
-            "col": 4
-          },
-          "score": 31002
-        },
-        {
-          "piezaId": "v-portero",
-          "dest": {
-            "fila": 12,
             "col": 5
           },
-          "score": 30922
-        },
-        {
-          "piezaId": "v-j3",
-          "dest": {
-            "fila": 10,
-            "col": 4
-          },
-          "score": 30358
+          "score": 30702
         },
         {
           "piezaId": "v-portero",
           "dest": {
             "fila": 12,
+            "col": 4
+          },
+          "score": 30218
+        },
+        {
+          "piezaId": "v-portero",
+          "dest": {
+            "fila": 13,
+            "col": 6
+          },
+          "score": -501900
+        },
+        {
+          "piezaId": "v-portero",
+          "dest": {
+            "fila": 13,
             "col": 7
           },
-          "score": -502000
+          "score": -503600
         },
         {
           "piezaId": "v-portero",
@@ -103,7 +103,7 @@
             "fila": 12,
             "col": 8
           },
-          "score": -502000
+          "score": -504300
         }
       ]
     }
@@ -118,7 +118,7 @@
             "fila": 2,
             "col": 4
           },
-          "score": 504101
+          "score": 504591
         },
         {
           "piezaId": "v-j1",
@@ -127,14 +127,6 @@
             "col": 5
           },
           "score": 503916
-        },
-        {
-          "piezaId": "v-j1",
-          "dest": {
-            "fila": 3,
-            "col": 6
-          },
-          "score": 503866
         },
         {
           "piezaId": "v-j1",
@@ -151,6 +143,14 @@
             "col": 5
           },
           "score": 503676
+        },
+        {
+          "piezaId": "v-j1",
+          "dest": {
+            "fila": 5,
+            "col": 6
+          },
+          "score": 503626
         }
       ]
     }
@@ -162,34 +162,10 @@
         {
           "piezaId": "v-j1",
           "dest": {
-            "fila": 5,
-            "col": 1
-          },
-          "score": 497482
-        },
-        {
-          "piezaId": "v-j1",
-          "dest": {
             "fila": 4,
             "col": 1
           },
-          "score": 497364
-        },
-        {
-          "piezaId": "v-j1",
-          "dest": {
-            "fila": 4,
-            "col": 2
-          },
-          "score": 495060
-        },
-        {
-          "piezaId": "v-j1",
-          "dest": {
-            "fila": 5,
-            "col": 3
-          },
-          "score": 494850
+          "score": 496994
         },
         {
           "piezaId": "v-j1",
@@ -198,6 +174,171 @@
             "col": 2
           },
           "score": 494849
+        },
+        {
+          "piezaId": "v-j1",
+          "dest": {
+            "fila": 5,
+            "col": 1
+          },
+          "score": 3044
+        },
+        {
+          "piezaId": "v-j1",
+          "dest": {
+            "fila": 6,
+            "col": 3
+          },
+          "score": 3012
+        },
+        {
+          "piezaId": "v-j1",
+          "dest": {
+            "fila": 7,
+            "col": 4
+          },
+          "score": 2905
+        }
+      ]
+    }
+  },
+  {
+    "pos": 6,
+    "huella": {
+      "top5": [
+        {
+          "piezaId": "v-j2",
+          "dest": {
+            "fila": 10,
+            "col": 9
+          },
+          "score": 15237
+        },
+        {
+          "piezaId": "v-j2",
+          "dest": {
+            "fila": 10,
+            "col": 7
+          },
+          "score": 14679
+        },
+        {
+          "piezaId": "v-j2",
+          "dest": {
+            "fila": 11,
+            "col": 6
+          },
+          "score": 14679
+        },
+        {
+          "piezaId": "v-j2",
+          "dest": {
+            "fila": 11,
+            "col": 8
+          },
+          "score": 14679
+        },
+        {
+          "piezaId": "v-j2",
+          "dest": {
+            "fila": 12,
+            "col": 5
+          },
+          "score": 14679
+        }
+      ]
+    }
+  },
+  {
+    "pos": 7,
+    "huella": {
+      "top5": [
+        {
+          "piezaId": "v-portero",
+          "dest": {
+            "fila": 13,
+            "col": 7
+          },
+          "score": -6506
+        },
+        {
+          "piezaId": "v-portero",
+          "dest": {
+            "fila": 12,
+            "col": 8
+          },
+          "score": -7084
+        },
+        {
+          "piezaId": "v-portero",
+          "dest": {
+            "fila": 12,
+            "col": 9
+          },
+          "score": -7084
+        },
+        {
+          "piezaId": "v-portero",
+          "dest": {
+            "fila": 11,
+            "col": 9
+          },
+          "score": -7084
+        },
+        {
+          "piezaId": "v-j4",
+          "dest": {
+            "fila": 10,
+            "col": 8
+          },
+          "score": -7084
+        }
+      ]
+    }
+  },
+  {
+    "pos": 8,
+    "huella": {
+      "top5": [
+        {
+          "piezaId": "v-j2",
+          "dest": {
+            "fila": 7,
+            "col": 8
+          },
+          "score": 6677
+        },
+        {
+          "piezaId": "v-j2",
+          "dest": {
+            "fila": 11,
+            "col": 10
+          },
+          "score": 5672
+        },
+        {
+          "piezaId": "v-j2",
+          "dest": {
+            "fila": 10,
+            "col": 9
+          },
+          "score": 5596
+        },
+        {
+          "piezaId": "v-j2",
+          "dest": {
+            "fila": 11,
+            "col": 8
+          },
+          "score": 5445
+        },
+        {
+          "piezaId": "v-j2",
+          "dest": {
+            "fila": 10,
+            "col": 11
+          },
+          "score": 5141
         }
       ]
     }

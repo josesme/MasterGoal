@@ -842,7 +842,22 @@ function iaBestBallSequence(f, c, movRestantes, alpha, beta) {
         : iaSimularMejorTurnoLocal();
       resultado = { score: scoreTrasTurnoLocal + penalExposicion, seq: [d] };
     } else {
-      resultado = { score: scoreAqui + penalExposicion + bonusLineasPostPase, seq: [d] };
+      // Nodo hoja: el criterio depende de si mantenemos posesión.
+      // Con posesión: lo único que importa es qué tan poco puede hacer el local
+      // desde ahí. iaEvaluarEstado() mide "mis piezas cerca del balón" — pero
+      // si el local recupera esas mismas piezas cercanas son un problema, no
+      // una ventaja. Usamos -iaSimularMejorTurnoLocal(2) como score principal
+      // y sumamos un bonus menor de iaEvaluarEstado para no ignorar del todo
+      // la posición propia (líneas de tiro abiertas, avance, etc.).
+      // Sin posesión: ya aplica penalExposicion, seguimos con scoreAqui.
+      let scoreHoja;
+      if (sigueVisitante) {
+        const amenazaRival = iaSimularMejorTurnoLocal(2);
+        scoreHoja = -amenazaRival + scoreAqui * 0.3 + bonusLineasPostPase;
+      } else {
+        scoreHoja = scoreAqui + penalExposicion + bonusLineasPostPase;
+      }
+      resultado = { score: scoreHoja, seq: [d] };
     }
     estado.fichas.balon.fila = f; estado.fichas.balon.col = c;
     estado.ultimoPasador = oldPasador;
@@ -1044,6 +1059,68 @@ function iaJugadoresLocalesPorPeligro() {
     .sort((a, b) => b.fila - a.fila);
 }
 
+// Devuelve el conjunto de posiciones de jugadores locales que pueden recibir el
+// balón dentro de la secuencia de pases del turno local (hasta 4 pases de hasta
+// 4 casillas en diagonal/recto). Se hace un BFS sobre los destinos de balón
+// desde la posición actual, simulando el turno del local (estado.turno='local'),
+// hasta profundidad `maxPases`. Un jugador local "alcanzable" es aquel que
+// resultaría colindante al balón en alguna casilla alcanzable (puede recibir).
+// Devuelve un Set de strings "fila,col" de esas posiciones.
+function iaJugadoresLocalesAlcanzablesPorBalon(balonF, balonC, maxPases = 4) {
+  const posicionesAlcanzables = new Set(); // casillas donde puede llegar el balón
+  const cola = [{ f: balonF, c: balonC, prof: 0 }];
+  const visitadas = new Set();
+  visitadas.add(balonF + ',' + balonC);
+
+  const oldTurno = estado.turno;
+  const oldMovs  = estado.movimientosBalon;
+  const oldBalonF = estado.fichas.balon.fila;
+  const oldBalonC = estado.fichas.balon.col;
+  estado.turno = 'local';
+
+  while (cola.length > 0) {
+    const { f, c, prof } = cola.shift();
+    if (prof >= maxPases) continue;
+    estado.fichas.balon.fila = f; estado.fichas.balon.col = c;
+    estado.movimientosBalon = prof;
+    const dests = obtenerDestinosBalon(f, c);
+    for (const d of dests) {
+      const key = d.fila + ',' + d.col;
+      posicionesAlcanzables.add(key);
+      if (!visitadas.has(key)) {
+        visitadas.add(key);
+        // Comprobar si el local mantiene posesión para seguir la cadena
+        estado.fichas.balon.fila = d.fila; estado.fichas.balon.col = d.col;
+        estado.movimientosBalon = prof + 1;
+        if (equipoTienePosesion('local')) {
+          cola.push({ f: d.fila, c: d.col, prof: prof + 1 });
+        }
+        estado.fichas.balon.fila = f; estado.fichas.balon.col = c;
+        estado.movimientosBalon = prof;
+      }
+    }
+  }
+
+  estado.turno = oldTurno;
+  estado.movimientosBalon = oldMovs;
+  estado.fichas.balon.fila = oldBalonF;
+  estado.fichas.balon.col  = oldBalonC;
+
+  // Qué jugadores locales están colindantes a alguna casilla alcanzable
+  const jugadoresEnPeligro = new Set();
+  for (const [id, d] of fichasEntries()) {
+    if (id === 'balon' || d.equipo !== 'local') continue;
+    for (const key of posicionesAlcanzables) {
+      const [kf, kc] = key.split(',').map(Number);
+      if (Math.abs(d.fila - kf) <= 1 && Math.abs(d.col - kc) <= 1) {
+        jugadoresEnPeligro.add(d.fila + ',' + d.col);
+        break;
+      }
+    }
+  }
+  return jugadoresEnPeligro;
+}
+
 // ====== LIBRO DE APERTURAS ══════════════════════════════════════════════════
 // Jugadas predefinidas para posiciones reconocibles (p.ej. saque de centro), que
 // la IA siempre resolvería igual pero a un coste enorme (el saque de centro son
@@ -1233,6 +1310,24 @@ function calcularDecisionJugador() {
       // Amplitud reducida (3): se llama por cada candidato defensivo; mantener
       // profundidad 4 (detecta el gol) con menos ramas para que sea viable.
       s = iaSimularMejorTurnoLocal(3);
+      // Desempate por destinos de balón bloqueados: aplica cuando la pieza
+      // NO bloquea el gol (s <= -100000). Desempata entre candidatos igualmente
+      // malos por cuántas rutas cortan, proximidad al arco y al balón.
+      // Nota: si s > -100000 la pieza SÍ bloquea el gol — su score real refleja
+      // la mejora, no hay que anclarlo a amenazaBase (bug T7V: el tiebreaker
+      // del caso B convertía portero→12,8 de -7108 a ~-518000, peor que los
+      // candidatos de campo con -502000 que no bloqueaban).
+      if (s <= -100000) {
+        const destsBalon = obtenerDestinosBalon(balonF, balonC);
+        const bonusDests = (8 - destsBalon.length) * 1500;
+        // Tiebreaker 1: proximidad a portería propia (visitante en fila 14, col 6).
+        const distPorteria = Math.max(Math.abs(df - 14), Math.abs(dc - 6));
+        const penalDist = distPorteria * 500;
+        // Tiebreaker 2: proximidad al balón — estar cerca permite interceptar.
+        const distBalon = Math.max(Math.abs(df - balonF), Math.abs(dc - balonC));
+        const bonusBalon = Math.max(0, 5 - distBalon) * 200;
+        s += bonusDests - penalDist + bonusBalon;
+      }
     }
     estado.fichas[piezaId].fila = oF; estado.fichas[piezaId].col = oC;
     return s;
@@ -1254,10 +1349,60 @@ function calcularDecisionJugador() {
     return v;
   };
 
-  for (const pieza of piezasIA) {
-    // Límite de tiempo: si ya tenemos candidatos y se agotó el reloj, parar de
-    // explorar más piezas y quedarnos con lo mejor encontrado. (El estado está
-    // restaurado aquí: cada iteración de destino restaura la pieza al terminar.)
+  // En defensa crítica: además de defender colindando al balón, también es
+  // relevante marcar a jugadores locales que pueden recibir el balón en la
+  // secuencia de pases del turno (hasta 4 pases × 4 casillas). Un visitante
+  // que se coloca colindante a ese receptor amenazado rompe la jugada de gol.
+  // Se calcula una sola vez porque las posiciones de fichas no cambian aquí.
+  const posicionesLocalPeligro = defensaCritica
+    ? iaJugadoresLocalesAlcanzablesPorBalon(balonF, balonC)
+    : null;
+
+  // En defensa crítica, evaluar primero los jugadores de campo que PUEDEN ganar
+  // posesión en este turno (los candidatos más valiosos defensivamente), luego el
+  // resto de jugadores de campo, y el portero al final cuando hay campo que puede
+  // recuperar. Esto evita que evaluarDefensaRealCache del portero o de piezas sin
+  // opción de posesión consuma el tiempo antes de llegar al candidato correcto.
+  let piezasOrdenadas;
+  if (campoPuedeRecuperarBalon) {
+    // Si un jugador de campo puede tomar posesión, evaluarlo antes que el portero.
+    // El portero va primero por orden de objeto y consume el tiempo disponible,
+    // dejando a los jugadores de campo sin evaluar (bug T36V y equivalentes).
+    const puedeGanarPosesion = (p) => {
+      if (esPortero(p.id)) return false;
+      const ds = obtenerDestinosJugador(p.fila, p.col, 'visitante')
+        .filter(d => !estaOcupada(d.fila, d.col, p.id) &&
+                     Math.abs(d.fila - balonF) <= 1 && Math.abs(d.col - balonC) <= 1);
+      for (const d of ds) {
+        const of = p.fila, oc = p.col;
+        estado.fichas[p.id].fila = d.fila; estado.fichas[p.id].col = d.col;
+        const gana = equipoTienePosesion('visitante') && !equipoTienePosesion('local');
+        estado.fichas[p.id].fila = of; estado.fichas[p.id].col = oc;
+        if (gana) return true;
+      }
+      return false;
+    };
+    const campo = piezasIA.filter(p => !esPortero(p.id));
+    piezasOrdenadas = [
+      ...campo.filter(puedeGanarPosesion),
+      ...campo.filter(p => !puedeGanarPosesion(p)),
+      ...piezasIA.filter(p => esPortero(p.id)),
+    ];
+  } else {
+    piezasOrdenadas = piezasIA;
+  }
+
+  // En defensa crítica el portero siempre se evalúa primero: puede ser la única
+  // pieza que bloquea el gol (bug T7V: portero→12,8 corta el gol pero se evaluaba
+  // tarde porque los jugadores de campo consumían el tiempo con scores -502000).
+  if (defensaCritica) {
+    const portero = piezasOrdenadas.find(p => esPortero(p.id));
+    const campo = piezasOrdenadas.filter(p => !esPortero(p.id));
+    piezasOrdenadas = portero ? [portero, ...campo] : campo;
+  }
+
+  for (const pieza of piezasOrdenadas) {
+    // Límite de tiempo: si ya tenemos candidatos y se agotó el reloj, parar.
     if (candidatos.length > 0 && tiempoAgotado()) break;
     const esPorteroIA = esPortero(pieza.id);
     const destinos = obtenerDestinosJugador(pieza.fila, pieza.col, 'visitante')
@@ -1273,6 +1418,19 @@ function calcularDecisionJugador() {
       for (const dest of destinos) {
         let score = 0;
         const enAreaGrande = dest.fila >= 9 && dest.fila <= 13 && dest.col >= 2 && dest.col <= 10;
+        // DEFENSA CRÍTICA: sobreescribir score del portero con amenaza residual real,
+        // independientemente de si hay amenaza de gol directa detectada. Antes solo
+        // se aplicaba dentro del bloque hayAmenazaGol, así que con balón lejos (fila
+        // 1-8) el portero caía en balonLejos y nunca usaba evaluarDefensaRealCache
+        // (bug T7V: portero→12,8 corta el gol pero recibía score de posicionamiento
+        // en vez de la amenaza real -7108).
+        if (defensaCritica) {
+          score = enAreaGrande
+            ? evaluarDefensaRealCache(pieza.id, dest.fila, dest.col)
+            : amenazaBaseSinIntervenir - 5000;
+          candidatos.push({ piezaId: pieza.id, dest, score });
+          continue;
+        }
         if (!enAreaGrande) { score -= 5000; }
         else if (hayAmenazaGol) {
           // Antes de bloquear: comprobar si el portero puede ganar posesión.
@@ -1382,14 +1540,6 @@ function calcularDecisionJugador() {
         score += lineasCortadas * 600;
 
         // DEFENSA CRÍTICA: sobreescribir con amenaza residual real. El portero
-        // dentro del área grande es candidato relevante (puede recuperar o tapar);
-        // fuera del área no defiende, recibe la amenaza base (misma escala).
-        if (defensaCritica) {
-          score = enAreaGrande
-            ? evaluarDefensaRealCache(pieza.id, dest.fila, dest.col)
-            : amenazaBaseSinIntervenir - 5000; // fuera del área: aún peor
-        }
-
         // COSTE DE SACAR AL PORTERO A DISPUTAR: salir de la zona de protección
         // para disputar un balón que el rival también disputa descoloca la portería
         // y la deja vulnerable. Si un JUGADOR DE CAMPO puede recuperar ese mismo
@@ -1412,8 +1562,9 @@ function calcularDecisionJugador() {
 
     // ── JUGADORES DE CAMPO ────────────────────────────────────────────────────
 
-    // Preordenar destinos: si no hay posesión, priorizar los más cercanos al balón;
-    // si hay posesión, priorizar los que ya son colindantes o que más avanzan.
+    // Preordenar destinos: en defensa crítica usar el pre-score (amplitud 1) para
+    // priorizar los destinos que realmente reducen la amenaza. En otros casos,
+    // priorizar los más cercanos al balón o los que más avanzan.
     const destsOrdenados = destinos.slice().sort((a, b) => {
       if (!visitanteTienePosesion) {
         return iaDistancia(a.fila, a.col, balonF, balonC) - iaDistancia(b.fila, b.col, balonF, balonC);
@@ -1565,11 +1716,20 @@ function calcularDecisionJugador() {
       }
 
       // DEFENSA CRÍTICA: para jugadores de campo, sobreescribir con amenaza
-      // residual real. Los candidatos colindantes al balón (pueden romper la
-      // mayoría local) se evalúan de verdad; el resto recibe la amenaza base
-      // (no intervienen en la disputa) para mantener todos en la misma escala.
+      // residual real. Se evalúan con simulación completa dos tipos de candidatos:
+      // 1) los colindantes al balón (pueden romper la mayoría local directamente),
+      // 2) los que se colocan colindantes a un jugador local que puede recibir el
+      //    balón en la secuencia de pases (marcar al receptor amenazado).
+      // El resto recibe la amenaza base (no intervienen relevantemente).
       if (defensaCritica) {
-        scoreTotal = esColindanteDest
+        const marcaReceptorPeligroso = posicionesLocalPeligro && (() => {
+          for (const posKey of posicionesLocalPeligro) {
+            const [pf, pc] = posKey.split(',').map(Number);
+            if (Math.abs(dest.fila - pf) <= 1 && Math.abs(dest.col - pc) <= 1) return true;
+          }
+          return false;
+        })();
+        scoreTotal = (esColindanteDest || marcaReceptorPeligroso)
           ? evaluarDefensaRealCache(pieza.id, dest.fila, dest.col)
           : amenazaBaseSinIntervenir;
       }
